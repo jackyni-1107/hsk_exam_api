@@ -14,6 +14,8 @@ type ExamAttempt struct {
 	MemberId               int64       `json:"member_id"                 orm:"member_id"                 description:"sys_member.id"`                                   // sys_member.id
 	ExamPaperId            int64       `json:"exam_paper_id"             orm:"exam_paper_id"             description:"exam_paper.id"`                                   // exam_paper.id
 	MockExaminationPaperId int64       `json:"mock_examination_paper_id" orm:"mock_examination_paper_id" description:"冗余 mock_examination_paper.id"`                    // 冗余 mock_examination_paper.id
+	ExamBatchId            int64       `json:"exam_batch_id"             orm:"exam_batch_id"             description:"exam_batch.id，0=历史非批次"`                           // exam_batch.id，0=历史非批次
+	MockLevelId            int64       `json:"mock_level_id"             orm:"mock_level_id"             description:"mock_levels.id，0=历史非批次"`                          // mock_levels.id，0=历史非批次
 	Status                 int         `json:"status"                    orm:"status"                    description:"1=not_started 2=in_progress 3=submitted 4=ended"` // 1=not_started 2=in_progress 3=submitted 4=ended
 	DurationSeconds        int         `json:"duration_seconds"          orm:"duration_seconds"          description:"开考时快照时长秒"`                                        // 开考时快照时长秒
 	StartedAt              *gtime.Time `json:"started_at"                orm:"started_at"                description:"开考时间"`                                            // 开考时间

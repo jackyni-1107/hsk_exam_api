@@ -16,6 +16,8 @@ type ExamResult struct {
 	MemberId               any         // sys_member.id
 	ExamPaperId            any         // exam_paper.id
 	MockExaminationPaperId any         // 冗余 mock_examination_paper.id
+	ExamBatchId            any         // 冗余 exam_batch.id
+	MockLevelId            any         // 冗余 mock_levels.id
 	Status                 any         // 与 exam_attempt.status，列表阶段为已结束 4
 	ObjectiveScore         any         //
 	SubjectiveScore        any         //

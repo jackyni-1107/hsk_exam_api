@@ -11,6 +11,7 @@ type IExam interface {
 	// PaperSectionForExam 响应体与 topic JSON（如 pt.json）根结构一致，为 map 序列化结果。
 	PaperSectionForExam(ctx context.Context, req *v1.PaperSectionForExamReq) (res map[string]interface{}, err error)
 	AttemptCreate(ctx context.Context, req *v1.AttemptCreateReq) (res *v1.AttemptCreateRes, err error)
+	AttemptCreateByBatch(ctx context.Context, req *v1.AttemptCreateByBatchReq) (res *v1.AttemptCreateRes, err error)
 	AttemptStart(ctx context.Context, req *v1.AttemptStartReq) (res *v1.AttemptStartRes, err error)
 	AttemptGet(ctx context.Context, req *v1.AttemptGetReq) (res *v1.AttemptGetRes, err error)
 	AttemptSaveAnswers(ctx context.Context, req *v1.AttemptSaveAnswersReq) (res *v1.AttemptSaveAnswersRes, err error)

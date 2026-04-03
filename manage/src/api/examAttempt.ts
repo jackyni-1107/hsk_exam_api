@@ -2,10 +2,12 @@ import request from './request'
 
 export interface AttemptListItem {
   id: number
-  client_user_id: number
+  member_id: number
   username: string
   nickname: string
   examination_paper_id: number
+  exam_batch_id: number
+  mock_level_id: number
   paper_title: string
   paper_level: string
   remote_paper_id: string
@@ -47,7 +49,7 @@ export interface AttemptDetailOption {
 export interface AttemptDetail {
   attempt: {
     id: number
-    client_user_id: number
+    member_id: number
     examination_paper_id: number
     status: number
     duration_seconds: number
@@ -71,6 +73,7 @@ export function getAttemptList(params: {
   size?: number
   level?: string
   examination_paper_id?: number
+  exam_batch_id?: number
   status?: number
   username?: string
 }) {

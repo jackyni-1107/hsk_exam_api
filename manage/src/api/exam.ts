@@ -175,15 +175,19 @@ export function deleteExamBatch(id: number) {
 
 export interface ExamBatchMemberItem {
   member_id: number
+  mock_level_id: number
   username: string
   nickname: string
   import_time: string
 }
 
-export function importExamBatchMembers(batchId: number, member_ids: number[]) {
+export function importExamBatchMembers(
+  batchId: number,
+  data: { mock_level_id: number; member_ids: number[] },
+) {
   return request.post<any, { data: { inserted: number } }>(
     `/admin/exam/batch/${batchId}/members/import`,
-    { member_ids }
+    data,
   )
 }
 
@@ -194,9 +198,12 @@ export function getExamBatchMemberList(batchId: number, params?: { page?: number
   )
 }
 
-export function removeExamBatchMembers(batchId: number, member_ids: number[]) {
+export function removeExamBatchMembers(
+  batchId: number,
+  data: { mock_level_id: number; member_ids: number[] },
+) {
   return request.post<any, { data: { removed: number } }>(
     `/admin/exam/batch/${batchId}/members/remove`,
-    { member_ids }
+    data,
   )
 }

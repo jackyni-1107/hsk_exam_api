@@ -36,6 +36,8 @@ type AttemptAdminListRow struct {
 	PaperTitle         string      `json:"paper_title"`
 	PaperLevel         string      `json:"paper_level"`
 	RemotePaperId      string      `json:"remote_paper_id"`
+	ExamBatchId        int64       `json:"exam_batch_id"`
+	MockLevelId        int64       `json:"mock_level_id"`
 }
 
 // AttemptAdminDetailView 管理端会话详情（服务层聚合）。
@@ -54,7 +56,7 @@ type AttemptAdminAnswerRow struct {
 }
 
 // AttemptAdminList 分页查询答题会话（联表学员、试卷）。
-func AttemptAdminList(ctx context.Context, page, size int, level string, examinationPaperId int64, status int, username string) ([]AttemptAdminListRow, int, error) {
+func AttemptAdminList(ctx context.Context, page, size int, level string, examinationPaperId int64, examBatchId int64, status int, username string) ([]AttemptAdminListRow, int, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -71,6 +73,10 @@ func AttemptAdminList(ctx context.Context, page, size int, level string, examina
 	if examinationPaperId > 0 {
 		where.WriteString(" AND p.mock_examination_paper_id = ?")
 		args = append(args, examinationPaperId)
+	}
+	if examBatchId > 0 {
+		where.WriteString(" AND r.exam_batch_id = ?")
+		args = append(args, examBatchId)
 	}
 	if status > 0 {
 		where.WriteString(" AND r.status = ?")
@@ -101,7 +107,8 @@ WHERE ` + w
 		return nil, 0, nil
 	}
 	offset := (page - 1) * size
-	listSQL := `SELECT r.attempt_id AS id, r.member_id, IFNULL(p.mock_examination_paper_id,0) AS examination_paper_id, r.status,
+	listSQL := `SELECT r.attempt_id AS id, r.member_id, IFNULL(p.mock_examination_paper_id,0) AS examination_paper_id,
+IFNULL(r.exam_batch_id,0) AS exam_batch_id, IFNULL(r.mock_level_id,0) AS mock_level_id, r.status,
 r.objective_score, r.subjective_score, r.total_score, r.has_subjective,
 r.started_at, r.submitted_at, r.ended_at, r.create_time,
 IFNULL(u.username,'') AS username, IFNULL(u.nickname,'') AS nickname,

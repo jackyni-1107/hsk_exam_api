@@ -14,6 +14,8 @@ type ExamResult struct {
 	MemberId               int64       `json:"member_id"                 orm:"member_id"                 description:"sys_member.id"`                    // sys_member.id
 	ExamPaperId            int64       `json:"exam_paper_id"             orm:"exam_paper_id"             description:"exam_paper.id"`                    // exam_paper.id
 	MockExaminationPaperId int64       `json:"mock_examination_paper_id" orm:"mock_examination_paper_id" description:"冗余 mock_examination_paper.id"`     // 冗余 mock_examination_paper.id
+	ExamBatchId            int64       `json:"exam_batch_id"             orm:"exam_batch_id"             description:"冗余 exam_batch.id"`                 // 冗余 exam_batch.id
+	MockLevelId            int64       `json:"mock_level_id"             orm:"mock_level_id"             description:"冗余 mock_levels.id"`                // 冗余 mock_levels.id
 	Status                 int         `json:"status"                    orm:"status"                    description:"与 exam_attempt.status，列表阶段为已结束 4"` // 与 exam_attempt.status，列表阶段为已结束 4
 	ObjectiveScore         float64     `json:"objective_score"           orm:"objective_score"           description:""`                                 //
 	SubjectiveScore        float64     `json:"subjective_score"          orm:"subjective_score"          description:""`                                 //

@@ -25,6 +25,15 @@
             />
           </el-select>
         </el-form-item>
+        <el-form-item label="批次ID">
+          <el-input-number
+            v-model="query.exam_batch_id"
+            :min="0"
+            :controls="false"
+            placeholder="0=不限"
+            style="width: 120px"
+          />
+        </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="query.status" clearable placeholder="全部" style="width: 140px">
             <el-option label="全部" :value="0" />
@@ -46,6 +55,8 @@
         <el-table-column prop="nickname" label="昵称" width="100" show-overflow-tooltip />
         <el-table-column prop="paper_title" label="试卷" min-width="160" show-overflow-tooltip />
         <el-table-column prop="paper_level" label="级别" width="80" />
+        <el-table-column prop="exam_batch_id" label="批次" width="88" align="right" />
+        <el-table-column prop="mock_level_id" label="等级" width="88" align="right" />
         <el-table-column label="状态" width="88">
           <template #default="{ row }">
             {{ statusText(row.status) }}
@@ -194,6 +205,7 @@ const query = reactive({
   level: '',
   status: 0 as number,
   examination_paper_id: 0 as number,
+  exam_batch_id: 0 as number,
 })
 
 const paperSel = ref<number | undefined>(undefined)
@@ -263,6 +275,7 @@ async function loadList() {
       username: query.username || undefined,
       level: query.level || undefined,
       examination_paper_id: query.examination_paper_id || undefined,
+      exam_batch_id: query.exam_batch_id > 0 ? query.exam_batch_id : undefined,
       status: query.status || undefined,
     })) as { data?: { list?: AttemptListItem[]; total?: number } }
     rows.value = res?.data?.list ?? []
@@ -278,6 +291,7 @@ function resetQuery() {
   query.username = ''
   query.level = ''
   query.status = 0
+  query.exam_batch_id = 0
   paperSel.value = undefined
   loadList()
 }

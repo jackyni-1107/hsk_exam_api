@@ -9,7 +9,7 @@ import (
 )
 
 func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) (res *v1.AttemptListRes, err error) {
-	rows, total, err := exam.AttemptAdminList(ctx, req.Page, req.Size, req.Level, req.ExaminationPaperId, req.Status, req.Username)
+	rows, total, err := exam.AttemptAdminList(ctx, req.Page, req.Size, req.Level, req.ExaminationPaperId, req.ExamBatchId, req.Status, req.Username)
 	if err != nil {
 		return nil, err
 	}
@@ -21,6 +21,8 @@ func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) 
 			Username:           r.Username,
 			Nickname:           r.Nickname,
 			ExaminationPaperId: r.ExaminationPaperId,
+			ExamBatchId:        r.ExamBatchId,
+			MockLevelId:        r.MockLevelId,
 			PaperTitle:         r.PaperTitle,
 			PaperLevel:         r.PaperLevel,
 			RemotePaperId:      r.RemotePaperId,

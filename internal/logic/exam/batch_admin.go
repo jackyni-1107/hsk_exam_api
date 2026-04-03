@@ -44,6 +44,20 @@ func parseBatchTime(s string) (*gtime.Time, error) {
 	return t, nil
 }
 
+func (s *sExam) ensureMockLevelInBatch(ctx context.Context, batchID, mockLevelID int64) error {
+	if mockLevelID <= 0 {
+		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+	}
+	c, err := dao.ExamBatchMockLevel.Ctx(ctx).Where("batch_id", batchID).Where("mock_level_id", mockLevelID).Count()
+	if err != nil {
+		return err
+	}
+	if c == 0 {
+		return gerror.NewCode(consts.CodeExamBatchLevelNotInBatch, "")
+	}
+	return nil
+}
+
 func (s *sExam) ensureMockLevelsExist(ctx context.Context, ids []int64) error {
 	if len(ids) == 0 {
 		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
@@ -327,9 +341,12 @@ func (s *sExam) ExamBatchDelete(ctx context.Context, id int64) error {
 	return err
 }
 
-// ExamBatchMembersImport 导入学员；已存在主键则跳过。
-func (s *sExam) ExamBatchMembersImport(ctx context.Context, batchID int64, memberIDs []int64, creator string) (inserted int, err error) {
+// ExamBatchMembersImport 导入学员（指定批次内等级）；已存在 (batch,member,level) 则跳过。
+func (s *sExam) ExamBatchMembersImport(ctx context.Context, batchID int64, mockLevelID int64, memberIDs []int64, creator string) (inserted int, err error) {
 	if _, err := s.examBatchByID(ctx, batchID); err != nil {
+		return 0, err
+	}
+	if err := s.ensureMockLevelInBatch(ctx, batchID, mockLevelID); err != nil {
 		return 0, err
 	}
 	ids := dedupPositiveInt64(memberIDs)
@@ -342,7 +359,7 @@ func (s *sExam) ExamBatchMembersImport(ctx context.Context, batchID int64, membe
 	var existing []struct {
 		MemberId int64 `orm:"member_id"`
 	}
-	if err := dao.ExamBatchMember.Ctx(ctx).Fields("member_id").Where("batch_id", batchID).WhereIn("member_id", ids).Scan(&existing); err != nil {
+	if err := dao.ExamBatchMember.Ctx(ctx).Fields("member_id").Where("batch_id", batchID).Where("mock_level_id", mockLevelID).WhereIn("member_id", ids).Scan(&existing); err != nil {
 		return 0, err
 	}
 	have := make(map[int64]struct{}, len(existing))
@@ -363,10 +380,11 @@ func (s *sExam) ExamBatchMembersImport(ctx context.Context, batchID int64, membe
 	rows := make([]gdb.Map, 0, len(toAdd))
 	for _, mid := range toAdd {
 		rows = append(rows, gdb.Map{
-			dao.ExamBatchMember.Columns().BatchId:    batchID,
-			dao.ExamBatchMember.Columns().MemberId:   mid,
-			dao.ExamBatchMember.Columns().Creator:    creator,
-			dao.ExamBatchMember.Columns().CreateTime: now,
+			dao.ExamBatchMember.Columns().BatchId:     batchID,
+			dao.ExamBatchMember.Columns().MemberId:    mid,
+			dao.ExamBatchMember.Columns().MockLevelId: mockLevelID,
+			dao.ExamBatchMember.Columns().Creator:     creator,
+			dao.ExamBatchMember.Columns().CreateTime:  now,
 		})
 	}
 	_, err = dao.ExamBatchMember.Ctx(ctx).Data(rows).Insert()
@@ -400,10 +418,14 @@ func (s *sExam) ExamBatchMemberList(ctx context.Context, batchID int64, page, si
 		return []bo.ExamBatchMemberAdminRow{}, total, nil
 	}
 	memberIDs := make([]int64, len(links))
-	linkTime := make(map[int64]*gtime.Time, len(links))
+	type linkKey struct {
+		mid int64
+		lid int64
+	}
+	linkTime := make(map[linkKey]*gtime.Time, len(links))
 	for i, l := range links {
 		memberIDs[i] = l.MemberId
-		linkTime[l.MemberId] = l.CreateTime
+		linkTime[linkKey{l.MemberId, l.MockLevelId}] = l.CreateTime
 	}
 	var users []entity.SystemMember
 	if err = dao.SysMember.Ctx(ctx).WhereIn("id", memberIDs).Scan(&users); err != nil {
@@ -417,25 +439,29 @@ func (s *sExam) ExamBatchMemberList(ctx context.Context, batchID int64, page, si
 	for _, l := range links {
 		u := um[l.MemberId]
 		list = append(list, bo.ExamBatchMemberAdminRow{
-			MemberId:   l.MemberId,
-			Username:   u.Username,
-			Nickname:   u.Nickname,
-			ImportTime: linkTime[l.MemberId],
+			MemberId:    l.MemberId,
+			MockLevelId: l.MockLevelId,
+			Username:    u.Username,
+			Nickname:    u.Nickname,
+			ImportTime:  linkTime[linkKey{l.MemberId, l.MockLevelId}],
 		})
 	}
 	return list, total, nil
 }
 
-// ExamBatchMembersRemove 从批次移除学员。
-func (s *sExam) ExamBatchMembersRemove(ctx context.Context, batchID int64, memberIDs []int64) (removed int, err error) {
+// ExamBatchMembersRemove 从批次移除学员（指定 mock_level_id）。
+func (s *sExam) ExamBatchMembersRemove(ctx context.Context, batchID int64, mockLevelID int64, memberIDs []int64) (removed int, err error) {
 	if _, err := s.examBatchByID(ctx, batchID); err != nil {
 		return 0, err
+	}
+	if mockLevelID <= 0 {
+		return 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 	}
 	ids := dedupPositiveInt64(memberIDs)
 	if len(ids) == 0 {
 		return 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 	}
-	r, err := dao.ExamBatchMember.Ctx(ctx).Where("batch_id", batchID).WhereIn("member_id", ids).Delete()
+	r, err := dao.ExamBatchMember.Ctx(ctx).Where("batch_id", batchID).Where("mock_level_id", mockLevelID).WhereIn("member_id", ids).Delete()
 	if err != nil {
 		return 0, err
 	}

@@ -9,8 +9,10 @@ import (
 // AttemptAdminListRow 管理端会话列表行（与 Raw 列别名一致）。
 type AttemptAdminListRow struct {
 	Id                 int64       `json:"id"`
-	ClientUserId       int64       `json:"member_id"`
+	MemberId           int64       `json:"member_id" orm:"member_id"`
 	ExaminationPaperId int64       `json:"examination_paper_id"`
+	ExamBatchId        int64       `json:"exam_batch_id"`
+	MockLevelId        int64       `json:"mock_level_id"`
 	Status             int         `json:"status"`
 	ObjectiveScore     float64     `json:"objective_score"`
 	SubjectiveScore    float64     `json:"subjective_score"`

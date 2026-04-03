@@ -10,6 +10,7 @@ type MyExamBatchItem struct {
 	PaperTitle             string      `json:"paper_title"`
 	ExamStartAt            *gtime.Time `json:"exam_start_at"`
 	ExamEndAt              *gtime.Time `json:"exam_end_at"`
+	MockLevelId            int64       `json:"mock_level_id"` // 本行报名等级 exam_batch_member.mock_level_id
 	MockLevelIds           []int64     `json:"mock_level_ids"`
 	WindowStatus           string      `json:"window_status"` // upcoming | open | closed
 }

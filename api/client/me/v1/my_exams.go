@@ -20,6 +20,7 @@ type MyExamBatchItem struct {
 	PaperTitle             string  `json:"paper_title"`
 	ExamStartAt            string  `json:"exam_start_at"`
 	ExamEndAt              string  `json:"exam_end_at"`
+	MockLevelId            int64   `json:"mock_level_id" dc:"本行报名等级 mock_levels.id"`
 	MockLevelIds           []int64 `json:"mock_level_ids"`
 	WindowStatus           string  `json:"window_status" dc:"upcoming=未开始 open=进行中 closed=已结束或未开放"`
 }

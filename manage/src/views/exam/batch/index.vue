@@ -118,6 +118,23 @@
     <el-drawer v-model="memberDrawer" title="批次成员" size="min(640px, 92vw)" destroy-on-close @opened="loadMemberList">
       <template v-if="currentBatch">
         <p class="hint">批次 #{{ currentBatch.id }} · {{ currentBatch.title || '（无标题）' }}</p>
+        <el-form :inline="true" class="mb">
+          <el-form-item label="导入等级" required>
+            <el-select
+              v-model="importMockLevelId"
+              placeholder="mock_levels.id"
+              style="width: 220px"
+              filterable
+            >
+              <el-option
+                v-for="id in currentBatch.mock_level_ids || []"
+                :key="id"
+                :label="`${id}`"
+                :value="id"
+              />
+            </el-select>
+          </el-form-item>
+        </el-form>
         <el-space wrap class="mb">
           <el-input
             v-model="importIdsText"
@@ -148,12 +165,13 @@
         </el-table>
         <el-table v-loading="memberLoading" :data="memberRows" border size="small">
           <el-table-column prop="member_id" label="会员ID" width="88" />
+          <el-table-column prop="mock_level_id" label="等级ID" width="88" />
           <el-table-column prop="username" label="账号" />
           <el-table-column prop="nickname" label="昵称" />
           <el-table-column prop="import_time" label="导入时间" width="172" />
           <el-table-column label="" width="88">
             <template #default="{ row }">
-              <el-button link type="danger" @click="removeOne(row.member_id)">移除</el-button>
+              <el-button link type="danger" @click="removeOne(row)">移除</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -334,6 +352,7 @@ const memberRows = ref<ExamBatchMemberItem[]>([])
 const memberTotal = ref(0)
 const memberQuery = reactive({ page: 1, size: 10 })
 const importIdsText = ref('')
+const importMockLevelId = ref(0)
 const importing = ref(false)
 const pickMembers = ref<MemberItem[]>([])
 
@@ -341,6 +360,7 @@ function openMembers(row: ExamBatchListItem) {
   currentBatch.value = row
   memberQuery.page = 1
   importIdsText.value = ''
+  importMockLevelId.value = row.mock_level_ids?.[0] ?? 0
   pickMembers.value = []
   memberDrawer.value = true
 }
@@ -372,6 +392,10 @@ function parseIdList(text: string): number[] {
 
 async function doImport() {
   if (!currentBatch.value) return
+  if (!importMockLevelId.value) {
+    ElMessage.warning('请选择导入等级')
+    return
+  }
   const ids = parseIdList(importIdsText.value)
   if (!ids.length) {
     ElMessage.warning('请输入有效的会员 ID')
@@ -379,7 +403,10 @@ async function doImport() {
   }
   importing.value = true
   try {
-    const res = await importExamBatchMembers(currentBatch.value.id, ids)
+    const res = await importExamBatchMembers(currentBatch.value.id, {
+      mock_level_id: importMockLevelId.value,
+      member_ids: ids,
+    })
     ElMessage.success(`已导入 ${res.data?.inserted ?? 0} 人`)
     importIdsText.value = ''
     loadMemberList()
@@ -389,10 +416,13 @@ async function doImport() {
   }
 }
 
-async function removeOne(memberId: number) {
+async function removeOne(row: ExamBatchMemberItem) {
   if (!currentBatch.value) return
   await ElMessageBox.confirm('从批次中移除该学员？', '确认', { type: 'warning' })
-  await removeExamBatchMembers(currentBatch.value.id, [memberId])
+  await removeExamBatchMembers(currentBatch.value.id, {
+    mock_level_id: row.mock_level_id,
+    member_ids: [row.member_id],
+  })
   ElMessage.success('已移除')
   loadMemberList()
   loadList()

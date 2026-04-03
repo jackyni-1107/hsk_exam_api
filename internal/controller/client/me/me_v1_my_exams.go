@@ -36,6 +36,7 @@ func (c *ControllerV1) MyExams(ctx context.Context, req *v1.MyExamsReq) (res *v1
 			PaperTitle:             r.PaperTitle,
 			ExamStartAt:            util.ToRFC3339UTC(r.ExamStartAt),
 			ExamEndAt:              util.ToRFC3339UTC(r.ExamEndAt),
+			MockLevelId:            r.MockLevelId,
 			MockLevelIds:           ids,
 			WindowStatus:           r.WindowStatus,
 		})

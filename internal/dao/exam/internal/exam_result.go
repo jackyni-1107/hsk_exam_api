@@ -25,6 +25,8 @@ type ExamResultColumns struct {
 	MemberId               string // sys_member.id
 	ExamPaperId            string // exam_paper.id
 	MockExaminationPaperId string // 冗余 mock_examination_paper.id
+	ExamBatchId            string // 冗余 exam_batch.id
+	MockLevelId            string // 冗余 mock_levels.id
 	Status                 string // 与 exam_attempt.status，列表阶段为已结束 4
 	ObjectiveScore         string //
 	SubjectiveScore        string //
@@ -44,6 +46,8 @@ var examResultColumns = ExamResultColumns{
 	MemberId:               "member_id",
 	ExamPaperId:            "exam_paper_id",
 	MockExaminationPaperId: "mock_examination_paper_id",
+	ExamBatchId:            "exam_batch_id",
+	MockLevelId:            "mock_level_id",
 	Status:                 "status",
 	ObjectiveScore:         "objective_score",
 	SubjectiveScore:        "subjective_score",

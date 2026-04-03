@@ -13,14 +13,16 @@ import (
 
 type (
 	IExam interface {
-		// AttemptAdminList 分页查询答题会话（联表学员、试卷）。
-		AttemptAdminList(ctx context.Context, page int, size int, level string, examinationPaperId int64, status int, username string) ([]bo.AttemptAdminListRow, int, error)
+		// AttemptAdminList 分页查询答题会话（联表学员、试卷）；examBatchId>0 时按 r.exam_batch_id 筛选。
+		AttemptAdminList(ctx context.Context, page int, size int, level string, examinationPaperId int64, examBatchId int64, status int, username string) ([]bo.AttemptAdminListRow, int, error)
 		// AttemptAdminDetail 按 id 加载会话、学员、试卷及答题明细（含客观题是否选对）。
 		AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.AttemptAdminDetailView, error)
 		// AttemptAdminSaveSubjectiveScores 写入主观题人工分并汇总 subjective_score、total_score（允许部分题目已评）。
 		AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, items []bo.SubjectiveScoreItem) (subjectiveSum float64, totalScore float64, err error)
-		// CreateAttempt 创建会话（未开始）。
+		// CreateAttempt 已废弃，返回 err.exam_attempt_use_batch_api。
 		CreateAttempt(ctx context.Context, userID int64, mockPaperID int64) (int64, error)
+		// CreateAttemptForBatch 按批次与等级创建会话（未开始）。
+		CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, mockLevelID int64) (int64, error)
 		// StartAttempt 开考：进入进行中并写入截止时间。
 		StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDurationSeconds int) error
 		// GetAttempt 查询会话；若已超时仍进行中则自动标记为已交卷（算分由定时任务完成）。
@@ -77,9 +79,9 @@ type (
 		ExamBatchCreate(ctx context.Context, mockPaperID int64, title, examStartAt, examEndAt string, mockLevelIds []int64, creator string) (id int64, err error)
 		ExamBatchUpdate(ctx context.Context, id int64, title, examStartAt, examEndAt string, mockLevelIds []int64, updater string) error
 		ExamBatchDelete(ctx context.Context, id int64) error
-		ExamBatchMembersImport(ctx context.Context, batchID int64, memberIDs []int64, creator string) (inserted int, err error)
+		ExamBatchMembersImport(ctx context.Context, batchID int64, mockLevelID int64, memberIDs []int64, creator string) (inserted int, err error)
 		ExamBatchMemberList(ctx context.Context, batchID int64, page, size int) (list []bo.ExamBatchMemberAdminRow, total int, err error)
-		ExamBatchMembersRemove(ctx context.Context, batchID int64, memberIDs []int64) (removed int, err error)
+		ExamBatchMembersRemove(ctx context.Context, batchID int64, mockLevelID int64, memberIDs []int64) (removed int, err error)
 		// MyExamBatches 学员端：当前会员所在批次 + 试卷信息，分页。
 		MyExamBatches(ctx context.Context, memberID int64, page, size int) (list []bo.MyExamBatchItem, total int, err error)
 		// IssueAudioHlsPlay 校验会话与题目 HLS 配置后写入 Redis 票据，返回相对 play_url。

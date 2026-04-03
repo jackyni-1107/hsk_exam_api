@@ -1,2 +1,3 @@
 1) 全新库：执行 migrations/001_exam_schema.sql（已含 mock_examination_paper_id NOT NULL、子表冗余列与唯一约束）。
 2) 自旧版 001（mock 列可空、无子表冗余）升级：执行 migrations/003_exam_mock_paper_id.sql（执行前须回填 exam_paper.mock_examination_paper_id，且无 NULL）。
+3) 批次成员等级与会话冗余：在 005_exam_batch.sql 之后执行 migrations/007_exam_batch_attempt_member_level.sql（会修改 exam_batch_member 主键并回填 mock_level_id）。

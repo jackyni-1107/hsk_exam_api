@@ -76,6 +76,18 @@ func (c *ControllerV1) AttemptCreate(ctx context.Context, req *v1.AttemptCreateR
 	return &v1.AttemptCreateRes{AttemptId: id}, nil
 }
 
+func (c *ControllerV1) AttemptCreateByBatch(ctx context.Context, req *v1.AttemptCreateByBatchReq) (res *v1.AttemptCreateRes, err error) {
+	ctxData := middleware.GetCtxData(ctx)
+	if ctxData == nil {
+		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+	}
+	id, err := exam.Exam().CreateAttemptForBatch(ctx, ctxData.UserId, req.BatchId, req.MockLevelId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.AttemptCreateRes{AttemptId: id}, nil
+}
+
 func (c *ControllerV1) AttemptStart(ctx context.Context, req *v1.AttemptStartReq) (res *v1.AttemptStartRes, err error) {
 	ctxData := middleware.GetCtxData(ctx)
 	if ctxData == nil {
@@ -101,14 +113,14 @@ func (c *ControllerV1) AttemptGet(ctx context.Context, req *v1.AttemptGetReq) (r
 	out := &v1.AttemptGetRes{
 		Id:                 a.Id,
 		ExaminationPaperId: a.MockExaminationPaperId,
-		Status:          a.Status,
-		DurationSeconds: a.DurationSeconds,
-		ObjectiveScore:  a.ObjectiveScore,
-		SubjectiveScore: a.SubjectiveScore,
-		TotalScore:      a.TotalScore,
-		HasSubjective:   a.HasSubjective,
-		ServerTime:      v.ServerTime,
-		DeadlineReached: v.DeadlineReached,
+		Status:             a.Status,
+		DurationSeconds:    a.DurationSeconds,
+		ObjectiveScore:     a.ObjectiveScore,
+		SubjectiveScore:    a.SubjectiveScore,
+		TotalScore:         a.TotalScore,
+		HasSubjective:      a.HasSubjective,
+		ServerTime:         v.ServerTime,
+		DeadlineReached:    v.DeadlineReached,
 	}
 	out.StartedAt = util.ToRFC3339UTCPtr(a.StartedAt)
 	out.DeadlineAt = util.ToRFC3339UTCPtr(a.DeadlineAt)

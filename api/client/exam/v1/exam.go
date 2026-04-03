@@ -58,12 +58,19 @@ type PaperForExamBlockInit struct {
 // --- 会话 ---
 
 type AttemptCreateReq struct {
-	g.Meta  `path:"/exam/papers/{paperId}/attempts" method:"post" tags:"客户端-考试" summary:"创建答题会话（未开始）"`
+	g.Meta  `path:"/exam/papers/{paperId}/attempts" method:"post" tags:"客户端-考试" summary:"已废弃：请使用 POST /exam/batches/{batchId}/attempts"`
 	PaperId int64 `json:"paperId" in:"path" v:"required|min:1" dc:"mock_examination_paper.id"`
 }
 
 type AttemptCreateRes struct {
 	AttemptId int64 `json:"attempt_id"`
+}
+
+// AttemptCreateByBatchReq 按考试批次与报名等级创建答题会话（未开始）。
+type AttemptCreateByBatchReq struct {
+	g.Meta      `path:"/exam/batches/{batchId}/attempts" method:"post" tags:"客户端-考试" summary:"按批次与等级创建答题会话"`
+	BatchId     int64 `json:"batchId" in:"path" v:"required|min:1" dc:"exam_batch.id"`
+	MockLevelId int64 `json:"mock_level_id" v:"required|min:1" dc:"mock_levels.id，须与 exam_batch_member 行一致"`
 }
 
 type AttemptStartReq struct {
@@ -80,20 +87,20 @@ type AttemptGetReq struct {
 }
 
 type AttemptGetRes struct {
-	Id                 int64 `json:"id"`
-	ExaminationPaperId int64 `json:"examination_paper_id" dc:"mock_examination_paper.id"`
-	Status          int     `json:"status"`
-	DurationSeconds int     `json:"duration_seconds"`
-	StartedAt       *string `json:"started_at"`
-	DeadlineAt      *string `json:"deadline_at"`
-	SubmittedAt     *string `json:"submitted_at"`
-	EndedAt         *string `json:"ended_at"`
-	ObjectiveScore  float64 `json:"objective_score"`
-	SubjectiveScore float64 `json:"subjective_score"`
-	TotalScore      float64 `json:"total_score"`
-	HasSubjective   int     `json:"has_subjective"`
-	ServerTime      string  `json:"server_time"`
-	DeadlineReached bool    `json:"deadline_reached"`
+	Id                 int64   `json:"id"`
+	ExaminationPaperId int64   `json:"examination_paper_id" dc:"mock_examination_paper.id"`
+	Status             int     `json:"status"`
+	DurationSeconds    int     `json:"duration_seconds"`
+	StartedAt          *string `json:"started_at"`
+	DeadlineAt         *string `json:"deadline_at"`
+	SubmittedAt        *string `json:"submitted_at"`
+	EndedAt            *string `json:"ended_at"`
+	ObjectiveScore     float64 `json:"objective_score"`
+	SubjectiveScore    float64 `json:"subjective_score"`
+	TotalScore         float64 `json:"total_score"`
+	HasSubjective      int     `json:"has_subjective"`
+	ServerTime         string  `json:"server_time"`
+	DeadlineReached    bool    `json:"deadline_reached"`
 }
 
 type AttemptSaveAnswersReq struct {

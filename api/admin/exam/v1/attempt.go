@@ -8,6 +8,7 @@ type AttemptListReq struct {
 	Size               int    `json:"size" dc:"每页条数"`
 	Level              string `json:"level" dc:"试卷级别，如 hsk1"`
 	ExaminationPaperId int64  `json:"examination_paper_id" dc:"mock_examination_paper.id"`
+	ExamBatchId        int64  `json:"exam_batch_id" dc:"考试批次 id，0 不限"`
 	Status             int    `json:"status" dc:"会话状态 1-4，0 表示不限"`
 	Username           string `json:"username" dc:"学员账号（模糊）"`
 }
@@ -23,6 +24,8 @@ type AttemptListItem struct {
 	Username           string  `json:"username"`
 	Nickname           string  `json:"nickname"`
 	ExaminationPaperId int64   `json:"examination_paper_id"`
+	ExamBatchId        int64   `json:"exam_batch_id"`
+	MockLevelId        int64   `json:"mock_level_id"`
 	PaperTitle         string  `json:"paper_title"`
 	PaperLevel         string  `json:"paper_level"`
 	RemotePaperId      string  `json:"remote_paper_id"`

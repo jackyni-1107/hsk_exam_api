@@ -26,6 +26,8 @@ func UpsertFromAttemptTx(ctx context.Context, tx gdb.TX, attemptID int64) error 
 		MemberId:               att.MemberId,
 		ExamPaperId:            att.ExamPaperId,
 		MockExaminationPaperId: att.MockExaminationPaperId,
+		ExamBatchId:            att.ExamBatchId,
+		MockLevelId:            att.MockLevelId,
 		Status:                 att.Status,
 		ObjectiveScore:         att.ObjectiveScore,
 		SubjectiveScore:        att.SubjectiveScore,

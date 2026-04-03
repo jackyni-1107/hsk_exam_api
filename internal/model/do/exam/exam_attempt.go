@@ -16,6 +16,8 @@ type ExamAttempt struct {
 	MemberId               any         // sys_member.id
 	ExamPaperId            any         // exam_paper.id
 	MockExaminationPaperId any         // 冗余 mock_examination_paper.id
+	ExamBatchId            any         // exam_batch.id，0=历史非批次
+	MockLevelId            any         // mock_levels.id，0=历史非批次
 	Status                 any         // 1=not_started 2=in_progress 3=submitted 4=ended
 	DurationSeconds        any         // 开考时快照时长秒
 	StartedAt              *gtime.Time // 开考时间

@@ -31,16 +31,86 @@ type AttemptView struct {
 	DeadlineReached bool
 }
 
-// CreateAttempt 创建会话（未开始）。paperID 为 mock_examination_paper.id。
+// CreateAttempt 已废弃：请使用 CreateAttemptForBatch（POST /exam/batches/{batchId}/attempts）。
 func CreateAttempt(ctx context.Context, userID int64, mockPaperID int64) (int64, error) {
-	paper, err := exampaper.ByMockID(ctx, mockPaperID)
+	_ = ctx
+	_ = userID
+	_ = mockPaperID
+	return 0, gerror.NewCode(consts.CodeExamAttemptUseBatchApi, "")
+}
+
+func batchExamWindowOpen(now *gtime.Time, start, end *gtime.Time) bool {
+	if start == nil || end == nil {
+		return false
+	}
+	if now.Before(start) || now.After(end) {
+		return false
+	}
+	return true
+}
+
+// CreateAttemptForBatch 按批次与等级创建会话（未开始）；每用户每批次每等级仅允许一条未删除记录。
+func CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, mockLevelID int64) (int64, error) {
+	if batchID <= 0 || mockLevelID <= 0 {
+		return 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+	}
+	var batch entity.ExamBatch
+	if err := dao.ExamBatch.Ctx(ctx).
+		Where("id", batchID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&batch); err != nil {
+		return 0, err
+	}
+	if batch.Id == 0 {
+		return 0, gerror.NewCode(consts.CodeExamBatchNotFound, "")
+	}
+	now := gtime.Now()
+	if !batchExamWindowOpen(now, batch.ExamStartAt, batch.ExamEndAt) {
+		return 0, gerror.NewCode(consts.CodeExamBatchWindowNotOpen, "")
+	}
+	nLevel, err := dao.ExamBatchMockLevel.Ctx(ctx).
+		Where("batch_id", batchID).
+		Where("mock_level_id", mockLevelID).
+		Count()
 	if err != nil {
 		return 0, err
+	}
+	if nLevel == 0 {
+		return 0, gerror.NewCode(consts.CodeExamBatchLevelNotInBatch, "")
+	}
+	var link entity.ExamBatchMember
+	if err := dao.ExamBatchMember.Ctx(ctx).
+		Where("batch_id", batchID).
+		Where("member_id", userID).
+		Where("mock_level_id", mockLevelID).
+		Scan(&link); err != nil {
+		return 0, err
+	}
+	if link.BatchId == 0 {
+		return 0, gerror.NewCode(consts.CodeExamBatchMemberNotFound, "")
+	}
+	paper, err := exampaper.ByMockID(ctx, batch.MockExaminationPaperId)
+	if err != nil {
+		return 0, err
+	}
+	dup, err := dao.ExamAttempt.Ctx(ctx).
+		Where("member_id", userID).
+		Where("exam_batch_id", batchID).
+		Where("mock_level_id", mockLevelID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Count()
+	if err != nil {
+		return 0, err
+	}
+	if dup > 0 {
+		return 0, gerror.NewCode(consts.CodeExamAttemptExistsForBatch, "")
 	}
 	id, err := dao.ExamAttempt.Ctx(ctx).InsertAndGetId(do.ExamAttempt{
 		MemberId:               userID,
 		ExamPaperId:            paper.Id,
 		MockExaminationPaperId: paper.MockExaminationPaperId,
+		ExamBatchId:            batchID,
+		MockLevelId:            mockLevelID,
 		Status:                 consts.ExamAttemptNotStarted,
 		DurationSeconds:        0,
 		Creator:                "client",

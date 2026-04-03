@@ -53,9 +53,14 @@ var (
 	CodeExamAttemptNoSubjective        = gcode.New(11112, "err.exam_attempt_no_subjective", nil)
 	CodeMockExaminationPaperIdRequired = gcode.New(11113, "err.mock_examination_paper_id_required", nil)
 	// Mock 卷存在但尚未向 exam_paper 导入 index/题目树（与 CodeMockExamPaperNotFound 区分）
-	CodeExamPaperNotImported = gcode.New(11114, "err.exam_paper_not_imported", nil)
-	CodeExamBatchNotFound    = gcode.New(11115, "err.exam_batch_not_found", nil)
-	CodeExamBatchTimeInvalid = gcode.New(11116, "err.exam_batch_time_invalid", nil)
+	CodeExamPaperNotImported      = gcode.New(11114, "err.exam_paper_not_imported", nil)
+	CodeExamBatchNotFound         = gcode.New(11115, "err.exam_batch_not_found", nil)
+	CodeExamBatchTimeInvalid      = gcode.New(11116, "err.exam_batch_time_invalid", nil)
+	CodeExamAttemptUseBatchApi    = gcode.New(11117, "err.exam_attempt_use_batch_api", nil)
+	CodeExamBatchLevelNotInBatch  = gcode.New(11118, "err.exam_batch_level_not_in_batch", nil)
+	CodeExamBatchWindowNotOpen    = gcode.New(11119, "err.exam_batch_window_not_open", nil)
+	CodeExamBatchMemberNotFound   = gcode.New(11120, "err.exam_batch_member_not_found", nil)
+	CodeExamAttemptExistsForBatch = gcode.New(11121, "err.exam_attempt_exists_for_batch", nil)
 
 	// Mock 模拟卷（11201-11299）
 	CodeMockExamPaperNotFound   = gcode.New(11201, "err.mock_exam_paper_not_found", nil)

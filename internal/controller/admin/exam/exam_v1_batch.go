@@ -88,7 +88,7 @@ func (c *ControllerV1) BatchMembersImport(ctx context.Context, req *v1.BatchMemb
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	n, err := exam.Exam().ExamBatchMembersImport(ctx, req.Id, req.MemberIds, creator)
+	n, err := exam.Exam().ExamBatchMembersImport(ctx, req.Id, req.MockLevelId, req.MemberIds, creator)
 	if err != nil {
 		return nil, err
 	}
@@ -109,17 +109,18 @@ func (c *ControllerV1) BatchMemberList(ctx context.Context, req *v1.BatchMemberL
 	list := make([]*v1.BatchMemberListItem, 0, len(rows))
 	for _, r := range rows {
 		list = append(list, &v1.BatchMemberListItem{
-			MemberId:   r.MemberId,
-			Username:   r.Username,
-			Nickname:   r.Nickname,
-			ImportTime: util.ToRFC3339UTC(r.ImportTime),
+			MemberId:    r.MemberId,
+			MockLevelId: r.MockLevelId,
+			Username:    r.Username,
+			Nickname:    r.Nickname,
+			ImportTime:  util.ToRFC3339UTC(r.ImportTime),
 		})
 	}
 	return &v1.BatchMemberListRes{List: list, Total: total}, nil
 }
 
 func (c *ControllerV1) BatchMembersRemove(ctx context.Context, req *v1.BatchMembersRemoveReq) (res *v1.BatchMembersRemoveRes, err error) {
-	n, err := exam.Exam().ExamBatchMembersRemove(ctx, req.Id, req.MemberIds)
+	n, err := exam.Exam().ExamBatchMembersRemove(ctx, req.Id, req.MockLevelId, req.MemberIds)
 	if err != nil {
 		return nil, err
 	}

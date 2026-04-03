@@ -21,18 +21,20 @@ type ExamBatchMemberDao struct {
 
 // ExamBatchMemberColumns defines and stores column names for the table exam_batch_member.
 type ExamBatchMemberColumns struct {
-	BatchId    string // exam_batch.id
-	MemberId   string // sys_member.id
-	Creator    string // 导入操作者
-	CreateTime string // 导入时间
+	BatchId     string // exam_batch.id
+	MemberId    string // sys_member.id
+	MockLevelId string // mock_levels.id
+	Creator     string // 导入操作者
+	CreateTime  string // 导入时间
 }
 
 // examBatchMemberColumns holds the columns for the table exam_batch_member.
 var examBatchMemberColumns = ExamBatchMemberColumns{
-	BatchId:    "batch_id",
-	MemberId:   "member_id",
-	Creator:    "creator",
-	CreateTime: "create_time",
+	BatchId:     "batch_id",
+	MemberId:    "member_id",
+	MockLevelId: "mock_level_id",
+	Creator:     "creator",
+	CreateTime:  "create_time",
 }
 
 // NewExamBatchMemberDao creates and returns a new DAO object for table data access.

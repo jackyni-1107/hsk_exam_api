@@ -16,8 +16,9 @@ type ExamBatchAdminItem struct {
 
 // ExamBatchMemberAdminRow 批次内已导入学员一行。
 type ExamBatchMemberAdminRow struct {
-	MemberId   int64       `json:"member_id"`
-	Username   string      `json:"username"`
-	Nickname   string      `json:"nickname"`
-	ImportTime *gtime.Time `json:"import_time"`
+	MemberId    int64       `json:"member_id"`
+	MockLevelId int64       `json:"mock_level_id"`
+	Username    string      `json:"username"`
+	Nickname    string      `json:"nickname"`
+	ImportTime  *gtime.Time `json:"import_time"`
 }

@@ -66,9 +66,10 @@ type BatchDeleteReq struct {
 type BatchDeleteRes struct{}
 
 type BatchMembersImportReq struct {
-	g.Meta    `path:"/exam/batch/{id}/members/import" method:"post" tags:"考试批次" summary:"向批次导入学员（sys_member.id）"`
-	Id        int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params"`
-	MemberIds []int64 `json:"member_ids" v:"required#err.invalid_params" dc:"学员主键列表，重复会自动去重"`
+	g.Meta      `path:"/exam/batch/{id}/members/import" method:"post" tags:"考试批次" summary:"向批次导入学员（sys_member.id）"`
+	Id          int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params"`
+	MockLevelId int64   `json:"mock_level_id" v:"required|min:1#err.invalid_params" dc:"须属于本批次可选等级 mock_levels.id"`
+	MemberIds   []int64 `json:"member_ids" v:"required#err.invalid_params" dc:"学员主键列表，重复会自动去重"`
 }
 
 type BatchMembersImportRes struct {
@@ -88,16 +89,18 @@ type BatchMemberListRes struct {
 }
 
 type BatchMemberListItem struct {
-	MemberId   int64  `json:"member_id"`
-	Username   string `json:"username"`
-	Nickname   string `json:"nickname"`
-	ImportTime string `json:"import_time"`
+	MemberId    int64  `json:"member_id"`
+	MockLevelId int64  `json:"mock_level_id"`
+	Username    string `json:"username"`
+	Nickname    string `json:"nickname"`
+	ImportTime  string `json:"import_time"`
 }
 
 type BatchMembersRemoveReq struct {
-	g.Meta    `path:"/exam/batch/{id}/members/remove" method:"post" tags:"考试批次" summary:"从批次移除学员"`
-	Id        int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params"`
-	MemberIds []int64 `json:"member_ids" v:"required#err.invalid_params"`
+	g.Meta      `path:"/exam/batch/{id}/members/remove" method:"post" tags:"考试批次" summary:"从批次移除学员（指定等级）"`
+	Id          int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params"`
+	MockLevelId int64   `json:"mock_level_id" v:"required|min:1#err.invalid_params"`
+	MemberIds   []int64 `json:"member_ids" v:"required#err.invalid_params"`
 }
 
 type BatchMembersRemoveRes struct {

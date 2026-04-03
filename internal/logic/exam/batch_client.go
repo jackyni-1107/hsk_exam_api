@@ -53,11 +53,13 @@ func (s *sExam) MyExamBatches(ctx context.Context, memberID int64, page, size in
 		PaperTitle             string      `orm:"paper_title"`
 		ExamStartAt            *gtime.Time `orm:"exam_start_at"`
 		ExamEndAt              *gtime.Time `orm:"exam_end_at"`
+		MockLevelId            int64       `orm:"mock_level_id"`
 	}
 	var rows []joinRow
 	err = base.Clone().
-		Fields("eb.id AS batch_id, eb.title AS title, eb.mock_examination_paper_id AS mock_examination_paper_id, ep.title AS paper_title, eb.exam_start_at, eb.exam_end_at").
+		Fields("eb.id AS batch_id, eb.title AS title, eb.mock_examination_paper_id AS mock_examination_paper_id, ep.title AS paper_title, eb.exam_start_at, eb.exam_end_at, ebm.mock_level_id AS mock_level_id").
 		OrderDesc("eb.id").
+		OrderDesc("ebm.mock_level_id").
 		Page(page, size).
 		Scan(&rows)
 	if err != nil {
@@ -85,6 +87,7 @@ func (s *sExam) MyExamBatches(ctx context.Context, memberID int64, page, size in
 			PaperTitle:             r.PaperTitle,
 			ExamStartAt:            r.ExamStartAt,
 			ExamEndAt:              r.ExamEndAt,
+			MockLevelId:            r.MockLevelId,
 			MockLevelIds:           lids,
 			WindowStatus:           examWindowStatus(now, r.ExamStartAt, r.ExamEndAt),
 		})

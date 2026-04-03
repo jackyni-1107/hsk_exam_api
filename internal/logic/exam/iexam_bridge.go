@@ -47,6 +47,10 @@ func (s *sExam) CreateAttempt(ctx context.Context, userID int64, mockPaperID int
 	return clientexam.CreateAttempt(ctx, userID, mockPaperID)
 }
 
+func (s *sExam) CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, mockLevelID int64) (int64, error) {
+	return clientexam.CreateAttemptForBatch(ctx, userID, batchID, mockLevelID)
+}
+
 func (s *sExam) StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDurationSeconds int) error {
 	return clientexam.StartAttempt(ctx, userID, attemptID, clientDurationSeconds)
 }
