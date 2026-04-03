@@ -80,6 +80,8 @@ type (
 		ExamBatchMembersImport(ctx context.Context, batchID int64, memberIDs []int64, creator string) (inserted int, err error)
 		ExamBatchMemberList(ctx context.Context, batchID int64, page, size int) (list []bo.ExamBatchMemberAdminRow, total int, err error)
 		ExamBatchMembersRemove(ctx context.Context, batchID int64, memberIDs []int64) (removed int, err error)
+		// MyExamBatches 学员端：当前会员所在批次 + 试卷信息，分页。
+		MyExamBatches(ctx context.Context, memberID int64, page, size int) (list []bo.MyExamBatchItem, total int, err error)
 		// IssueAudioHlsPlay 校验会话与题目 HLS 配置后写入 Redis 票据，返回相对 play_url。
 		IssueAudioHlsPlay(ctx context.Context, userID, attemptID, questionID int64) (playURL string, expiresAt string, err error)
 		// BuildHlsM3U8Playlist 根据票据生成内嵌 presigned URL 的 m3u8 正文。

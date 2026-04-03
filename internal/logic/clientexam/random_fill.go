@@ -31,7 +31,7 @@ func RandomFillAnswersForTest(ctx context.Context, userID, paperID, attemptID in
 	var att entity.ExamAttempt
 	err = dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
-		Where("client_user_id", userID).
+		Where("member_id", userID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&att)
 	if err != nil {

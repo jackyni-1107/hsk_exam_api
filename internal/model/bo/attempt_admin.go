@@ -9,22 +9,22 @@ import (
 // AttemptAdminListRow 管理端会话列表行（与 Raw 列别名一致）。
 type AttemptAdminListRow struct {
 	Id                 int64       `json:"id"`
-	ClientUserId       int64       `json:"client_user_id"`
+	ClientUserId       int64       `json:"member_id"`
 	ExaminationPaperId int64       `json:"examination_paper_id"`
 	Status             int         `json:"status"`
-	ObjectiveScore  float64     `json:"objective_score"`
-	SubjectiveScore float64     `json:"subjective_score"`
-	TotalScore      float64     `json:"total_score"`
-	HasSubjective   int         `json:"has_subjective"`
-	StartedAt       *gtime.Time `json:"started_at"`
-	SubmittedAt     *gtime.Time `json:"submitted_at"`
-	EndedAt         *gtime.Time `json:"ended_at"`
-	CreateTime      *gtime.Time `json:"create_time"`
-	Username        string      `json:"username"`
-	Nickname        string      `json:"nickname"`
-	PaperTitle      string      `json:"paper_title"`
-	PaperLevel      string      `json:"paper_level"`
-	RemotePaperId   string      `json:"remote_paper_id"`
+	ObjectiveScore     float64     `json:"objective_score"`
+	SubjectiveScore    float64     `json:"subjective_score"`
+	TotalScore         float64     `json:"total_score"`
+	HasSubjective      int         `json:"has_subjective"`
+	StartedAt          *gtime.Time `json:"started_at"`
+	SubmittedAt        *gtime.Time `json:"submitted_at"`
+	EndedAt            *gtime.Time `json:"ended_at"`
+	CreateTime         *gtime.Time `json:"create_time"`
+	Username           string      `json:"username"`
+	Nickname           string      `json:"nickname"`
+	PaperTitle         string      `json:"paper_title"`
+	PaperLevel         string      `json:"paper_level"`
+	RemotePaperId      string      `json:"remote_paper_id"`
 }
 
 // AttemptAdminAnswerRow 单题答题展示行。

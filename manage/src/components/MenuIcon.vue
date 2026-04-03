@@ -28,6 +28,7 @@ import {
   Notebook,
   Finished,
   VideoPlay,
+  Calendar,
 } from '@element-plus/icons-vue'
 
 const iconMap: Record<string, unknown> = {
@@ -52,6 +53,7 @@ const iconMap: Record<string, unknown> = {
   Notebook,
   Finished,
   VideoPlay,
+  Calendar,
 }
 
 const props = defineProps<{

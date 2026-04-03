@@ -61,7 +61,7 @@ func StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDura
 	var att entity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
-		Where("client_user_id", userID).
+		Where("member_id", userID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&att)
 	if err != nil {
@@ -99,7 +99,7 @@ func GetAttempt(ctx context.Context, userID int64, attemptID int64) (*AttemptVie
 	var att entity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
-		Where("client_user_id", userID).
+		Where("member_id", userID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&att)
 	if err != nil {
@@ -128,7 +128,7 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []Sav
 	var att entity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
-		Where("client_user_id", userID).
+		Where("member_id", userID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&att)
 	if err != nil {
@@ -211,7 +211,7 @@ func SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error {
 	var att entity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
-		Where("client_user_id", userID).
+		Where("member_id", userID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&att)
 	if err != nil {
@@ -242,7 +242,7 @@ func maybeAutoSubmitIfOverdue(ctx context.Context, userID int64, attemptID int64
 	var att entity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
-		Where("client_user_id", userID).
+		Where("member_id", userID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&att)
 	if err != nil || att.Id == 0 {

@@ -1,0 +1,25 @@
+package v1
+
+import "github.com/gogf/gf/v2/frame/g"
+
+type MyExamsReq struct {
+	g.Meta `path:"/me/my-exams" method:"get" tags:"学员" summary:"我的考试（批次列表）"`
+	Page   int `json:"page" dc:"页码"`
+	Size   int `json:"size" dc:"每页条数"`
+}
+
+type MyExamsRes struct {
+	List  []MyExamBatchItem `json:"list"`
+	Total int               `json:"total"`
+}
+
+type MyExamBatchItem struct {
+	BatchId                int64   `json:"batch_id"`
+	Title                  string  `json:"title" dc:"批次名称"`
+	MockExaminationPaperId int64   `json:"mock_examination_paper_id"`
+	PaperTitle             string  `json:"paper_title"`
+	ExamStartAt            string  `json:"exam_start_at"`
+	ExamEndAt              string  `json:"exam_end_at"`
+	MockLevelIds           []int64 `json:"mock_level_ids"`
+	WindowStatus           string  `json:"window_status" dc:"upcoming=未开始 open=进行中 closed=已结束或未开放"`
+}

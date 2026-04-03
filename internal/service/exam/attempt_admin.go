@@ -83,7 +83,7 @@ func AttemptAdminList(ctx context.Context, page, size int, level string, examina
 	w := where.String()
 	from := ` FROM exam_result r
 INNER JOIN exam_attempt a ON a.id = r.attempt_id AND a.delete_flag = ?
-LEFT JOIN sys_member u ON u.id = r.client_user_id AND u.delete_flag = ?
+LEFT JOIN sys_member u ON u.id = r.member_id AND u.delete_flag = ?
 LEFT JOIN exam_paper p ON p.id = r.exam_paper_id AND p.delete_flag = ?
 WHERE ` + w
 	joinArgs := []interface{}{consts.DeleteFlagNotDeleted, consts.DeleteFlagNotDeleted, consts.DeleteFlagNotDeleted}
@@ -101,7 +101,7 @@ WHERE ` + w
 		return nil, 0, nil
 	}
 	offset := (page - 1) * size
-	listSQL := `SELECT r.attempt_id AS id, r.client_user_id, IFNULL(p.mock_examination_paper_id,0) AS examination_paper_id, r.status,
+	listSQL := `SELECT r.attempt_id AS id, r.member_id, IFNULL(p.mock_examination_paper_id,0) AS examination_paper_id, r.status,
 r.objective_score, r.subjective_score, r.total_score, r.has_subjective,
 r.started_at, r.submitted_at, r.ended_at, r.create_time,
 IFNULL(u.username,'') AS username, IFNULL(u.nickname,'') AS nickname,

@@ -1,0 +1,23 @@
+-- 管理端「考试批次」菜单与权限说明（manage 路由：/exam/batch）
+--
+-- 批次 REST 路径：/api/admin/exam/batch/...
+-- RBAC 推断（见 internal/middleware/rbac.go）：与试卷同属 resource=exam
+--   GET  /exam/batch/list、GET /exam/batch/{id}、GET .../members/list  -> exam:list
+--   POST /exam/batch、POST .../members/import、POST .../members/remove -> exam:create
+--   PUT  /exam/batch/{id}                                              -> exam:update
+--   DELETE /exam/batch/{id}                                            -> exam:delete
+--
+-- 若角色已有试卷管理相关 exam:list / exam:create 等权限，一般无需新增 permission。
+-- 若需单独菜单入口，在 sys_menu 增加类型为「菜单」或「按钮」的节点，path/component 指向前端路由
+-- `exam/batch`（与 manage/src/router/index.ts 中 path: 'exam/batch' 一致），并赋权给角色。
+-- icon 取值须与 manage/src/components/MenuIcon.vue 中 iconMap 一致；考试批次推荐 Calendar（日程/考期）。
+--
+-- 示例（将 @parent_id 换为父菜单 id，type 2=按钮 仅供参考）：
+--
+-- INSERT INTO sys_menu (
+--   name, permission, type, sort, parent_id, path, icon, component, component_name,
+--   status, visible, keep_alive, always_show, creator, delete_flag
+-- ) VALUES (
+--   '考试批次', 'exam:list', 1, 25, @parent_id, 'exam/batch', 'Calendar', 'views/exam/batch/index', 'ExamBatch',
+--   1, 1, 0, 0, 'admin', 0
+-- );

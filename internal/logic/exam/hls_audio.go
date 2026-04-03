@@ -118,7 +118,7 @@ func (s *sExam) assertAttemptInProgress(ctx context.Context, userID, attemptID i
 	var att entity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
-		Where("client_user_id", userID).
+		Where("member_id", userID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&att)
 	if err != nil {
@@ -265,7 +265,7 @@ func (s *sExam) BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte
 		var att entity.ExamAttempt
 		err = dao.ExamAttempt.Ctx(ctx).
 			Where("id", payload.AttemptID).
-			Where("client_user_id", payload.UserID).
+			Where("member_id", payload.UserID).
 			Where("delete_flag", consts.DeleteFlagNotDeleted).
 			Scan(&att)
 		if err != nil {

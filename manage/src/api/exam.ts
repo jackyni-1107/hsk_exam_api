@@ -124,3 +124,79 @@ export function updateExamPaper(data: {
 }) {
   return request.post<any, { data: Record<string, never> }>('/admin/exam/paper/update', data)
 }
+
+/** --- 考试批次（/admin/exam/batch） --- */
+
+export interface ExamBatchListItem {
+  id: number
+  mock_examination_paper_id: number
+  title: string
+  exam_start_at: string
+  exam_end_at: string
+  mock_level_ids: number[]
+  member_count: number
+  create_time: string
+}
+
+export function getExamBatchList(params: {
+  mock_examination_paper_id?: number
+  page?: number
+  size?: number
+}) {
+  return request.get<any, { data: { list: ExamBatchListItem[]; total: number } }>('/admin/exam/batch/list', {
+    params,
+  })
+}
+
+export function getExamBatchDetail(id: number) {
+  return request.get<any, { data: { batch: ExamBatchListItem } }>(`/admin/exam/batch/${id}`)
+}
+
+export function createExamBatch(data: {
+  mock_examination_paper_id: number
+  title?: string
+  exam_start_at: string
+  exam_end_at: string
+  mock_level_ids: number[]
+}) {
+  return request.post<any, { data: { id: number } }>('/admin/exam/batch', data)
+}
+
+export function updateExamBatch(
+  id: number,
+  data: { title?: string; exam_start_at: string; exam_end_at: string; mock_level_ids: number[] }
+) {
+  return request.put<any, { data: Record<string, never> }>(`/admin/exam/batch/${id}`, data)
+}
+
+export function deleteExamBatch(id: number) {
+  return request.delete<any, { data: Record<string, never> }>(`/admin/exam/batch/${id}`)
+}
+
+export interface ExamBatchMemberItem {
+  member_id: number
+  username: string
+  nickname: string
+  import_time: string
+}
+
+export function importExamBatchMembers(batchId: number, member_ids: number[]) {
+  return request.post<any, { data: { inserted: number } }>(
+    `/admin/exam/batch/${batchId}/members/import`,
+    { member_ids }
+  )
+}
+
+export function getExamBatchMemberList(batchId: number, params?: { page?: number; size?: number }) {
+  return request.get<any, { data: { list: ExamBatchMemberItem[]; total: number } }>(
+    `/admin/exam/batch/${batchId}/members/list`,
+    { params }
+  )
+}
+
+export function removeExamBatchMembers(batchId: number, member_ids: number[]) {
+  return request.post<any, { data: { removed: number } }>(
+    `/admin/exam/batch/${batchId}/members/remove`,
+    { member_ids }
+  )
+}

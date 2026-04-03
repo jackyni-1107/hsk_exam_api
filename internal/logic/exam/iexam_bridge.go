@@ -199,7 +199,7 @@ func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mock
 	var att entity.ExamAttempt
 	if err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
-		Where("client_user_id", userID).
+		Where("member_id", userID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&att); err != nil {
 		return nil, err

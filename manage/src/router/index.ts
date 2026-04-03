@@ -102,6 +102,12 @@ const router = createRouter({
           component: () => import('@/views/exam/paper/index.vue'),
         },
         {
+          path: 'exam/batch',
+          name: 'ExamBatch',
+          meta: { title: '考试批次' },
+          component: () => import('@/views/exam/batch/index.vue'),
+        },
+        {
           path: 'exam/result',
           name: 'ExamResult',
           meta: { title: '考试结果' },
@@ -117,6 +123,10 @@ const router = createRouter({
         {
           path: 'system/exam/paper',
           redirect: '/exam/paper',
+        },
+        {
+          path: 'system/exam/batch',
+          redirect: '/exam/batch',
         },
       ],
     },
