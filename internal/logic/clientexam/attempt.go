@@ -41,13 +41,13 @@ func CreateAttempt(ctx context.Context, userID int64, mockPaperID int64) (int64,
 		ClientUserId:           userID,
 		ExamPaperId:            paper.Id,
 		MockExaminationPaperId: paper.MockExaminationPaperId,
-		Status:          consts.ExamAttemptNotStarted,
-		DurationSeconds: 0,
-		Creator:         "client",
-		Updater:         "client",
-		DeleteFlag:      consts.DeleteFlagNotDeleted,
-		CreateTime:      gtime.Now(),
-		UpdateTime:      gtime.Now(),
+		Status:                 consts.ExamAttemptNotStarted,
+		DurationSeconds:        0,
+		Creator:                "client",
+		Updater:                "client",
+		DeleteFlag:             consts.DeleteFlagNotDeleted,
+		CreateTime:             gtime.Now(),
+		UpdateTime:             gtime.Now(),
 	})
 	if err != nil {
 		return 0, err
@@ -93,7 +93,7 @@ func StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDura
 	return err
 }
 
-// GetAttempt 查询会话；若已超时仍进行中则自动标记为已交卷（算分由定时任务完成）。
+// GetAttempt 查询会话；若已超时仍进行中则自动交卷并计分。
 func GetAttempt(ctx context.Context, userID int64, attemptID int64) (*AttemptView, error) {
 	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
 	var att entity.ExamAttempt
@@ -205,7 +205,7 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []Sav
 	})
 }
 
-// SubmitAttempt 主动交卷：仅标记为已交卷，客观题算分由定时任务统一处理。
+// SubmitAttempt 主动交卷：标记已交卷后立即计算客观分并同步 exam_result（与超时自动交卷一致）。
 func SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error {
 	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
 	var att entity.ExamAttempt
@@ -224,15 +224,20 @@ func SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error {
 		return nil
 	}
 	if att.Status == consts.ExamAttemptSubmitted {
+		_ = FinalizeAttempt(ctx, attemptID)
 		return nil
 	}
 	if att.Status != consts.ExamAttemptInProgress {
 		return gerror.NewCode(consts.CodeInvalidParams, "err.exam_already_submitted")
 	}
-	return markSubmitted(ctx, attemptID, false, "client")
+	if err := markSubmitted(ctx, attemptID, false, "client"); err != nil {
+		return err
+	}
+	_ = FinalizeAttempt(ctx, attemptID)
+	return nil
 }
 
-// maybeAutoSubmitIfOverdue 超时且仍为进行中时标记为已交卷（由客户端拉取/保存触发）。
+// maybeAutoSubmitIfOverdue 考试时间到达且仍为进行中时自动交卷并立即计分（由客户端拉取/保存答案等触发）。
 func maybeAutoSubmitIfOverdue(ctx context.Context, userID int64, attemptID int64) error {
 	var att entity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
@@ -244,21 +249,30 @@ func maybeAutoSubmitIfOverdue(ctx context.Context, userID int64, attemptID int64
 		return err
 	}
 	if att.Status != consts.ExamAttemptInProgress || att.DeadlineAt == nil {
+		_ = FinalizeAttempt(ctx, attemptID)
 		return nil
 	}
 	now := gtime.Now()
 	if !att.DeadlineAt.Before(now) {
 		return nil
 	}
-	return markSubmitted(ctx, attemptID, true, "client")
+	if err := markSubmitted(ctx, attemptID, true, "client"); err != nil {
+		return err
+	}
+	_ = FinalizeAttempt(ctx, attemptID)
+	return nil
 }
 
-// MarkSubmittedIfOverdue 供定时任务：超时未操作会话标记为已交卷（不校验用户）。
+// MarkSubmittedIfOverdue 供定时任务：超时未操作会话标记为已交卷并计分（不校验用户）。
 func MarkSubmittedIfOverdue(ctx context.Context, attemptID int64) error {
-	return markSubmitted(ctx, attemptID, true, "task")
+	if err := markSubmitted(ctx, attemptID, true, "task"); err != nil {
+		return err
+	}
+	_ = FinalizeAttempt(ctx, attemptID)
+	return nil
 }
 
-// FinalizeAttempt 对已交卷（待算分）会话计算客观分并置为已结束，写入 exam_result。供定时任务调用。
+// FinalizeAttempt 对已交卷（待算分）会话计算客观分并置为已结束，写入 exam_result。
 func FinalizeAttempt(ctx context.Context, attemptID int64) error {
 	return finalizeScoring(ctx, attemptID)
 }

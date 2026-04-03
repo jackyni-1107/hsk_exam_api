@@ -14,4 +14,5 @@ type IExam interface {
 	PaperUpdate(ctx context.Context, req *v1.PaperUpdateReq) (res *v1.PaperUpdateRes, err error)
 	AttemptList(ctx context.Context, req *v1.AttemptListReq) (res *v1.AttemptListRes, err error)
 	AttemptDetail(ctx context.Context, req *v1.AttemptDetailReq) (res *v1.AttemptDetailRes, err error)
+	AttemptSubjectiveScores(ctx context.Context, req *v1.AttemptSubjectiveScoresReq) (res *v1.AttemptSubjectiveScoresRes, err error)
 }

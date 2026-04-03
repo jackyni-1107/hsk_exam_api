@@ -22,20 +22,20 @@ type ExamResultDao struct {
 // ExamResultColumns defines and stores column names for the table exam_result.
 type ExamResultColumns struct {
 	AttemptId              string // exam_attempt.id
-	ClientUserId           string // client_user.id
+	ClientUserId           string // sys_member.id（列名 client_user_id）
 	ExamPaperId            string // exam_paper.id
 	MockExaminationPaperId string // 冗余 mock_examination_paper.id
 	Status                 string // 与 exam_attempt.status，列表阶段为已结束 4
-	ObjectiveScore  string //
-	SubjectiveScore string //
-	TotalScore      string //
-	HasSubjective   string //
-	StartedAt       string //
-	SubmittedAt     string //
-	EndedAt         string //
-	CreateTime      string // 同步自会话创建时间
-	UpdateTime      string //
-	DeleteFlag      string //
+	ObjectiveScore         string //
+	SubjectiveScore        string //
+	TotalScore             string //
+	HasSubjective          string //
+	StartedAt              string //
+	SubmittedAt            string //
+	EndedAt                string //
+	CreateTime             string // 同步自会话创建时间
+	UpdateTime             string //
+	DeleteFlag             string //
 }
 
 // examResultColumns holds the columns for the table exam_result.
@@ -45,16 +45,16 @@ var examResultColumns = ExamResultColumns{
 	ExamPaperId:            "exam_paper_id",
 	MockExaminationPaperId: "mock_examination_paper_id",
 	Status:                 "status",
-	ObjectiveScore:  "objective_score",
-	SubjectiveScore: "subjective_score",
-	TotalScore:      "total_score",
-	HasSubjective:   "has_subjective",
-	StartedAt:       "started_at",
-	SubmittedAt:     "submitted_at",
-	EndedAt:         "ended_at",
-	CreateTime:      "create_time",
-	UpdateTime:      "update_time",
-	DeleteFlag:      "delete_flag",
+	ObjectiveScore:         "objective_score",
+	SubjectiveScore:        "subjective_score",
+	TotalScore:             "total_score",
+	HasSubjective:          "has_subjective",
+	StartedAt:              "started_at",
+	SubmittedAt:            "submitted_at",
+	EndedAt:                "ended_at",
+	CreateTime:             "create_time",
+	UpdateTime:             "update_time",
+	DeleteFlag:             "delete_flag",
 }
 
 // NewExamResultDao creates and returns a new DAO object for table data access.

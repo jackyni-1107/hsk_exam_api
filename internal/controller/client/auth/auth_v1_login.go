@@ -45,7 +45,7 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 
 	var u entity.ClientUser
 	// 与风控键一致：规范化后查询；LOWER 避免库中用户名大小写与输入不一致
-	_ = dao.ClientUser.Ctx(ctx).
+	_ = dao.SysMember.Ctx(ctx).
 		Wheref("username = ?", name).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&u)

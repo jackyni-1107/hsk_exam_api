@@ -1,4 +1,4 @@
-// 生成 bcrypt 密码哈希，用于写入 sys_user / client_user / sys_member 等表。
+// 生成 bcrypt 密码哈希，用于写入 sys_user / sys_member 等表。
 // 用法（在项目根目录）: go run ./cmd/genpassword
 // 修改下方 plain 常量后运行。
 package main

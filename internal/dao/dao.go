@@ -1,11 +1,6 @@
 package dao
 
 import (
-	"context"
-
-	"github.com/gogf/gf/v2/database/gdb"
-	"github.com/gogf/gf/v2/frame/g"
-
 	daoexam "exam/internal/dao/exam"
 	daomock "exam/internal/dao/mock"
 	daosys "exam/internal/dao/sys"
@@ -52,13 +47,7 @@ var (
 	MockExaminationPaper     = daomock.MockExaminationPaper
 	MockExaminationPart      = daomock.MockExaminationPart
 	MockExaminationSegment   = daomock.MockExaminationSegment
+
+	// SysMember 客户端会员（表 sys_member，原 client_user 已并入此表）
+	SysMember = daosys.SysMember
 )
-
-type clientUserDao struct{}
-
-func (clientUserDao) Ctx(ctx context.Context) *gdb.Model {
-	return g.DB().Model("sys_member").Ctx(ctx)
-}
-
-// ClientUser 客户端用户表访问
-var ClientUser = clientUserDao{}

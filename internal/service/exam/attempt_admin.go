@@ -11,10 +11,10 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/do"
-	"exam/internal/model/entity"
 	"exam/internal/logic/clientexam"
 	"exam/internal/logic/examresult"
+	"exam/internal/model/do"
+	"exam/internal/model/entity"
 )
 
 // AttemptAdminListRow 管理端列表行（与 Raw 列别名一致，供 Scan）。
@@ -23,19 +23,19 @@ type AttemptAdminListRow struct {
 	ClientUserId       int64       `json:"client_user_id"`
 	ExaminationPaperId int64       `json:"examination_paper_id"`
 	Status             int         `json:"status"`
-	ObjectiveScore  float64     `json:"objective_score"`
-	SubjectiveScore float64     `json:"subjective_score"`
-	TotalScore      float64     `json:"total_score"`
-	HasSubjective   int         `json:"has_subjective"`
-	StartedAt       *gtime.Time `json:"started_at"`
-	SubmittedAt     *gtime.Time `json:"submitted_at"`
-	EndedAt         *gtime.Time `json:"ended_at"`
-	CreateTime      *gtime.Time `json:"create_time"`
-	Username        string      `json:"username"`
-	Nickname        string      `json:"nickname"`
-	PaperTitle      string      `json:"paper_title"`
-	PaperLevel      string      `json:"paper_level"`
-	RemotePaperId   string      `json:"remote_paper_id"`
+	ObjectiveScore     float64     `json:"objective_score"`
+	SubjectiveScore    float64     `json:"subjective_score"`
+	TotalScore         float64     `json:"total_score"`
+	HasSubjective      int         `json:"has_subjective"`
+	StartedAt          *gtime.Time `json:"started_at"`
+	SubmittedAt        *gtime.Time `json:"submitted_at"`
+	EndedAt            *gtime.Time `json:"ended_at"`
+	CreateTime         *gtime.Time `json:"create_time"`
+	Username           string      `json:"username"`
+	Nickname           string      `json:"nickname"`
+	PaperTitle         string      `json:"paper_title"`
+	PaperLevel         string      `json:"paper_level"`
+	RemotePaperId      string      `json:"remote_paper_id"`
 }
 
 // AttemptAdminDetailView 管理端会话详情（服务层聚合）。
@@ -83,7 +83,7 @@ func AttemptAdminList(ctx context.Context, page, size int, level string, examina
 	w := where.String()
 	from := ` FROM exam_result r
 INNER JOIN exam_attempt a ON a.id = r.attempt_id AND a.delete_flag = ?
-LEFT JOIN client_user u ON u.id = r.client_user_id AND u.delete_flag = ?
+LEFT JOIN sys_member u ON u.id = r.client_user_id AND u.delete_flag = ?
 LEFT JOIN exam_paper p ON p.id = r.exam_paper_id AND p.delete_flag = ?
 WHERE ` + w
 	joinArgs := []interface{}{consts.DeleteFlagNotDeleted, consts.DeleteFlagNotDeleted, consts.DeleteFlagNotDeleted}
@@ -133,7 +133,7 @@ func AttemptAdminDetail(ctx context.Context, attemptID int64) (*AttemptAdminDeta
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.exam_attempt_not_found")
 	}
 	var user entity.ClientUser
-	_ = dao.ClientUser.Ctx(ctx).
+	_ = dao.SysMember.Ctx(ctx).
 		Where("id", att.ClientUserId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&user)

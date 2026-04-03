@@ -26,7 +26,7 @@ func (c *ControllerV1) Profile(ctx context.Context, req *v1.ProfileReq) (res *v1
 		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
 	}
 	var u entitysys.SysMember
-	err = dao.ClientUser.Ctx(ctx).
+	err = dao.SysMember.Ctx(ctx).
 		Where("id", d.UserId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&u)

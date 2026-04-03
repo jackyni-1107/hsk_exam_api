@@ -22,24 +22,24 @@ type ExamAttemptDao struct {
 // ExamAttemptColumns defines and stores column names for the table exam_attempt.
 type ExamAttemptColumns struct {
 	Id                     string // 主键
-	ClientUserId           string // client_user.id
+	ClientUserId           string // sys_member.id（列名 client_user_id）
 	ExamPaperId            string // exam_paper.id
 	MockExaminationPaperId string // 冗余 mock_examination_paper.id
 	Status                 string // 1=not_started 2=in_progress 3=submitted 4=ended
-	DurationSeconds string // 开考时快照时长秒
-	StartedAt       string // 开考时间
-	DeadlineAt      string // 截止时间
-	SubmittedAt     string // 交卷时间
-	EndedAt         string // 结束/阅卷完成时间
-	ObjectiveScore  string // 客观题得分
-	SubjectiveScore string // 主观题得分（未批阅时为空）
-	TotalScore      string // 总分（无主观或主观未批时可能为客观分）
-	HasSubjective   string // 本卷是否含主观题（交卷快照）
-	Creator         string // 创建者
-	CreateTime      string // 创建时间
-	Updater         string // 更新者
-	UpdateTime      string // 更新时间
-	DeleteFlag      string // 逻辑删除
+	DurationSeconds        string // 开考时快照时长秒
+	StartedAt              string // 开考时间
+	DeadlineAt             string // 截止时间
+	SubmittedAt            string // 交卷时间
+	EndedAt                string // 结束/阅卷完成时间
+	ObjectiveScore         string // 客观题得分
+	SubjectiveScore        string // 主观题得分（未批阅时为空）
+	TotalScore             string // 总分（无主观或主观未批时可能为客观分）
+	HasSubjective          string // 本卷是否含主观题（交卷快照）
+	Creator                string // 创建者
+	CreateTime             string // 创建时间
+	Updater                string // 更新者
+	UpdateTime             string // 更新时间
+	DeleteFlag             string // 逻辑删除
 }
 
 // examAttemptColumns holds the columns for the table exam_attempt.
@@ -49,20 +49,20 @@ var examAttemptColumns = ExamAttemptColumns{
 	ExamPaperId:            "exam_paper_id",
 	MockExaminationPaperId: "mock_examination_paper_id",
 	Status:                 "status",
-	DurationSeconds: "duration_seconds",
-	StartedAt:       "started_at",
-	DeadlineAt:      "deadline_at",
-	SubmittedAt:     "submitted_at",
-	EndedAt:         "ended_at",
-	ObjectiveScore:  "objective_score",
-	SubjectiveScore: "subjective_score",
-	TotalScore:      "total_score",
-	HasSubjective:   "has_subjective",
-	Creator:         "creator",
-	CreateTime:      "create_time",
-	Updater:         "updater",
-	UpdateTime:      "update_time",
-	DeleteFlag:      "delete_flag",
+	DurationSeconds:        "duration_seconds",
+	StartedAt:              "started_at",
+	DeadlineAt:             "deadline_at",
+	SubmittedAt:            "submitted_at",
+	EndedAt:                "ended_at",
+	ObjectiveScore:         "objective_score",
+	SubjectiveScore:        "subjective_score",
+	TotalScore:             "total_score",
+	HasSubjective:          "has_subjective",
+	Creator:                "creator",
+	CreateTime:             "create_time",
+	Updater:                "updater",
+	UpdateTime:             "update_time",
+	DeleteFlag:             "delete_flag",
 }
 
 // NewExamAttemptDao creates and returns a new DAO object for table data access.

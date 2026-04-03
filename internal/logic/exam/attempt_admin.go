@@ -48,7 +48,7 @@ func (s *sExam) AttemptAdminList(ctx context.Context, page, size int, level stri
 	w := where.String()
 	from := ` FROM exam_result r
 INNER JOIN exam_attempt a ON a.id = r.attempt_id AND a.delete_flag = ?
-LEFT JOIN client_user u ON u.id = r.client_user_id AND u.delete_flag = ?
+LEFT JOIN sys_member u ON u.id = r.client_user_id AND u.delete_flag = ?
 LEFT JOIN exam_paper p ON p.id = r.exam_paper_id AND p.delete_flag = ?
 WHERE ` + w
 	joinArgs := []interface{}{consts.DeleteFlagNotDeleted, consts.DeleteFlagNotDeleted, consts.DeleteFlagNotDeleted}
@@ -98,7 +98,7 @@ func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.At
 		return nil, gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
 	var user entity.ClientUser
-	_ = dao.ClientUser.Ctx(ctx).
+	_ = dao.SysMember.Ctx(ctx).
 		Where("id", att.ClientUserId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&user)
