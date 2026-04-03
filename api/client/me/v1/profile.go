@@ -3,7 +3,7 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type ProfileReq struct {
-	g.Meta `path:"/me/profile" method:"get" tags:"学员" summary:"当前学员信息"`
+	g.Meta `path:"/me/profile" method:"get" tags:"客户端-当前用户" summary:"我的信息"`
 }
 
 type ProfileRes struct {

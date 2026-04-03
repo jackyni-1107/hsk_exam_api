@@ -64,24 +64,29 @@ func (c *ControllerV1) PaperSectionForExam(ctx context.Context, req *v1.PaperSec
 	return exam.Exam().PaperSectionTopicForExam(ctx, req.PaperId, req.SectionId)
 }
 
-func (c *ControllerV1) AttemptCreate(ctx context.Context, req *v1.AttemptCreateReq) (res *v1.AttemptCreateRes, err error) {
-	ctxData := middleware.GetCtxData(ctx)
-	if ctxData == nil {
-		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
-	}
-	id, err := exam.Exam().CreateAttempt(ctx, ctxData.UserId, req.PaperId)
-	if err != nil {
-		return nil, err
-	}
-	return &v1.AttemptCreateRes{AttemptId: id}, nil
-}
+//func (c *ControllerV1) AttemptCreate(ctx context.Context, req *v1.AttemptCreateReq) (res *v1.AttemptCreateRes, err error) {
+//	ctxData := middleware.GetCtxData(ctx)
+//	if ctxData == nil {
+//		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+//	}
+//	id, err := exam.Exam().CreateAttempt(ctx, ctxData.UserId, req.PaperId)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return &v1.AttemptCreateRes{AttemptId: id}, nil
+//}
 
 func (c *ControllerV1) AttemptCreateByBatch(ctx context.Context, req *v1.AttemptCreateByBatchReq) (res *v1.AttemptCreateRes, err error) {
 	ctxData := middleware.GetCtxData(ctx)
 	if ctxData == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
 	}
-	id, err := exam.Exam().CreateAttemptForBatch(ctx, ctxData.UserId, req.BatchId, req.MockLevelId)
+	//
+	batch, err := exam.Exam().ExamBatchMemberDetail(ctx, req.BatchId, ctxData.UserId)
+	if err != nil {
+		return nil, err
+	}
+	id, err := exam.Exam().CreateAttemptForBatch(ctx, ctxData.UserId, batch.BatchId, batch.MemberId)
 	if err != nil {
 		return nil, err
 	}
@@ -209,14 +214,15 @@ func (c *ControllerV1) AttemptRandomAnswers(ctx context.Context, req *v1.Attempt
 	}, nil
 }
 
-func (c *ControllerV1) AudioHlsPlayIssue(ctx context.Context, req *v1.AudioHlsPlayIssueReq) (res *v1.AudioHlsPlayIssueRes, err error) {
-	ctxData := middleware.GetCtxData(ctx)
-	if ctxData == nil {
-		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
-	}
-	playURL, exp, err := exam.Exam().IssueAudioHlsPlay(ctx, ctxData.UserId, req.Id, req.QuestionId)
-	if err != nil {
-		return nil, err
-	}
-	return &v1.AudioHlsPlayIssueRes{PlayUrl: playURL, ExpiresAt: exp}, nil
-}
+//
+//func (c *ControllerV1) AudioHlsPlayIssue(ctx context.Context, req *v1.AudioHlsPlayIssueReq) (res *v1.AudioHlsPlayIssueRes, err error) {
+//	ctxData := middleware.GetCtxData(ctx)
+//	if ctxData == nil {
+//		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+//	}
+//	playURL, exp, err := exam.Exam().IssueAudioHlsPlay(ctx, ctxData.UserId, req.Id, req.QuestionId)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return &v1.AudioHlsPlayIssueRes{PlayUrl: playURL, ExpiresAt: exp}, nil
+//}

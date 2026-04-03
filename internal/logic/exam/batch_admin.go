@@ -471,3 +471,20 @@ func (s *sExam) ExamBatchMembersRemove(ctx context.Context, batchID int64, mockL
 	}
 	return int(n), nil
 }
+
+// ExamBatchMemberDetail 获取批次信息
+func (s *sExam) ExamBatchMemberDetail(ctx context.Context, batchID int64, userID int64) (*entity.ExamBatchMember, error) {
+	var result *entity.ExamBatchMember
+
+	// Scan 会自动处理 One() 的逻辑并映射到结构体
+	err := dao.ExamBatchMember.Ctx(ctx).
+		Where(g.Map{
+			"batch_id":  batchID,
+			"member_id": userID,
+		}).Scan(&result) // 注意这里传的是指针地址
+
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
