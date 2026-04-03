@@ -1,0 +1,39 @@
+# Binaries / build
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/bin/
+/dist/
+
+# Go
+vendor/
+coverage.out
+coverage.html
+*.prof
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Logs & temp
+*.log
+tmp/
+temp/
+*.tmp
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE (可选：若需提交共享配置可删掉对应行)
+.idea/
+.vscode/
+*.sublime-*

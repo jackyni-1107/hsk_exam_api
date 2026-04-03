@@ -1,0 +1,2 @@
+1) 全新库：执行 migrations/001_exam_schema.sql（已含 mock_examination_paper_id NOT NULL、子表冗余列与唯一约束）。
+2) 自旧版 001（mock 列可空、无子表冗余）升级：执行 migrations/003_exam_mock_paper_id.sql（执行前须回填 exam_paper.mock_examination_paper_id，且无 NULL）。

@@ -1,0 +1,25 @@
+# CLI tool, only in development environment.
+# https://goframe.org/docs/cli
+gfcli:
+  gen:
+    dao:
+      - link: "mysql:root:123456@tcp(127.0.0.1:3306)/scaffold"
+        descriptionTag: true
+        jsonCase: "Snake"
+        #tables: "sys_*"
+        #doPath: "model/do/sys"
+        #daoPath: "dao/sys"
+        #entityPath: "model/entity/sys"
+        tables: "mock_*"
+        doPath: "model/do/mock"
+        daoPath: "dao/mock"
+        entityPath: "model/entity/mock"
+        #tables: "exam_*"
+        #doPath: "model/do/exam"
+        #daoPath: "dao/exam"
+        #entityPath: "model/entity/exam"
+
+  docker:
+    build: "-a amd64 -s linux -p temp -ew"
+    tagPrefixes:
+      - my.image.pub/my-app

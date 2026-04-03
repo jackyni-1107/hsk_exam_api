@@ -1,0 +1,38 @@
+package bo
+
+import "exam/internal/model/entity"
+
+// SaveAnswerItem 批量保存中的一题。
+type SaveAnswerItem struct {
+	QuestionID      int64
+	AnswerJSON      string
+	ExpectedVersion *int
+}
+
+// AttemptView 会话详情（接口返回）。
+type AttemptView struct {
+	Attempt         entity.ExamAttempt
+	ServerTime      string
+	DeadlineReached bool
+}
+
+// AnswerPayload 客户端答题 JSON。
+type AnswerPayload struct {
+	SelectedOptionIDs []int64 `json:"selected_option_ids"`
+	Text              string  `json:"text"`
+}
+
+// QuestionScoreMeta 阅卷用题目元数据。
+type QuestionScoreMeta struct {
+	QuestionID    int64
+	IsExample     int
+	IsSubjective  int
+	Score         float64
+	CorrectOptIDs []int64
+}
+
+// RandomAnswerDraftItem 随机填答案草稿（不入库）。
+type RandomAnswerDraftItem struct {
+	QuestionID int64
+	Answer     string
+}

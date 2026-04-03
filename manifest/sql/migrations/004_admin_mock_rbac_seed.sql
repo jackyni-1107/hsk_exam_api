@@ -1,0 +1,17 @@
+-- 管理端 Mock 接口 RBAC 说明（sys_menu.permission）
+-- GET /api/admin/mock/levels/list
+-- GET /api/admin/mock/examination-paper/list
+-- GET /api/admin/mock/examination-paper/{id}
+-- 以上路径由 inferPermission 解析为权限标识：mock:list
+--
+-- 非超级管理员需在角色菜单中包含 permission = mock:list 的节点，否则返回 403。
+-- 做法一：在管理后台「菜单管理」新增按钮类型菜单，权限标识填 mock:list，挂到合适父菜单下，并为角色勾选。
+-- 做法二：按需执行 INSERT（请将 @parent_id 改为父菜单 id，type 2=按钮 可参考现网）：
+--
+-- INSERT INTO sys_menu (
+--   name, permission, type, sort, parent_id, path, icon, component, component_name,
+--   status, visible, keep_alive, always_show, creator, delete_flag
+-- ) VALUES (
+--   'Mock卷查询', 'mock:list', 2, 20, @parent_id, '', '', '', '',
+--   1, 1, 0, 0, 'admin', 0
+-- );

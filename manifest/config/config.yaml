@@ -1,0 +1,59 @@
+# https://goframe.org/docs/web/server-config-file-template
+server:
+  address: ":8000"
+  # 完整 OpenAPI JSON（全部接口）；管理端 / 客户端拆分见 GET /openapi/admin.json、/openapi/client.json
+  openapiPath: "/api.json"
+  swaggerPath: "/swagger"
+
+# https://goframe.org/docs/core/glog-config
+logger:
+  level: "all"
+  stdout: true
+
+# https://goframe.org/docs/core/gdb-config-file
+database:
+  default:
+    link: "mysql:root:123456@tcp(127.0.0.1:3306)/scaffold"
+    jsonCase: "Snake"
+
+# https://goframe.org/docs/core/gredis-config
+redis:
+  default:
+    address: "127.0.0.1:6379"
+    db: 0
+
+# 安全（登录风控、口令策略、会话、MFA 预留；生产环境请用环境变量覆盖敏感配置）
+security:
+  login:
+    rateLimitPerMinute: 30
+    maxFailuresBeforeLock: 5
+    failureWindowSeconds: 900
+    lockDurationSeconds: 900
+    captchaEnabled: false
+    captchaAfterFailures: 3
+  password:
+    minLength: 8
+    requireUpper: true
+    requireLower: true
+    requireDigit: true
+    requireSpecial: false
+    maxAgeDays: 0
+    historyCount: 5
+  session:
+    tokenTTLSeconds: 604800
+    maxConcurrentSessions: 5
+  mfa:
+    enabled: false
+
+# 存储配置已迁移至「文件中心-存储配置」管理
+# 通知配置（邮件/短信）已迁移至「通知中心-渠道配置」管理
+#
+# 任务中心集群部署：多实例需共用同一 Redis；可选环境变量 APP_TIMEZONE=Asia/Shanghai 统一 cron 时区
+
+# 客户端考试：试卷 duration_seconds=0 时使用默认时长；开考请求中的时长不得超过 maxDurationSeconds
+exam:
+  defaultDurationSeconds: 3600
+  maxDurationSeconds: 14400
+  saveAnswersPerSecond: 20
+  # 仅测试：POST .../random-answers 随机填答；生产环境必须为 false
+  enableRandomAnswerHelper: true

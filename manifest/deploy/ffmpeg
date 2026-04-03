@@ -1,0 +1,11 @@
+docker run --rm \
+  -v /C:/workspace/ffmpeg:/work \
+  jrottenberg/ffmpeg:7.1-ubuntu2404 \
+  ffmpeg -y -i /work/input/MNH625002.wav \
+  -c:a aac -b:a 128k \
+  -f hls \
+  -hls_time 10 \
+  -hls_list_size 0 \
+  -hls_key_info_file /work/keys/key_info.txt \
+  -hls_segment_filename "/work/output/%03d.ts" \
+  /work/output/index.m3u8
