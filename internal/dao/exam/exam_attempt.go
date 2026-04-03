@@ -5,7 +5,7 @@
 package exam
 
 import (
-	internal "exam/internal/dao/exam/internal"
+	"exam/internal/dao/exam/internal"
 )
 
 // examAttemptDao is the data access object for the table exam_attempt.

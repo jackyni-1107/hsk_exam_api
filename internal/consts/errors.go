@@ -39,26 +39,28 @@ var (
 	CodeExamStoragePresignOnly    = gcode.New(11009, "err.exam_storage_presign_only", nil)
 
 	// 考试内容与导入（11101-11112）
-	CodeExamPaperNotFound       = gcode.New(11101, "err.exam_paper_not_found", nil)
-	CodeExamSectionNotFound     = gcode.New(11102, "err.exam_section_not_found", nil)
-	CodeExamSectionTopicEmpty   = gcode.New(11103, "err.exam_section_topic_empty", nil)
-	CodeExamNewPaperIdRequired  = gcode.New(11104, "err.exam_new_paper_id_required", nil)
-	CodeExamNewPaperIdExists    = gcode.New(11105, "err.exam_new_paper_id_exists", nil)
-	CodeExamConflictModeInvalid = gcode.New(11106, "err.exam_conflict_mode_invalid", nil)
-	CodeExamIndexMetaRequired   = gcode.New(11107, "err.exam_index_meta_required", nil)
-	CodeExamSourceBaseRequired  = gcode.New(11108, "err.exam_source_base_required", nil)
-	CodeExamIndexUrlRequired    = gcode.New(11109, "err.exam_index_url_required", nil)
-	CodeExamIndexUrlInvalid     = gcode.New(11110, "err.exam_index_url_invalid", nil)
-	CodeExamAttemptNotEnded     = gcode.New(11111, "err.exam_attempt_not_ended", nil)
-	CodeExamAttemptNoSubjective = gcode.New(11112, "err.exam_attempt_no_subjective", nil)
+	CodeExamPaperNotFound              = gcode.New(11101, "err.exam_paper_not_found", nil)
+	CodeExamSectionNotFound            = gcode.New(11102, "err.exam_section_not_found", nil)
+	CodeExamSectionTopicEmpty          = gcode.New(11103, "err.exam_section_topic_empty", nil)
+	CodeExamNewPaperIdRequired         = gcode.New(11104, "err.exam_new_paper_id_required", nil)
+	CodeExamNewPaperIdExists           = gcode.New(11105, "err.exam_new_paper_id_exists", nil)
+	CodeExamConflictModeInvalid        = gcode.New(11106, "err.exam_conflict_mode_invalid", nil)
+	CodeExamIndexMetaRequired          = gcode.New(11107, "err.exam_index_meta_required", nil)
+	CodeExamSourceBaseRequired         = gcode.New(11108, "err.exam_source_base_required", nil)
+	CodeExamIndexUrlRequired           = gcode.New(11109, "err.exam_index_url_required", nil)
+	CodeExamIndexUrlInvalid            = gcode.New(11110, "err.exam_index_url_invalid", nil)
+	CodeExamAttemptNotEnded            = gcode.New(11111, "err.exam_attempt_not_ended", nil)
+	CodeExamAttemptNoSubjective        = gcode.New(11112, "err.exam_attempt_no_subjective", nil)
 	CodeMockExaminationPaperIdRequired = gcode.New(11113, "err.mock_examination_paper_id_required", nil)
 	// Mock 卷存在但尚未向 exam_paper 导入 index/题目树（与 CodeMockExamPaperNotFound 区分）
 	CodeExamPaperNotImported = gcode.New(11114, "err.exam_paper_not_imported", nil)
+	CodeExamBatchNotFound    = gcode.New(11115, "err.exam_batch_not_found", nil)
+	CodeExamBatchTimeInvalid = gcode.New(11116, "err.exam_batch_time_invalid", nil)
 
 	// Mock 模拟卷（11201-11299）
-	CodeMockExamPaperNotFound      = gcode.New(11201, "err.mock_exam_paper_not_found", nil)
-	CodeMockLevelNotFound          = gcode.New(11202, "err.mock_level_not_found", nil)
-	CodeMockDataDeleteForbidden    = gcode.New(11203, "err.mock_data_delete_forbidden", nil)
+	CodeMockExamPaperNotFound   = gcode.New(11201, "err.mock_exam_paper_not_found", nil)
+	CodeMockLevelNotFound       = gcode.New(11202, "err.mock_level_not_found", nil)
+	CodeMockDataDeleteForbidden = gcode.New(11203, "err.mock_data_delete_forbidden", nil)
 
 	// 配置与字典（12001-12004）
 	CodeConfigExists             = gcode.New(12001, "err.config_exists", nil)

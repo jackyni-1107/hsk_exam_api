@@ -29,14 +29,17 @@ type (
 
 // 考试域实体别名
 type (
-	ExamPaper         = entityexam.ExamPaper
-	ExamSection       = entityexam.ExamSection
-	ExamQuestionBlock = entityexam.ExamQuestionBlock
-	ExamQuestion      = entityexam.ExamQuestion
-	ExamOption        = entityexam.ExamOption
-	ExamAttempt       = entityexam.ExamAttempt
-	ExamAttemptAnswer = entityexam.ExamAttemptAnswer
-	ExamResult        = entityexam.ExamResult
+	ExamPaper          = entityexam.ExamPaper
+	ExamSection        = entityexam.ExamSection
+	ExamQuestionBlock  = entityexam.ExamQuestionBlock
+	ExamQuestion       = entityexam.ExamQuestion
+	ExamOption         = entityexam.ExamOption
+	ExamAttempt        = entityexam.ExamAttempt
+	ExamAttemptAnswer  = entityexam.ExamAttemptAnswer
+	ExamResult         = entityexam.ExamResult
+	ExamBatch          = entityexam.ExamBatch
+	ExamBatchMockLevel = entityexam.ExamBatchMockLevel
+	ExamBatchMember    = entityexam.ExamBatchMember
 )
 
 // ClientUser 客户端学员（数据在 sys_member 表，与 SystemMember 同义）

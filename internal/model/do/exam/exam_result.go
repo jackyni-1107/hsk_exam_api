@@ -13,7 +13,7 @@ import (
 type ExamResult struct {
 	g.Meta                 `orm:"table:exam_result, do:true"`
 	AttemptId              any         // exam_attempt.id
-	ClientUserId           any         // sys_member.id（列名 client_user_id）
+	MemberId               any         // sys_member.id
 	ExamPaperId            any         // exam_paper.id
 	MockExaminationPaperId any         // 冗余 mock_examination_paper.id
 	Status                 any         // 与 exam_attempt.status，列表阶段为已结束 4

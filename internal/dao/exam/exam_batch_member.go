@@ -8,15 +8,15 @@ import (
 	"exam/internal/dao/exam/internal"
 )
 
-// examQuestionBlockDao is the data access object for the table exam_question_block.
+// examBatchMemberDao is the data access object for the table exam_batch_member.
 // You can define custom methods on it to extend its functionality as needed.
-type examQuestionBlockDao struct {
-	*internal.ExamQuestionBlockDao
+type examBatchMemberDao struct {
+	*internal.ExamBatchMemberDao
 }
 
 var (
-	// ExamQuestionBlock is a globally accessible object for table exam_question_block operations.
-	ExamQuestionBlock = examQuestionBlockDao{internal.NewExamQuestionBlockDao()}
+	// ExamBatchMember is a globally accessible object for table exam_batch_member operations.
+	ExamBatchMember = examBatchMemberDao{internal.NewExamBatchMemberDao()}
 )
 
 // Add your custom methods and functionality below.

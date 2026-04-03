@@ -8,15 +8,15 @@ import (
 	"exam/internal/dao/exam/internal"
 )
 
-// examQuestionBlockDao is the data access object for the table exam_question_block.
+// examBatchMockLevelDao is the data access object for the table exam_batch_mock_level.
 // You can define custom methods on it to extend its functionality as needed.
-type examQuestionBlockDao struct {
-	*internal.ExamQuestionBlockDao
+type examBatchMockLevelDao struct {
+	*internal.ExamBatchMockLevelDao
 }
 
 var (
-	// ExamQuestionBlock is a globally accessible object for table exam_question_block operations.
-	ExamQuestionBlock = examQuestionBlockDao{internal.NewExamQuestionBlockDao()}
+	// ExamBatchMockLevel is a globally accessible object for table exam_batch_mock_level operations.
+	ExamBatchMockLevel = examBatchMockLevelDao{internal.NewExamBatchMockLevelDao()}
 )
 
 // Add your custom methods and functionality below.

@@ -71,6 +71,15 @@ type (
 		UpdatePaperSettings(ctx context.Context, examPaperId int64, in bo.PaperHlsExamAdminUpdate, updater string) error
 		// PaperList 分页试卷列表（管理端）
 		PaperList(ctx context.Context, page int, size int, level string) (list []entity.ExamPaper, total int, err error)
+		// ExamBatch* 考试批次（时间窗、多选 mock_levels、批次学员）
+		ExamBatchList(ctx context.Context, mockPaperID int64, page, size int) (list []bo.ExamBatchAdminItem, total int, err error)
+		ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdminItem, error)
+		ExamBatchCreate(ctx context.Context, mockPaperID int64, title, examStartAt, examEndAt string, mockLevelIds []int64, creator string) (id int64, err error)
+		ExamBatchUpdate(ctx context.Context, id int64, title, examStartAt, examEndAt string, mockLevelIds []int64, updater string) error
+		ExamBatchDelete(ctx context.Context, id int64) error
+		ExamBatchMembersImport(ctx context.Context, batchID int64, memberIDs []int64, creator string) (inserted int, err error)
+		ExamBatchMemberList(ctx context.Context, batchID int64, page, size int) (list []bo.ExamBatchMemberAdminRow, total int, err error)
+		ExamBatchMembersRemove(ctx context.Context, batchID int64, memberIDs []int64) (removed int, err error)
 		// IssueAudioHlsPlay 校验会话与题目 HLS 配置后写入 Redis 票据，返回相对 play_url。
 		IssueAudioHlsPlay(ctx context.Context, userID, attemptID, questionID int64) (playURL string, expiresAt string, err error)
 		// BuildHlsM3U8Playlist 根据票据生成内嵌 presigned URL 的 m3u8 正文。

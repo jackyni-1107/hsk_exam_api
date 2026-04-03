@@ -43,6 +43,9 @@ var (
 	ExamAttemptAnswer        = daoexam.ExamAttemptAnswer
 	ExamResult               = daoexam.ExamResult
 	ExamAttemptQuestionAudio = daoexam.ExamAttemptQuestionAudio
+	ExamBatch                = daoexam.ExamBatch
+	ExamBatchMockLevel       = daoexam.ExamBatchMockLevel
+	ExamBatchMember          = daoexam.ExamBatchMember
 	MockLevels               = daomock.MockLevels
 	MockExaminationPaper     = daomock.MockExaminationPaper
 	MockExaminationPart      = daomock.MockExaminationPart

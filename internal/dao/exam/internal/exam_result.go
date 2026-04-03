@@ -22,7 +22,7 @@ type ExamResultDao struct {
 // ExamResultColumns defines and stores column names for the table exam_result.
 type ExamResultColumns struct {
 	AttemptId              string // exam_attempt.id
-	ClientUserId           string // sys_member.id（列名 client_user_id）
+	MemberId               string // sys_member.id
 	ExamPaperId            string // exam_paper.id
 	MockExaminationPaperId string // 冗余 mock_examination_paper.id
 	Status                 string // 与 exam_attempt.status，列表阶段为已结束 4
@@ -41,7 +41,7 @@ type ExamResultColumns struct {
 // examResultColumns holds the columns for the table exam_result.
 var examResultColumns = ExamResultColumns{
 	AttemptId:              "attempt_id",
-	ClientUserId:           "client_user_id",
+	MemberId:               "member_id",
 	ExamPaperId:            "exam_paper_id",
 	MockExaminationPaperId: "mock_examination_paper_id",
 	Status:                 "status",

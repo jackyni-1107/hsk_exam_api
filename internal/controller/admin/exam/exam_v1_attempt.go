@@ -17,7 +17,7 @@ func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) 
 	for _, r := range rows {
 		list = append(list, &v1.AttemptListItem{
 			Id:                 r.Id,
-			ClientUserId:       r.ClientUserId,
+			MemberId:           r.MemberId,
 			Username:           r.Username,
 			Nickname:           r.Nickname,
 			ExaminationPaperId: r.ExaminationPaperId,
@@ -47,7 +47,7 @@ func (c *ControllerV1) AttemptDetail(ctx context.Context, req *v1.AttemptDetailR
 	out := &v1.AttemptDetailRes{
 		Attempt: v1.AttemptDetailAttempt{
 			Id:                 a.Id,
-			ClientUserId:       a.ClientUserId,
+			MemberId:           a.MemberId,
 			ExaminationPaperId: a.MockExaminationPaperId,
 			Status:             a.Status,
 			DurationSeconds:    a.DurationSeconds,

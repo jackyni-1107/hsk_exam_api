@@ -15,7 +15,7 @@ type ExamPaper struct {
 	Id                      any         // 主键
 	Level                   any         // 级别，如 hsk1
 	PaperId                 any         // 远程试卷目录ID，如 0d26e5c778ad4ca8
-	MockExaminationPaperId  any         // mock 真源 mock_examination_paper.id；NULL=非 mock 导入
+	MockExaminationPaperId  any         // mock 真源 mock_examination_paper.id
 	Title                   any         // 试卷标题
 	PrepareTitle            any         // prepare.title
 	PrepareInstruction      any         // 考前说明 instruction

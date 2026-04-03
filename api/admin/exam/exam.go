@@ -15,4 +15,12 @@ type IExam interface {
 	AttemptList(ctx context.Context, req *v1.AttemptListReq) (res *v1.AttemptListRes, err error)
 	AttemptDetail(ctx context.Context, req *v1.AttemptDetailReq) (res *v1.AttemptDetailRes, err error)
 	AttemptSubjectiveScores(ctx context.Context, req *v1.AttemptSubjectiveScoresReq) (res *v1.AttemptSubjectiveScoresRes, err error)
+	BatchList(ctx context.Context, req *v1.BatchListReq) (res *v1.BatchListRes, err error)
+	BatchDetail(ctx context.Context, req *v1.BatchDetailReq) (res *v1.BatchDetailRes, err error)
+	BatchCreate(ctx context.Context, req *v1.BatchCreateReq) (res *v1.BatchCreateRes, err error)
+	BatchUpdate(ctx context.Context, req *v1.BatchUpdateReq) (res *v1.BatchUpdateRes, err error)
+	BatchDelete(ctx context.Context, req *v1.BatchDeleteReq) (res *v1.BatchDeleteRes, err error)
+	BatchMembersImport(ctx context.Context, req *v1.BatchMembersImportReq) (res *v1.BatchMembersImportRes, err error)
+	BatchMemberList(ctx context.Context, req *v1.BatchMemberListReq) (res *v1.BatchMemberListRes, err error)
+	BatchMembersRemove(ctx context.Context, req *v1.BatchMembersRemoveReq) (res *v1.BatchMembersRemoveRes, err error)
 }

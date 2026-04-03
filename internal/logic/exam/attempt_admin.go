@@ -99,7 +99,7 @@ func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.At
 	}
 	var user entity.ClientUser
 	_ = dao.SysMember.Ctx(ctx).
-		Where("id", att.ClientUserId).
+		Where("id", att.MemberId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&user)
 	var paper entity.ExamPaper

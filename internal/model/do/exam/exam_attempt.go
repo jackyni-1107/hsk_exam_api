@@ -13,7 +13,7 @@ import (
 type ExamAttempt struct {
 	g.Meta                 `orm:"table:exam_attempt, do:true"`
 	Id                     any         // 主键
-	ClientUserId           any         // sys_member.id（列名 client_user_id）
+	MemberId               any         // sys_member.id
 	ExamPaperId            any         // exam_paper.id
 	MockExaminationPaperId any         // 冗余 mock_examination_paper.id
 	Status                 any         // 1=not_started 2=in_progress 3=submitted 4=ended

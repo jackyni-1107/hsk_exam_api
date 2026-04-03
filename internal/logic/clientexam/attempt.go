@@ -38,7 +38,7 @@ func CreateAttempt(ctx context.Context, userID int64, mockPaperID int64) (int64,
 		return 0, err
 	}
 	id, err := dao.ExamAttempt.Ctx(ctx).InsertAndGetId(do.ExamAttempt{
-		ClientUserId:           userID,
+		MemberId:               userID,
 		ExamPaperId:            paper.Id,
 		MockExaminationPaperId: paper.MockExaminationPaperId,
 		Status:                 consts.ExamAttemptNotStarted,

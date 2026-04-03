@@ -3,13 +3,13 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type AttemptListReq struct {
-	g.Meta      `path:"/exam/attempt/list" method:"get" tags:"考试结果" summary:"答题会话列表"`
-	Page        int    `json:"page" dc:"页码"`
-	Size        int    `json:"size" dc:"每页条数"`
-	Level       string `json:"level" dc:"试卷级别，如 hsk1"`
+	g.Meta             `path:"/exam/attempt/list" method:"get" tags:"考试结果" summary:"答题会话列表"`
+	Page               int    `json:"page" dc:"页码"`
+	Size               int    `json:"size" dc:"每页条数"`
+	Level              string `json:"level" dc:"试卷级别，如 hsk1"`
 	ExaminationPaperId int64  `json:"examination_paper_id" dc:"mock_examination_paper.id"`
-	Status      int    `json:"status" dc:"会话状态 1-4，0 表示不限"`
-	Username    string `json:"username" dc:"学员账号（模糊）"`
+	Status             int    `json:"status" dc:"会话状态 1-4，0 表示不限"`
+	Username           string `json:"username" dc:"学员账号（模糊）"`
 }
 
 type AttemptListRes struct {
@@ -18,23 +18,23 @@ type AttemptListRes struct {
 }
 
 type AttemptListItem struct {
-	Id              int64   `json:"id"`
-	ClientUserId    int64   `json:"client_user_id"`
-	Username        string  `json:"username"`
-	Nickname        string  `json:"nickname"`
-	ExaminationPaperId int64 `json:"examination_paper_id"`
-	PaperTitle      string  `json:"paper_title"`
-	PaperLevel      string  `json:"paper_level"`
-	RemotePaperId   string  `json:"remote_paper_id"`
-	Status          int     `json:"status"`
-	ObjectiveScore  float64 `json:"objective_score"`
-	SubjectiveScore float64 `json:"subjective_score"`
-	TotalScore      float64 `json:"total_score"`
-	HasSubjective   int     `json:"has_subjective"`
-	StartedAt       string  `json:"started_at"`
-	SubmittedAt     string  `json:"submitted_at"`
-	EndedAt         string  `json:"ended_at"`
-	CreateTime      string  `json:"create_time"`
+	Id                 int64   `json:"id"`
+	MemberId           int64   `json:"member_id"`
+	Username           string  `json:"username"`
+	Nickname           string  `json:"nickname"`
+	ExaminationPaperId int64   `json:"examination_paper_id"`
+	PaperTitle         string  `json:"paper_title"`
+	PaperLevel         string  `json:"paper_level"`
+	RemotePaperId      string  `json:"remote_paper_id"`
+	Status             int     `json:"status"`
+	ObjectiveScore     float64 `json:"objective_score"`
+	SubjectiveScore    float64 `json:"subjective_score"`
+	TotalScore         float64 `json:"total_score"`
+	HasSubjective      int     `json:"has_subjective"`
+	StartedAt          string  `json:"started_at"`
+	SubmittedAt        string  `json:"submitted_at"`
+	EndedAt            string  `json:"ended_at"`
+	CreateTime         string  `json:"create_time"`
 }
 
 type AttemptDetailReq struct {
@@ -59,20 +59,20 @@ type AttemptDetailOption struct {
 }
 
 type AttemptDetailAttempt struct {
-	Id              int64   `json:"id"`
-	ClientUserId    int64   `json:"client_user_id"`
-	ExaminationPaperId int64 `json:"examination_paper_id"`
-	Status          int     `json:"status"`
-	DurationSeconds int     `json:"duration_seconds"`
-	ObjectiveScore  float64 `json:"objective_score"`
-	SubjectiveScore float64 `json:"subjective_score"`
-	TotalScore      float64 `json:"total_score"`
-	HasSubjective   int     `json:"has_subjective"`
-	StartedAt       string  `json:"started_at"`
-	DeadlineAt      string  `json:"deadline_at"`
-	SubmittedAt     string  `json:"submitted_at"`
-	EndedAt         string  `json:"ended_at"`
-	CreateTime      string  `json:"create_time"`
+	Id                 int64   `json:"id"`
+	MemberId           int64   `json:"member_id"`
+	ExaminationPaperId int64   `json:"examination_paper_id"`
+	Status             int     `json:"status"`
+	DurationSeconds    int     `json:"duration_seconds"`
+	ObjectiveScore     float64 `json:"objective_score"`
+	SubjectiveScore    float64 `json:"subjective_score"`
+	TotalScore         float64 `json:"total_score"`
+	HasSubjective      int     `json:"has_subjective"`
+	StartedAt          string  `json:"started_at"`
+	DeadlineAt         string  `json:"deadline_at"`
+	SubmittedAt        string  `json:"submitted_at"`
+	EndedAt            string  `json:"ended_at"`
+	CreateTime         string  `json:"create_time"`
 }
 
 type AttemptDetailUser struct {

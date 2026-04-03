@@ -12,7 +12,7 @@ import (
 type ExamQuestion struct {
 	Id                      int64       `json:"id"                         orm:"id"                         description:"主键"`                                 // 主键
 	ExamPaperId             int64       `json:"exam_paper_id"              orm:"exam_paper_id"              description:"试卷ID，冗余便于按卷查询"`                      // 试卷ID，冗余便于按卷查询
-	MockExaminationPaperId  int64       `json:"mock_examination_paper_id"  orm:"mock_examination_paper_id"  description:"冗余 mock_examination_paper.id"`         // 冗余 mock_examination_paper.id
+	MockExaminationPaperId  int64       `json:"mock_examination_paper_id"  orm:"mock_examination_paper_id"  description:"冗余 mock_examination_paper.id"`       // 冗余 mock_examination_paper.id
 	BlockId                 int64       `json:"block_id"                   orm:"block_id"                   description:"题块ID exam_question_block.id"`        // 题块ID exam_question_block.id
 	SortInBlock             int         `json:"sort_in_block"              orm:"sort_in_block"              description:"块内顺序"`                               // 块内顺序
 	QuestionNo              int         `json:"question_no"                orm:"question_no"                description:"卷面题号（JSON index，如 1-40）"`            // 卷面题号（JSON index，如 1-40）

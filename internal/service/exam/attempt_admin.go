@@ -20,7 +20,7 @@ import (
 // AttemptAdminListRow 管理端列表行（与 Raw 列别名一致，供 Scan）。
 type AttemptAdminListRow struct {
 	Id                 int64       `json:"id"`
-	ClientUserId       int64       `json:"client_user_id"`
+	MemberId           int64       `json:"member_id"`
 	ExaminationPaperId int64       `json:"examination_paper_id"`
 	Status             int         `json:"status"`
 	ObjectiveScore     float64     `json:"objective_score"`
@@ -134,7 +134,7 @@ func AttemptAdminDetail(ctx context.Context, attemptID int64) (*AttemptAdminDeta
 	}
 	var user entity.ClientUser
 	_ = dao.SysMember.Ctx(ctx).
-		Where("id", att.ClientUserId).
+		Where("id", att.MemberId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&user)
 	var paper entity.ExamPaper

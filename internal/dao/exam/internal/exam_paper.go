@@ -24,7 +24,7 @@ type ExamPaperColumns struct {
 	Id                      string // 主键
 	Level                   string // 级别，如 hsk1
 	PaperId                 string // 远程试卷目录ID，如 0d26e5c778ad4ca8
-	MockExaminationPaperId  string // mock 真源 mock_examination_paper.id；NULL=非 mock 导入
+	MockExaminationPaperId  string // mock 真源 mock_examination_paper.id
 	Title                   string // 试卷标题
 	PrepareTitle            string // prepare.title
 	PrepareInstruction      string // 考前说明 instruction

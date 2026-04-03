@@ -23,20 +23,20 @@ func UpsertFromAttemptTx(ctx context.Context, tx gdb.TX, attemptID int64) error 
 	}
 	row := exam.ExamResult{
 		AttemptId:              att.Id,
-		ClientUserId:           att.ClientUserId,
+		MemberId:               att.MemberId,
 		ExamPaperId:            att.ExamPaperId,
 		MockExaminationPaperId: att.MockExaminationPaperId,
-		Status:          att.Status,
-		ObjectiveScore:  att.ObjectiveScore,
-		SubjectiveScore: att.SubjectiveScore,
-		TotalScore:      att.TotalScore,
-		HasSubjective:   att.HasSubjective,
-		StartedAt:       att.StartedAt,
-		SubmittedAt:     att.SubmittedAt,
-		EndedAt:         att.EndedAt,
-		CreateTime:      att.CreateTime,
-		UpdateTime:      gtime.Now(),
-		DeleteFlag:      consts.DeleteFlagNotDeleted,
+		Status:                 att.Status,
+		ObjectiveScore:         att.ObjectiveScore,
+		SubjectiveScore:        att.SubjectiveScore,
+		TotalScore:             att.TotalScore,
+		HasSubjective:          att.HasSubjective,
+		StartedAt:              att.StartedAt,
+		SubmittedAt:            att.SubmittedAt,
+		EndedAt:                att.EndedAt,
+		CreateTime:             att.CreateTime,
+		UpdateTime:             gtime.Now(),
+		DeleteFlag:             consts.DeleteFlagNotDeleted,
 	}
 	var exist entity.ExamResult
 	_ = tx.Model(dao.ExamResult.Table()).Ctx(ctx).Where("attempt_id", attemptID).Scan(&exist)

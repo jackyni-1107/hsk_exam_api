@@ -22,7 +22,7 @@ type ExamAttemptDao struct {
 // ExamAttemptColumns defines and stores column names for the table exam_attempt.
 type ExamAttemptColumns struct {
 	Id                     string // 主键
-	ClientUserId           string // sys_member.id（列名 client_user_id）
+	MemberId               string // sys_member.id
 	ExamPaperId            string // exam_paper.id
 	MockExaminationPaperId string // 冗余 mock_examination_paper.id
 	Status                 string // 1=not_started 2=in_progress 3=submitted 4=ended
@@ -45,7 +45,7 @@ type ExamAttemptColumns struct {
 // examAttemptColumns holds the columns for the table exam_attempt.
 var examAttemptColumns = ExamAttemptColumns{
 	Id:                     "id",
-	ClientUserId:           "client_user_id",
+	MemberId:               "member_id",
 	ExamPaperId:            "exam_paper_id",
 	MockExaminationPaperId: "mock_examination_paper_id",
 	Status:                 "status",
