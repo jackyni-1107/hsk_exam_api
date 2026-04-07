@@ -9,7 +9,6 @@ import (
 
 	"exam/internal/consts"
 	examdao "exam/internal/dao/exam"
-	"exam/internal/model/bo"
 	exam "exam/internal/model/bo/exam"
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
@@ -17,7 +16,7 @@ import (
 )
 
 // PaperDetail 返回试卷及嵌套大题、题块、小题、选项（只读查看）。
-func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*bo.PaperDetailTree, error) {
+func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exam.PaperDetailTree, error) {
 	var paper examentity.ExamPaper
 	err := examdao.ExamPaper.Ctx(ctx).
 		Where("id", examPaperId).

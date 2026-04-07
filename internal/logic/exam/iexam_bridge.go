@@ -14,6 +14,7 @@ import (
 	"exam/internal/exampaper"
 	"exam/internal/logic/clientexam"
 	"exam/internal/model/bo"
+	exam "exam/internal/model/bo/exam"
 	"exam/internal/model/entity"
 )
 
@@ -150,7 +151,7 @@ func (s *sExam) InvalidatePaperSectionForExamCache(ctx context.Context, examPape
 	InvalidatePaperSectionForExamCache(ctx, examPaperId, sectionId)
 }
 
-func (s *sExam) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*bo.PaperDetailForExamInitTree, error) {
+func (s *sExam) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*exam.PaperDetailForExamInitTree, error) {
 	paper, err := exampaper.ByMockID(ctx, mockPaperID)
 	if err != nil {
 		return nil, err
@@ -163,14 +164,14 @@ func (s *sExam) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (
 	if err != nil {
 		return nil, err
 	}
-	var out bo.PaperDetailForExamInitTree
+	var out exam.PaperDetailForExamInitTree
 	if err := json.Unmarshal(b, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
 }
 
-func (s *sExam) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*bo.SectionDetailForExamView, error) {
+func (s *sExam) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exam.SectionDetailForExamView, error) {
 	paper, err := exampaper.ByMockID(ctx, mockPaperID)
 	if err != nil {
 		return nil, err
@@ -183,7 +184,7 @@ func (s *sExam) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64
 	if err != nil {
 		return nil, err
 	}
-	var out bo.SectionDetailForExamView
+	var out exam.SectionDetailForExamView
 	if err := json.Unmarshal(b, &out); err != nil {
 		return nil, err
 	}

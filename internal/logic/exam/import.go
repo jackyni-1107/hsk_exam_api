@@ -10,7 +10,7 @@ import (
 	"exam/internal/consts"
 	examdao "exam/internal/dao/exam"
 	"exam/internal/exampaper"
-	"exam/internal/model/bo"
+	exam "exam/internal/model/bo/exam"
 	examdo "exam/internal/model/do/exam"
 	"exam/internal/model/entity"
 	examentity "exam/internal/model/entity/exam"
@@ -24,8 +24,8 @@ import (
 )
 
 // ImportFromIndex 拉取或解析 index.json，写入 exam_* 表。
-func (s *sExam) ImportFromIndex(ctx context.Context, p bo.ImportParams) (*bo.ImportResult, error) {
-	res := &bo.ImportResult{}
+func (s *sExam) ImportFromIndex(ctx context.Context, p exam.ImportParams) (*exam.ImportResult, error) {
+	res := &exam.ImportResult{}
 	if err := exampaper.EnsureMockExaminationPaper(ctx, p.MockExaminationPaperId); err != nil {
 		return nil, err
 	}
@@ -198,18 +198,18 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p bo.ImportParams) (*bo.Imp
 				ExamPaperId:            pid,
 				MockExaminationPaperId: mockID,
 				SortOrder:              i,
-				TopicTitle:     item.Get("topic_title").String(),
-				TopicSubtitle:  item.Get("topic_subtitle").String(),
-				TopicType:      item.Get("topic_type").String(),
-				PartCode:       item.Get("part_code").Int(),
-				SegmentCode:    item.Get("segment_code").String(),
-				TopicItemsFile: topicFile,
-				TopicJson:      topicSnap,
-				Creator:        p.Creator,
-				Updater:        p.Creator,
-				DeleteFlag:     consts.DeleteFlagNotDeleted,
-				CreateTime:     gtime.Now(),
-				UpdateTime:     gtime.Now(),
+				TopicTitle:             item.Get("topic_title").String(),
+				TopicSubtitle:          item.Get("topic_subtitle").String(),
+				TopicType:              item.Get("topic_type").String(),
+				PartCode:               item.Get("part_code").Int(),
+				SegmentCode:            item.Get("segment_code").String(),
+				TopicItemsFile:         topicFile,
+				TopicJson:              topicSnap,
+				Creator:                p.Creator,
+				Updater:                p.Creator,
+				DeleteFlag:             consts.DeleteFlagNotDeleted,
+				CreateTime:             gtime.Now(),
+				UpdateTime:             gtime.Now(),
 			}
 			sid, err := tx.Model(examdao.ExamSection.Table()).Ctx(ctx).InsertAndGetId(secDO)
 			if err != nil {
@@ -237,7 +237,7 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p bo.ImportParams) (*bo.Imp
 	return res, nil
 }
 
-func resolveIndexPayload(ctx context.Context, p bo.ImportParams) (indexStr, baseURL, level, paperID string, err error) {
+func resolveIndexPayload(ctx context.Context, p exam.ImportParams) (indexStr, baseURL, level, paperID string, err error) {
 	if p.IndexJSON != "" {
 		indexStr = p.IndexJSON
 		if p.Level == "" || p.PaperID == "" {
