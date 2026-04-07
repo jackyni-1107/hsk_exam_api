@@ -69,7 +69,9 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*ex
 		Where("mock_examination_paper_id", mockID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&exist); err != nil {
-		return nil, err
+		if !isNoRowsErr(err) {
+			return nil, err
+		}
 	}
 	if exist.Id > 0 {
 		switch mode {
@@ -91,7 +93,9 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*ex
 				Where("delete_flag", consts.DeleteFlagNotDeleted).
 				WhereNot("id", exist.Id).
 				Scan(&dup); err != nil {
-				return nil, err
+				if !isNoRowsErr(err) {
+					return nil, err
+				}
 			}
 			if dup.Id > 0 {
 				return nil, gerror.NewCode(consts.CodeExamNewPaperIdExists)
@@ -106,7 +110,9 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*ex
 			Where("paper_id", paperID).
 			Where("delete_flag", consts.DeleteFlagNotDeleted).
 			Scan(&pathDup); err != nil {
-			return nil, err
+			if !isNoRowsErr(err) {
+				return nil, err
+			}
 		}
 		if pathDup.Id > 0 {
 			return nil, gerror.NewCode(consts.CodeExamNewPaperIdExists)
@@ -307,6 +313,13 @@ func fetchRemote(ctx context.Context, u string) (string, error) {
 		return "", gerror.Newf("http %d for %s", r.StatusCode, u)
 	}
 	return r.ReadAllString(), nil
+}
+
+func isNoRowsErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "no rows in result set")
 }
 
 // deletePaperTree 独立事务删除（供管理端扩展等使用）。
