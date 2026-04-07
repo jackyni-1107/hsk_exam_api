@@ -26,7 +26,7 @@
                 <el-tag :type="row.status === 0 ? 'success' : 'info'" size="small">{{ row.status === 0 ? '正常' : '停用' }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="create_time" label="创建时间" width="170" />
+            <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
             <el-table-column label="操作" width="140" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" @click="openTplEdit(row)">编辑</el-button>
@@ -59,7 +59,7 @@
                 <span v-else>否</span>
               </template>
             </el-table-column>
-            <el-table-column prop="create_time" label="创建时间" width="170" />
+            <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
             <el-table-column label="操作" width="220" fixed="right">
               <template #default="{ row }">
                 <el-button link type="warning" @click="setChActive(row)">设为当前</el-button>
@@ -92,7 +92,7 @@
               </template>
             </el-table-column>
             <el-table-column prop="error_msg" label="错误" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="create_time" label="时间" width="170" />
+            <el-table-column prop="create_time" label="时间" width="170" :formatter="formatUtcForDisplay" />
           </el-table>
           <el-pagination
             v-model:current-page="logQuery.page"
@@ -198,6 +198,7 @@ import {
   type TemplateItem,
   type ChannelConfigItem,
 } from '@/api/notification'
+import { formatUtcForDisplay } from '@/utils/datetime'
 
 const tab = ref('tpl')
 const tplLoading = ref(false)

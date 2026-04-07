@@ -9,6 +9,7 @@ import (
 	"exam/internal/consts"
 	"exam/internal/dao"
 	sysentity "exam/internal/model/entity/sys"
+	"exam/internal/util"
 )
 
 func (c *ControllerV1) RoleList(ctx context.Context, req *v1.RoleListReq) (res *v1.RoleListRes, err error) {
@@ -51,7 +52,7 @@ func (c *ControllerV1) RoleList(ctx context.Context, req *v1.RoleListReq) (res *
 			Remark: r.Remark,
 		}
 		if r.CreateTime != nil {
-			item.CreateTime = r.CreateTime.Format("Y-m-d H:i:s")
+			item.CreateTime = util.ToRFC3339UTC(r.CreateTime)
 		}
 		var roleMenus []sysentity.SysRoleMenu
 		_ = dao.SystemRoleMenu.Ctx(ctx).Where("role_id", r.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&roleMenus)

@@ -30,13 +30,13 @@
         <el-table-column prop="id" label="批次ID" width="88" />
         <el-table-column prop="mock_examination_paper_id" label="Mock卷ID" width="100" />
         <el-table-column prop="title" label="批次名称" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="exam_start_at" label="开始时间" width="172" show-overflow-tooltip />
-        <el-table-column prop="exam_end_at" label="结束时间" width="172" show-overflow-tooltip />
+        <el-table-column prop="exam_start_at" label="开始时间" width="172" show-overflow-tooltip :formatter="formatUtcForDisplay" />
+        <el-table-column prop="exam_end_at" label="结束时间" width="172" show-overflow-tooltip :formatter="formatUtcForDisplay" />
         <el-table-column label="等级IDs" min-width="120" show-overflow-tooltip>
           <template #default="{ row }">{{ (row.mock_level_ids || []).join(', ') || '—' }}</template>
         </el-table-column>
         <el-table-column prop="member_count" label="学员数" width="80" align="right" />
-        <el-table-column prop="create_time" label="创建时间" width="172" show-overflow-tooltip />
+        <el-table-column prop="create_time" label="创建时间" width="172" show-overflow-tooltip :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
@@ -168,7 +168,7 @@
           <el-table-column prop="mock_level_id" label="等级ID" width="88" />
           <el-table-column prop="username" label="账号" />
           <el-table-column prop="nickname" label="昵称" />
-          <el-table-column prop="import_time" label="导入时间" width="172" />
+          <el-table-column prop="import_time" label="导入时间" width="172" :formatter="formatUtcForDisplay" />
           <el-table-column label="" width="88">
             <template #default="{ row }">
               <el-button link type="danger" @click="removeOne(row)">移除</el-button>
@@ -210,6 +210,7 @@ import {
 } from '@/api/exam'
 import { getMockExaminationPapers, getMockLevelsList, type MockExaminationPaperItem } from '@/api/mockAdmin'
 import { fetchMemberList, type MemberItem } from '@/api/member'
+import { formatUtcForDisplay, formatUtcText } from '@/utils/datetime'
 
 const loading = ref(false)
 const rows = ref<ExamBatchListItem[]>([])
@@ -300,8 +301,8 @@ function openEdit(row: ExamBatchListItem) {
   editingId.value = row.id
   form.mock_examination_paper_id = row.mock_examination_paper_id
   form.title = row.title
-  form.exam_start_at = row.exam_start_at?.replace('T', ' ').slice(0, 19) ?? ''
-  form.exam_end_at = row.exam_end_at?.replace('T', ' ').slice(0, 19) ?? ''
+  form.exam_start_at = formatUtcText(row.exam_start_at)
+  form.exam_end_at = formatUtcText(row.exam_end_at)
   form.mock_level_ids = [...(row.mock_level_ids || [])]
   formVisible.value = true
 }

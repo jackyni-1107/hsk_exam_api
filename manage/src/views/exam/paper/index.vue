@@ -367,7 +367,7 @@
               examDetail.paper.title
             }}</el-descriptions-item>
             <el-descriptions-item label="创建时间">{{
-              examDetail.paper.create_time
+              formatUtcText(examDetail.paper.create_time)
             }}</el-descriptions-item>
             <el-descriptions-item label="资源基址" :span="2">{{
               examDetail.paper.source_base_url
@@ -460,6 +460,7 @@ import {
   type MockExaminationPaperItem,
   type MockPaperImportStatusFilter,
 } from "@/api/mockAdmin";
+import { formatUtcText } from "@/utils/datetime";
 
 const loading = ref(false);
 /** 当前页表格数据（Mock 卷） */

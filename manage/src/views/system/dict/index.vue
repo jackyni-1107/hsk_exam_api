@@ -30,7 +30,7 @@
             <el-tag :type="row.status === 0 ? 'success' : 'info'" size="small">{{ row.status === 0 ? '正常' : '停用' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" width="170" />
+        <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openTypeEdit(row)">编辑</el-button>
@@ -64,7 +64,7 @@
             <el-tag :type="row.status === 0 ? 'success' : 'info'" size="small">{{ row.status === 0 ? '正常' : '停用' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" width="170" />
+        <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openDataEdit(row)">编辑</el-button>
@@ -152,6 +152,7 @@ import {
   type DictTypeItem,
   type DictDataItem,
 } from '@/api/sysConfig'
+import { formatUtcForDisplay } from '@/utils/datetime'
 
 const typeLoading = ref(false)
 const dataLoading = ref(false)

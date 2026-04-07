@@ -43,7 +43,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" width="170" />
+        <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
@@ -137,6 +137,7 @@ import {
   type AdminUserItem,
 } from '@/api/user'
 import { fetchRoleList, type RoleItem } from '@/api/role'
+import { formatUtcForDisplay } from '@/utils/datetime'
 
 const SUPER_ADMIN_ID = 1
 

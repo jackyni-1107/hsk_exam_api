@@ -171,7 +171,7 @@ func GetAttempt(ctx context.Context, userID int64, attemptID int64) (*bo.Attempt
 	deadlineReached := att.Status == consts.ExamAttemptInProgress && att.DeadlineAt != nil && att.DeadlineAt.Before(now)
 	return &bo.AttemptView{
 		Attempt:         att,
-		ServerTime:      util.ToRFC3339UTC(now),
+		ServerTime:      util.ToRFC3339UTCShift(now),
 		DeadlineReached: deadlineReached,
 	}, nil
 }

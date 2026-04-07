@@ -9,6 +9,7 @@ import (
 	sysdo "exam/internal/model/do/sys"
 	sysentity "exam/internal/model/entity/sys"
 	"exam/internal/storage"
+	"exam/internal/util"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -40,7 +41,7 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.FileListReq) (res *v1.F
 			MimeType: e.MimeType, IsPrivate: e.IsPrivate,
 		}
 		if e.CreateTime != nil {
-			item.CreateTime = e.CreateTime.Format("Y-m-d H:i:s")
+			item.CreateTime = util.ToRFC3339UTC(e.CreateTime)
 		}
 		items = append(items, item)
 	}

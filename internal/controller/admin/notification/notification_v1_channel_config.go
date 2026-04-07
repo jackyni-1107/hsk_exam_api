@@ -9,6 +9,7 @@ import (
 	"exam/internal/middleware"
 	sysdo "exam/internal/model/do/sys"
 	sysentity "exam/internal/model/entity/sys"
+	"exam/internal/util"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -34,7 +35,7 @@ func (c *ControllerV1) ChannelConfigList(ctx context.Context, req *v1.ChannelCon
 			ConfigJson: e.ConfigJson,
 		}
 		if e.CreateTime != nil {
-			item.CreateTime = e.CreateTime.Format("Y-m-d H:i:s")
+			item.CreateTime = util.ToRFC3339UTC(e.CreateTime)
 		}
 		items = append(items, item)
 	}

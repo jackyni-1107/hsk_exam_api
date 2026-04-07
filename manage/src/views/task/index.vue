@@ -48,7 +48,7 @@
             <el-tag :type="row.status === 0 ? 'success' : 'info'" size="small">{{ row.status === 0 ? '启用' : '停用' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" width="170" />
+        <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
             <el-button link type="success" :disabled="row.status !== 0" @click="onRun(row)">执行</el-button>
@@ -147,6 +147,7 @@ import {
   runTask,
   type TaskItem,
 } from '@/api/task'
+import { formatUtcForDisplay } from '@/utils/datetime'
 
 const router = useRouter()
 const loading = ref(false)

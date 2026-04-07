@@ -23,7 +23,7 @@
             <el-table-column label="私有" width="72">
               <template #default="{ row }">{{ row.is_private === 1 ? '是' : '否' }}</template>
             </el-table-column>
-            <el-table-column prop="create_time" label="上传时间" width="170" />
+            <el-table-column prop="create_time" label="上传时间" width="170" :formatter="formatUtcForDisplay" />
             <el-table-column label="操作" width="100" fixed="right">
               <template #default="{ row }">
                 <el-button link type="danger" @click="delFile(row)">删除</el-button>
@@ -57,7 +57,7 @@
               </template>
             </el-table-column>
             <el-table-column prop="cleanup_before_days" label="清理(天)" width="100" />
-            <el-table-column prop="create_time" label="创建时间" width="170" />
+            <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
             <el-table-column label="操作" width="240" fixed="right">
               <template #default="{ row }">
                 <el-button link type="warning" @click="setStActive(row)">设为当前</el-button>
@@ -108,6 +108,7 @@ import {
   type FileItemRow,
   type StorageConfigItem,
 } from '@/api/file'
+import { formatUtcForDisplay } from '@/utils/datetime'
 
 const tab = ref('files')
 const fileLoading = ref(false)

@@ -15,12 +15,14 @@ func batchListItemPtr(b *bo.ExamBatchAdminItem) *v1.BatchListItem {
 	if ids == nil {
 		ids = []int64{}
 	}
+	formattedStartAt := util.ToRFC3339UTC(b.ExamStartAt)
+	formattedEndAt := util.ToRFC3339UTC(b.ExamEndAt)
 	return &v1.BatchListItem{
 		Id:                     b.Id,
 		MockExaminationPaperId: b.MockExaminationPaperId,
 		Title:                  b.Title,
-		ExamStartAt:            util.ToRFC3339UTC(b.ExamStartAt),
-		ExamEndAt:              util.ToRFC3339UTC(b.ExamEndAt),
+		ExamStartAt:            formattedStartAt,
+		ExamEndAt:              formattedEndAt,
 		MockLevelIds:           ids,
 		MemberCount:            b.MemberCount,
 		CreateTime:             util.ToRFC3339UTC(b.CreateTime),

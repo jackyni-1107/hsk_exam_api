@@ -7,6 +7,7 @@ import (
 	"exam/internal/consts"
 	"exam/internal/dao"
 	sysentity "exam/internal/model/entity/sys"
+	"exam/internal/util"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -51,7 +52,7 @@ func (c *ControllerV1) UserList(ctx context.Context, req *v1.UserListReq) (res *
 			CreateTime: "",
 		}
 		if u.CreateTime != nil {
-			item.CreateTime = u.CreateTime.Format("Y-m-d H:i:s")
+			item.CreateTime = util.ToRFC3339UTC(u.CreateTime)
 		}
 		// 查询角色
 		var userRoles []sysentity.SysUserRole

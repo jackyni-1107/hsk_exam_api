@@ -7,6 +7,7 @@ import (
 	"exam/internal/consts"
 	"exam/internal/dao"
 	sysentity "exam/internal/model/entity/sys"
+	"exam/internal/util"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -52,7 +53,7 @@ func (c *ControllerV1) TaskList(ctx context.Context, req *v1.TaskListReq) (res *
 			AlertOnFail: e.AlertOnFail, AlertReceivers: e.AlertReceivers, Status: e.Status, Remark: e.Remark,
 		}
 		if e.CreateTime != nil {
-			item.CreateTime = e.CreateTime.Format("Y-m-d H:i:s")
+			item.CreateTime = util.ToRFC3339UTC(e.CreateTime)
 		}
 		items = append(items, item)
 	}

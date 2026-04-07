@@ -7,6 +7,7 @@ import (
 	"exam/internal/consts"
 	sysdao "exam/internal/dao/sys"
 	sysentity "exam/internal/model/entity/sys"
+	"exam/internal/util"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -41,7 +42,7 @@ func (c *ControllerV1) MemberList(ctx context.Context, req *v1.MemberListReq) (r
 			Email: u.Email, Mobile: u.Mobile, Status: u.Status,
 		}
 		if u.CreateTime != nil {
-			item.CreateTime = u.CreateTime.Format("Y-m-d H:i:s")
+			item.CreateTime = util.ToRFC3339UTC(u.CreateTime)
 		}
 		list = append(list, item)
 	}

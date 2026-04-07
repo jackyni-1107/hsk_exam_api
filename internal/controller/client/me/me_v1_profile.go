@@ -4,21 +4,14 @@ import (
 	"context"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/os/gtime"
 
 	v1 "exam/api/client/me/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
 	sysentity "exam/internal/model/entity/sys"
+	"exam/internal/util"
 )
-
-func gtimeRFC3339(t *gtime.Time) string {
-	if t == nil {
-		return ""
-	}
-	return t.Time.Format("2006-01-02T15:04:05Z07:00")
-}
 
 func (c *ControllerV1) Profile(ctx context.Context, req *v1.ProfileReq) (res *v1.ProfileRes, err error) {
 	d := middleware.GetCtxData(ctx)
@@ -42,9 +35,9 @@ func (c *ControllerV1) Profile(ctx context.Context, req *v1.ProfileReq) (res *v1
 		Mobile:             u.Mobile,
 		Status:             u.Status,
 		MustChangePassword: u.MustChangePassword,
-		PasswordChangedAt:  gtimeRFC3339(u.PasswordChangedAt),
+		PasswordChangedAt:  util.ToRFC3339UTC(u.PasswordChangedAt),
 		LoginIp:            u.LoginIp,
-		LoginTime:          gtimeRFC3339(u.LoginTime),
-		CreateTime:         gtimeRFC3339(u.CreateTime),
+		LoginTime:          util.ToRFC3339UTC(u.LoginTime),
+		CreateTime:         util.ToRFC3339UTC(u.CreateTime),
 	}, nil
 }

@@ -43,7 +43,7 @@
             >
           </template>
         </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" width="170" />
+        <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)"
@@ -128,6 +128,7 @@ import {
   deleteMember,
   type MemberItem,
 } from "@/api/member";
+import { formatUtcForDisplay } from "@/utils/datetime";
 
 const loading = ref(false);
 const saving = ref(false);

@@ -41,7 +41,7 @@
             {{ row.menu_ids?.length ?? 0 }}
           </template>
         </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" width="170" />
+        <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
@@ -145,6 +145,7 @@ import {
   type RoleItem,
 } from '@/api/role'
 import { fetchAdminMenuTree, type MenuTreeNode } from '@/api/menu'
+import { formatUtcForDisplay } from '@/utils/datetime'
 
 const loading = ref(false)
 const submitLoading = ref(false)

@@ -34,7 +34,7 @@
         <el-table-column prop="ip" label="IP" width="130" />
         <el-table-column prop="detail" label="详情" min-width="220" show-overflow-tooltip />
         <el-table-column prop="trace_id" label="Trace" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="create_time" label="时间" width="180" />
+        <el-table-column prop="create_time" label="时间" width="180" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="88" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openDetail(row)">详情</el-button>
@@ -62,7 +62,7 @@
           <el-descriptions-item label="用户ID">{{ current.user_id }}</el-descriptions-item>
           <el-descriptions-item label="IP">{{ current.ip }}</el-descriptions-item>
           <el-descriptions-item label="Trace">{{ current.trace_id }}</el-descriptions-item>
-          <el-descriptions-item label="时间">{{ current.create_time }}</el-descriptions-item>
+          <el-descriptions-item label="时间">{{ formatUtcText(current.create_time) }}</el-descriptions-item>
         </el-descriptions>
         <h4 class="sub">详情</h4>
         <pre class="pre">{{ prettyDetail(current.detail) }}</pre>
@@ -76,6 +76,7 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted } from 'vue'
 import { fetchSecurityEventLogList, type SecurityEventLogItem } from '@/api/securityEventLog'
+import { formatUtcForDisplay, formatUtcText } from '@/utils/datetime'
 
 const loading = ref(false)
 const rows = ref<SecurityEventLogItem[]>([])

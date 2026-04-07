@@ -46,8 +46,8 @@
           </template>
         </el-table-column>
         <el-table-column prop="duration_ms" label="耗时ms" width="96" />
-        <el-table-column prop="start_time" label="开始" width="170" />
-        <el-table-column prop="end_time" label="结束" width="170" />
+        <el-table-column prop="start_time" label="开始" width="170" :formatter="formatUtcForDisplay" />
+        <el-table-column prop="end_time" label="结束" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column prop="error_msg" label="错误" min-width="160" show-overflow-tooltip />
         <el-table-column prop="node" label="节点" width="120" show-overflow-tooltip />
       </el-table>
@@ -71,6 +71,7 @@
 import { reactive, ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchTaskLogs, type TaskLogItem } from '@/api/task'
+import { formatUtcForDisplay } from '@/utils/datetime'
 
 const route = useRoute()
 const loading = ref(false)

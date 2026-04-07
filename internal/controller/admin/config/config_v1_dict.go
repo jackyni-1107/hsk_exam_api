@@ -9,6 +9,7 @@ import (
 	"exam/internal/middleware"
 	sysdo "exam/internal/model/do/sys"
 	sysentity "exam/internal/model/entity/sys"
+	"exam/internal/util"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -37,7 +38,7 @@ func (c *ControllerV1) DictTypeList(ctx context.Context, req *v1.DictTypeListReq
 	for _, e := range list {
 		item := &v1.DictTypeItem{Id: int64(e.Id), DictName: e.DictName, DictType: e.DictType, Status: e.Status}
 		if e.CreateTime != nil {
-			item.CreateTime = e.CreateTime.Format("Y-m-d H:i:s")
+			item.CreateTime = util.ToRFC3339UTC(e.CreateTime)
 		}
 		items = append(items, item)
 	}
@@ -119,7 +120,7 @@ func (c *ControllerV1) DictDataList(ctx context.Context, req *v1.DictDataListReq
 	for _, e := range list {
 		item := &v1.DictDataItem{Id: int64(e.Id), DictType: e.DictType, DictLabel: e.DictLabel, DictValue: e.DictValue, Sort: e.Sort, Status: e.Status}
 		if e.CreateTime != nil {
-			item.CreateTime = e.CreateTime.Format("Y-m-d H:i:s")
+			item.CreateTime = util.ToRFC3339UTC(e.CreateTime)
 		}
 		items = append(items, item)
 	}

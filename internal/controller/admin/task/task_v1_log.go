@@ -6,6 +6,7 @@ import (
 	v1 "exam/api/admin/task/v1"
 	"exam/internal/dao"
 	sysentity "exam/internal/model/entity/sys"
+	"exam/internal/util"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -45,13 +46,13 @@ func (c *ControllerV1) TaskLogList(ctx context.Context, req *v1.TaskLogListReq) 
 			ErrorMsg: e.ErrorMsg, Result: e.Result, Node: e.Node,
 		}
 		if e.StartTime != nil {
-			item.StartTime = e.StartTime.Format("Y-m-d H:i:s")
+			item.StartTime = util.ToRFC3339UTC(e.StartTime)
 		}
 		if e.EndTime != nil {
-			item.EndTime = e.EndTime.Format("Y-m-d H:i:s")
+			item.EndTime = util.ToRFC3339UTC(e.EndTime)
 		}
 		if e.CreateTime != nil {
-			item.CreateTime = e.CreateTime.Format("Y-m-d H:i:s")
+			item.CreateTime = util.ToRFC3339UTC(e.CreateTime)
 		}
 		items = append(items, item)
 	}

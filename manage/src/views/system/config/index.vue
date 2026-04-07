@@ -26,7 +26,7 @@
         <el-table-column prop="config_type" label="类型" width="100" />
         <el-table-column prop="group_name" label="分组" width="120" />
         <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="create_time" label="创建时间" width="170" />
+        <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
@@ -85,6 +85,7 @@ import {
   deleteConfig,
   type ConfigItemRow,
 } from '@/api/sysConfig'
+import { formatUtcForDisplay } from '@/utils/datetime'
 
 const loading = ref(false)
 const saving = ref(false)
