@@ -1,4 +1,4 @@
-package examresult
+package examutil
 
 import (
 	"context"

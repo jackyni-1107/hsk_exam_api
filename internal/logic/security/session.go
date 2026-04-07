@@ -16,8 +16,8 @@ func sessionListKey(userType int, userId int64) string {
 }
 
 // RegisterSession 登记新 Token，超出并发数时剔除最旧会话
-func RegisterSession(ctx context.Context, userType int, userId int64, token string, ttlSeconds int64) error {
-	cfg := LoadSessionCfg(ctx)
+func (s *sSecurity) RegisterSession(ctx context.Context, userType int, userId int64, token string, ttlSeconds int64) error {
+	cfg := s.LoadSessionCfg(ctx)
 	if cfg.MaxConcurrentSessions <= 0 {
 		return nil
 	}
@@ -45,7 +45,7 @@ func RegisterSession(ctx context.Context, userType int, userId int64, token stri
 }
 
 // RemoveSessionToken 登出时从会话列表移除
-func RemoveSessionToken(ctx context.Context, userType int, userId int64, token string) {
+func (s *sSecurity) RemoveSessionToken(ctx context.Context, userType int, userId int64, token string) {
 	if token == "" || userId == 0 {
 		return
 	}
@@ -63,7 +63,7 @@ func RemoveSessionToken(ctx context.Context, userType int, userId int64, token s
 }
 
 // RevokeAllUserSessions 撤销某用户全部 Token（强制下线）
-func RevokeAllUserSessions(ctx context.Context, userType int, userId int64) error {
+func (s *sSecurity) RevokeAllUserSessions(ctx context.Context, userType int, userId int64) error {
 	listKey := sessionListKey(userType, userId)
 	vals, err := g.Redis().LRange(ctx, listKey, 0, -1)
 	if err != nil {

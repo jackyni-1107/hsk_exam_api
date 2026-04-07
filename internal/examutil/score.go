@@ -1,45 +1,13 @@
-package clientexam
+package examutil
 
 import (
 	"sort"
 
-	"github.com/gogf/gf/v2/encoding/gjson"
-	"github.com/gogf/gf/v2/util/gconv"
+	"exam/internal/model/bo"
 )
 
-// QuestionScoreMeta 阅卷用题目元数据（由 DB 加载后填充）。
-type QuestionScoreMeta struct {
-	QuestionID    int64
-	IsExample     int
-	IsSubjective  int
-	Score         float64
-	CorrectOptIDs []int64
-}
-
-// AnswerPayload 客户端写入的 answer_json 结构。
-type AnswerPayload struct {
-	SelectedOptionIDs []int64 `json:"selected_option_ids"`
-	Text              string  `json:"text"`
-}
-
-// ParseAnswerPayload 解析答题 JSON。
-func ParseAnswerPayload(s string) AnswerPayload {
-	if s == "" {
-		return AnswerPayload{}
-	}
-	j := gjson.New(s)
-	var ids []int64
-	for _, v := range j.Get("selected_option_ids").Array() {
-		ids = append(ids, gconv.Int64(v))
-	}
-	return AnswerPayload{
-		SelectedOptionIDs: ids,
-		Text:              j.Get("text").String(),
-	}
-}
-
 // PaperHasSubjectiveNonExample 试卷是否含需人工的主观题（非例题）。
-func PaperHasSubjectiveNonExample(questions []QuestionScoreMeta) bool {
+func PaperHasSubjectiveNonExample(questions []bo.QuestionScoreMeta) bool {
 	for _, q := range questions {
 		if q.IsExample != 0 {
 			continue
@@ -52,7 +20,7 @@ func PaperHasSubjectiveNonExample(questions []QuestionScoreMeta) bool {
 }
 
 // ScoreObjective 仅客观题自动分；例题与主观题不计分。返回答案侧客观题得分与试卷是否含主观题。
-func ScoreObjective(questions []QuestionScoreMeta, answers map[int64]AnswerPayload) (objective float64, paperHasSubjective bool) {
+func ScoreObjective(questions []bo.QuestionScoreMeta, answers map[int64]bo.AnswerPayload) (objective float64, paperHasSubjective bool) {
 	paperHasSubjective = PaperHasSubjectiveNonExample(questions)
 	for _, q := range questions {
 		if q.IsExample != 0 || q.IsSubjective != 0 {

@@ -10,8 +10,8 @@ import (
 )
 
 // ValidatePasswordPolicy 按配置校验口令复杂度
-func ValidatePasswordPolicy(ctx context.Context, password string) error {
-	cfg := LoadPasswordCfg(ctx)
+func (s *sSecurity) ValidatePasswordPolicy(ctx context.Context, password string) error {
+	cfg := s.LoadPasswordCfg(ctx)
 	if len(password) < cfg.MinLength {
 		return gerror.NewCode(consts.CodePasswordWeak, "")
 	}

@@ -3,7 +3,6 @@ package audit
 import (
 	"context"
 	"exam/internal/consts"
-	"exam/internal/service/audit"
 	"fmt"
 
 	sysdao "exam/internal/dao/sys"
@@ -12,10 +11,6 @@ import (
 )
 
 type sAudit struct{}
-
-func init() {
-	audit.RegisterAudit(New())
-}
 
 func New() *sAudit {
 	return &sAudit{}

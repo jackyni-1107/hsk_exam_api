@@ -22,7 +22,7 @@ type (
 		LoadPasswordCfg(ctx context.Context) bo.PasswordCfg
 		LoadSessionCfg(ctx context.Context) bo.SessionCfg
 		LoadMFACfg(ctx context.Context) bo.MFACfg
-		// TokenTTLSeconds 会话 Token 有效期（秒）
+		// TokenTTLSeconds 会话 Token 有效期（秒），供服务接口实现使用。
 		TokenTTLSeconds(ctx context.Context) int64
 		// NormalizeLoginName 登录名规范化（用于 Redis 键）
 		NormalizeLoginName(name string) string

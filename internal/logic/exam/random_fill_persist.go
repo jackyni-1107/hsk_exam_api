@@ -1,4 +1,4 @@
-package clientexam
+package exam
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
+	"exam/internal/model/bo"
 	examentity "exam/internal/model/entity/exam"
 )
 
@@ -65,7 +66,7 @@ func RandomFillAnswersForTest(ctx context.Context, userID, paperID, attemptID in
 		return 0, err
 	}
 
-	items := make([]SaveAnswerItem, 0, len(qs))
+	items := make([]bo.SaveAnswerItem, 0, len(qs))
 	for _, q := range qs {
 		if q.IsExample != 0 {
 			continue
@@ -82,7 +83,7 @@ func RandomFillAnswersForTest(ctx context.Context, userID, paperID, attemptID in
 			if err != nil {
 				return 0, err
 			}
-			items = append(items, SaveAnswerItem{QuestionID: q.Id, AnswerJSON: string(b)})
+			items = append(items, bo.SaveAnswerItem{QuestionID: q.Id, AnswerJSON: string(b)})
 			continue
 		}
 		if len(opts) == 0 {
@@ -97,7 +98,7 @@ func RandomFillAnswersForTest(ctx context.Context, userID, paperID, attemptID in
 		if err != nil {
 			return 0, err
 		}
-		items = append(items, SaveAnswerItem{QuestionID: q.Id, AnswerJSON: string(b)})
+		items = append(items, bo.SaveAnswerItem{QuestionID: q.Id, AnswerJSON: string(b)})
 	}
 
 	if len(items) == 0 {

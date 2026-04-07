@@ -1,15 +1,17 @@
-package clientexam
+package examutil
 
 import (
 	"testing"
+
+	"exam/internal/model/bo"
 )
 
 func TestScoreObjective_AllCorrect(t *testing.T) {
-	qs := []QuestionScoreMeta{
+	qs := []bo.QuestionScoreMeta{
 		{QuestionID: 1, IsExample: 0, IsSubjective: 0, Score: 5, CorrectOptIDs: []int64{10}},
 		{QuestionID: 2, IsExample: 0, IsSubjective: 0, Score: 3, CorrectOptIDs: []int64{20, 21}},
 	}
-	ans := map[int64]AnswerPayload{
+	ans := map[int64]bo.AnswerPayload{
 		1: {SelectedOptionIDs: []int64{10}},
 		2: {SelectedOptionIDs: []int64{21, 20}},
 	}
@@ -23,12 +25,12 @@ func TestScoreObjective_AllCorrect(t *testing.T) {
 }
 
 func TestScoreObjective_SkipsExampleAndSubjective(t *testing.T) {
-	qs := []QuestionScoreMeta{
+	qs := []bo.QuestionScoreMeta{
 		{QuestionID: 1, IsExample: 1, IsSubjective: 0, Score: 99, CorrectOptIDs: []int64{1}},
 		{QuestionID: 2, IsExample: 0, IsSubjective: 1, Score: 50, CorrectOptIDs: []int64{2}},
 		{QuestionID: 3, IsExample: 0, IsSubjective: 0, Score: 2, CorrectOptIDs: []int64{3}},
 	}
-	ans := map[int64]AnswerPayload{
+	ans := map[int64]bo.AnswerPayload{
 		1: {SelectedOptionIDs: []int64{999}},
 		2: {SelectedOptionIDs: []int64{2}},
 		3: {SelectedOptionIDs: []int64{3}},
@@ -43,10 +45,10 @@ func TestScoreObjective_SkipsExampleAndSubjective(t *testing.T) {
 }
 
 func TestPaperHasSubjectiveNonExample(t *testing.T) {
-	if !PaperHasSubjectiveNonExample([]QuestionScoreMeta{{IsExample: 0, IsSubjective: 1}}) {
+	if !PaperHasSubjectiveNonExample([]bo.QuestionScoreMeta{{IsExample: 0, IsSubjective: 1}}) {
 		t.Fatal()
 	}
-	if PaperHasSubjectiveNonExample([]QuestionScoreMeta{{IsExample: 1, IsSubjective: 1}}) {
+	if PaperHasSubjectiveNonExample([]bo.QuestionScoreMeta{{IsExample: 1, IsSubjective: 1}}) {
 		t.Fatal()
 	}
 }

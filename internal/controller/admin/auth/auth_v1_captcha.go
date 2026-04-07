@@ -4,11 +4,11 @@ import (
 	"context"
 
 	v1 "exam/api/admin/auth/v1"
-	"exam/internal/logic/security"
+	secsvc "exam/internal/service/security"
 )
 
 func (c *ControllerV1) Captcha(ctx context.Context, req *v1.CaptchaReq) (res *v1.CaptchaRes, err error) {
-	ch, err := security.CreateCaptcha(ctx)
+	ch, err := secsvc.Security().CreateCaptcha(ctx)
 	if err != nil {
 		return nil, err
 	}

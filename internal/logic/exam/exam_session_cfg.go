@@ -1,4 +1,4 @@
-package clientexam
+package exam
 
 import (
 	"context"

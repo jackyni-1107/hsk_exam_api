@@ -4,12 +4,13 @@ import (
 	"context"
 
 	v1 "exam/api/admin/exam/v1"
-	"exam/internal/service/exam"
+	"exam/internal/model/bo"
+	examsvc "exam/internal/service/exam"
 	"exam/internal/util"
 )
 
 func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) (res *v1.AttemptListRes, err error) {
-	rows, total, err := exam.AttemptAdminList(ctx, req.Page, req.Size, req.Level, req.ExaminationPaperId, req.ExamBatchId, req.Status, req.Username)
+	rows, total, err := examsvc.Exam().AttemptAdminList(ctx, req.Page, req.Size, req.Level, req.ExaminationPaperId, req.ExamBatchId, req.Status, req.Username)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) 
 }
 
 func (c *ControllerV1) AttemptDetail(ctx context.Context, req *v1.AttemptDetailReq) (res *v1.AttemptDetailRes, err error) {
-	d, err := exam.AttemptAdminDetail(ctx, req.Id)
+	d, err := examsvc.Exam().AttemptAdminDetail(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -99,11 +100,11 @@ func (c *ControllerV1) AttemptDetail(ctx context.Context, req *v1.AttemptDetailR
 }
 
 func (c *ControllerV1) AttemptSubjectiveScores(ctx context.Context, req *v1.AttemptSubjectiveScoresReq) (res *v1.AttemptSubjectiveScoresRes, err error) {
-	items := make([]exam.SubjectiveScoreItem, 0, len(req.Items))
+	items := make([]bo.SubjectiveScoreItem, 0, len(req.Items))
 	for _, it := range req.Items {
-		items = append(items, exam.SubjectiveScoreItem{QuestionID: it.QuestionId, Score: it.Score})
+		items = append(items, bo.SubjectiveScoreItem{QuestionID: it.QuestionId, Score: it.Score})
 	}
-	subSum, total, err := exam.AttemptAdminSaveSubjectiveScores(ctx, req.Id, items)
+	subSum, total, err := examsvc.Exam().AttemptAdminSaveSubjectiveScores(ctx, req.Id, items)
 	if err != nil {
 		return nil, err
 	}

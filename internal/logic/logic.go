@@ -7,5 +7,6 @@ package logic
 import (
 	_ "exam/internal/logic/audit"
 	_ "exam/internal/logic/exam"
+	_ "exam/internal/logic/mock"
 	_ "exam/internal/logic/security"
 )

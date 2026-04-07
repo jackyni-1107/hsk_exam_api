@@ -1,4 +1,4 @@
-package clientexam
+package exam
 
 import (
 	"context"
@@ -11,25 +11,12 @@ import (
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/exampaper"
-	"exam/internal/logic/examresult"
+	"exam/internal/examutil"
+	"exam/internal/model/bo"
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
 	"exam/internal/util"
 )
-
-// SaveAnswerItem 批量保存中的一题。
-type SaveAnswerItem struct {
-	QuestionID      int64
-	AnswerJSON      string
-	ExpectedVersion *int
-}
-
-// AttemptView 会话详情（接口返回）。
-type AttemptView struct {
-	Attempt         examentity.ExamAttempt
-	ServerTime      string
-	DeadlineReached bool
-}
 
 // CreateAttempt 已废弃：请使用 CreateAttemptForBatch（POST /exam/batches/{batchId}/attempts）。
 func CreateAttempt(ctx context.Context, userID int64, mockPaperID int64) (int64, error) {
@@ -164,7 +151,7 @@ func StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDura
 }
 
 // GetAttempt 查询会话；若已超时仍进行中则自动交卷并计分。
-func GetAttempt(ctx context.Context, userID int64, attemptID int64) (*AttemptView, error) {
+func GetAttempt(ctx context.Context, userID int64, attemptID int64) (*bo.AttemptView, error) {
 	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
 	var att examentity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
@@ -180,7 +167,7 @@ func GetAttempt(ctx context.Context, userID int64, attemptID int64) (*AttemptVie
 	}
 	now := gtime.Now()
 	deadlineReached := att.Status == consts.ExamAttemptInProgress && att.DeadlineAt != nil && att.DeadlineAt.Before(now)
-	return &AttemptView{
+	return &bo.AttemptView{
 		Attempt:         att,
 		ServerTime:      util.ToRFC3339UTC(now),
 		DeadlineReached: deadlineReached,
@@ -188,7 +175,7 @@ func GetAttempt(ctx context.Context, userID int64, attemptID int64) (*AttemptVie
 }
 
 // SaveAnswers 批量保存答案（限流在调用方或此处）。
-func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []SaveAnswerItem) error {
+func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.SaveAnswerItem) error {
 	cfg := LoadExamCfg(ctx)
 	if err := RateLimitSaveAnswers(ctx, attemptID, cfg.SaveAnswersPerSecond); err != nil {
 		return err
@@ -414,7 +401,7 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 		if err != nil {
 			return err
 		}
-		objScore, hasSubj := ScoreObjective(meta, answers)
+		objScore, hasSubj := examutil.ScoreObjective(meta, answers)
 		now := gtime.Now()
 		hasFlag := 0
 		if hasSubj {
@@ -433,11 +420,11 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 		if err != nil {
 			return err
 		}
-		return examresult.UpsertFromAttemptTx(ctx, tx, attemptID)
+		return examutil.UpsertFromAttemptTx(ctx, tx, attemptID)
 	})
 }
 
-func loadQuestionScoreMetaTx(ctx context.Context, tx gdb.TX, paperID int64) ([]QuestionScoreMeta, error) {
+func loadQuestionScoreMetaTx(ctx context.Context, tx gdb.TX, paperID int64) ([]bo.QuestionScoreMeta, error) {
 	var qs []examentity.ExamQuestion
 	if err := tx.Model(dao.ExamQuestion.Table()).Ctx(ctx).
 		Where("exam_paper_id", paperID).
@@ -445,7 +432,7 @@ func loadQuestionScoreMetaTx(ctx context.Context, tx gdb.TX, paperID int64) ([]Q
 		Scan(&qs); err != nil {
 		return nil, err
 	}
-	out := make([]QuestionScoreMeta, 0, len(qs))
+	out := make([]bo.QuestionScoreMeta, 0, len(qs))
 	for _, q := range qs {
 		var opts []examentity.ExamOption
 		_ = tx.Model(dao.ExamOption.Table()).Ctx(ctx).
@@ -458,7 +445,7 @@ func loadQuestionScoreMetaTx(ctx context.Context, tx gdb.TX, paperID int64) ([]Q
 		for _, o := range opts {
 			correct = append(correct, o.Id)
 		}
-		out = append(out, QuestionScoreMeta{
+		out = append(out, bo.QuestionScoreMeta{
 			QuestionID:    q.Id,
 			IsExample:     q.IsExample,
 			IsSubjective:  q.IsSubjective,
@@ -469,7 +456,7 @@ func loadQuestionScoreMetaTx(ctx context.Context, tx gdb.TX, paperID int64) ([]Q
 	return out, nil
 }
 
-func loadAnswersMapTx(ctx context.Context, tx gdb.TX, attemptID int64) (map[int64]AnswerPayload, error) {
+func loadAnswersMapTx(ctx context.Context, tx gdb.TX, attemptID int64) (map[int64]bo.AnswerPayload, error) {
 	var rows []examentity.ExamAttemptAnswer
 	if err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
 		Where("attempt_id", attemptID).
@@ -477,9 +464,9 @@ func loadAnswersMapTx(ctx context.Context, tx gdb.TX, attemptID int64) (map[int6
 		Scan(&rows); err != nil {
 		return nil, err
 	}
-	m := make(map[int64]AnswerPayload, len(rows))
+	m := make(map[int64]bo.AnswerPayload, len(rows))
 	for _, r := range rows {
-		m[r.ExamQuestionId] = ParseAnswerPayload(r.AnswerJson)
+		m[r.ExamQuestionId] = examutil.ParseAnswerPayload(r.AnswerJson)
 	}
 	return m, nil
 }

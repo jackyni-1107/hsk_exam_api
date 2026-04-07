@@ -7,19 +7,15 @@ import (
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/util/guid"
+
+	"exam/internal/model/bo"
 )
 
 const captchaKeyPrefix = "captcha:"
 const captchaTTLSeconds = 300
 
-// CaptchaChallenge 简单算术验证码（无需图形库）
-type CaptchaChallenge struct {
-	CaptchaId string `json:"captcha_id"`
-	Question  string `json:"question"`
-}
-
 // CreateCaptcha 生成验证码并存 Redis
-func CreateCaptcha(ctx context.Context) (*CaptchaChallenge, error) {
+func (s *sSecurity) CreateCaptcha(ctx context.Context) (*bo.CaptchaChallenge, error) {
 	a := rand.Intn(20) + 1
 	b := rand.Intn(20) + 1
 	answer := a + b
@@ -28,14 +24,14 @@ func CreateCaptcha(ctx context.Context) (*CaptchaChallenge, error) {
 	if err := g.Redis().SetEX(ctx, key, fmt.Sprintf("%d", answer), captchaTTLSeconds); err != nil {
 		return nil, err
 	}
-	return &CaptchaChallenge{
+	return &bo.CaptchaChallenge{
 		CaptchaId: id,
 		Question:  fmt.Sprintf("%d + %d = ?", a, b),
 	}, nil
 }
 
 // VerifyCaptcha 校验答案（一次性）
-func VerifyCaptcha(ctx context.Context, captchaId, answer string) bool {
+func (s *sSecurity) VerifyCaptcha(ctx context.Context, captchaId, answer string) bool {
 	if captchaId == "" || answer == "" {
 		return false
 	}

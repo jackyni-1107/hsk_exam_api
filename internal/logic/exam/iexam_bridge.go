@@ -12,7 +12,7 @@ import (
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/exampaper"
-	"exam/internal/logic/clientexam"
+	"exam/internal/examutil"
 	"exam/internal/model/bo"
 	exambo "exam/internal/model/bo/exam"
 	examentity "exam/internal/model/entity/exam"
@@ -45,102 +45,67 @@ func (s *sExam) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64,
 }
 
 func (s *sExam) CreateAttempt(ctx context.Context, userID int64, mockPaperID int64) (int64, error) {
-	return clientexam.CreateAttempt(ctx, userID, mockPaperID)
+	return CreateAttempt(ctx, userID, mockPaperID)
 }
 
 func (s *sExam) CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, mockLevelID int64) (int64, error) {
-	return clientexam.CreateAttemptForBatch(ctx, userID, batchID, mockLevelID)
+	return CreateAttemptForBatch(ctx, userID, batchID, mockLevelID)
 }
 
 func (s *sExam) StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDurationSeconds int) error {
-	return clientexam.StartAttempt(ctx, userID, attemptID, clientDurationSeconds)
+	return StartAttempt(ctx, userID, attemptID, clientDurationSeconds)
 }
 
 func (s *sExam) GetAttempt(ctx context.Context, userID int64, attemptID int64) (*bo.AttemptView, error) {
-	v, err := clientexam.GetAttempt(ctx, userID, attemptID)
-	if err != nil {
-		return nil, err
-	}
-	return &bo.AttemptView{
-		Attempt:         v.Attempt,
-		ServerTime:      v.ServerTime,
-		DeadlineReached: v.DeadlineReached,
-	}, nil
+	return GetAttempt(ctx, userID, attemptID)
 }
 
 func (s *sExam) SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.SaveAnswerItem) error {
-	x := make([]clientexam.SaveAnswerItem, len(items))
-	for i := range items {
-		x[i] = clientexam.SaveAnswerItem{
-			QuestionID:      items[i].QuestionID,
-			AnswerJSON:      items[i].AnswerJSON,
-			ExpectedVersion: items[i].ExpectedVersion,
-		}
-	}
-	return clientexam.SaveAnswers(ctx, userID, attemptID, x)
+	return SaveAnswers(ctx, userID, attemptID, items)
 }
 
 func (s *sExam) SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error {
-	return clientexam.SubmitAttempt(ctx, userID, attemptID)
+	return SubmitAttempt(ctx, userID, attemptID)
 }
 
 func (s *sExam) MarkSubmittedIfOverdue(ctx context.Context, attemptID int64) error {
-	return clientexam.MarkSubmittedIfOverdue(ctx, attemptID)
+	return MarkSubmittedIfOverdue(ctx, attemptID)
 }
 
 func (s *sExam) FinalizeAttempt(ctx context.Context, attemptID int64) error {
-	return clientexam.FinalizeAttempt(ctx, attemptID)
+	return FinalizeAttempt(ctx, attemptID)
 }
 
 func (s *sExam) TryAcquireSubmitLock(ctx context.Context, attemptID int64) (bool, error) {
-	return clientexam.TryAcquireSubmitLock(ctx, attemptID)
+	return TryAcquireSubmitLock(ctx, attemptID)
 }
 
 func (s *sExam) ReleaseSubmitLock(ctx context.Context, attemptID int64) {
-	clientexam.ReleaseSubmitLock(ctx, attemptID)
+	ReleaseSubmitLock(ctx, attemptID)
 }
 
 func (s *sExam) RateLimitSaveAnswers(ctx context.Context, attemptID int64, perSecond int) error {
-	return clientexam.RateLimitSaveAnswers(ctx, attemptID, perSecond)
+	return RateLimitSaveAnswers(ctx, attemptID, perSecond)
 }
 
 func (s *sExam) ParseAnswerPayload(str string) bo.AnswerPayload {
-	p := clientexam.ParseAnswerPayload(str)
-	return bo.AnswerPayload{SelectedOptionIDs: p.SelectedOptionIDs, Text: p.Text}
+	return examutil.ParseAnswerPayload(str)
 }
 
 func (s *sExam) PaperHasSubjectiveNonExample(questions []bo.QuestionScoreMeta) bool {
-	q := make([]clientexam.QuestionScoreMeta, len(questions))
-	for i := range questions {
-		q[i] = clientexam.QuestionScoreMeta{
-			QuestionID: questions[i].QuestionID, IsExample: questions[i].IsExample, IsSubjective: questions[i].IsSubjective,
-			Score: questions[i].Score, CorrectOptIDs: questions[i].CorrectOptIDs,
-		}
-	}
-	return clientexam.PaperHasSubjectiveNonExample(q)
+	return examutil.PaperHasSubjectiveNonExample(questions)
 }
 
 func (s *sExam) ScoreObjective(questions []bo.QuestionScoreMeta, answers map[int64]bo.AnswerPayload) (float64, bool) {
-	q := make([]clientexam.QuestionScoreMeta, len(questions))
-	for i := range questions {
-		q[i] = clientexam.QuestionScoreMeta{
-			QuestionID: questions[i].QuestionID, IsExample: questions[i].IsExample, IsSubjective: questions[i].IsSubjective,
-			Score: questions[i].Score, CorrectOptIDs: questions[i].CorrectOptIDs,
-		}
-	}
-	m := make(map[int64]clientexam.AnswerPayload, len(answers))
-	for k, v := range answers {
-		m[k] = clientexam.AnswerPayload{SelectedOptionIDs: v.SelectedOptionIDs, Text: v.Text}
-	}
-	return clientexam.ScoreObjective(q, m)
+	return examutil.ScoreObjective(questions, answers)
 }
 
 func (s *sExam) ObjectiveAnswerCorrect(correctIDs []int64, selected []int64) bool {
-	return clientexam.ObjectiveAnswerCorrect(correctIDs, selected)
+	return examutil.ObjectiveAnswerCorrect(correctIDs, selected)
 }
 
 func (s *sExam) EmptyAnswerRowsForPaper(questionIDs []int64) []int64 {
-	return clientexam.EmptyAnswerRowsForPaper(questionIDs)
+	return examutil.EmptyAnswerRowsForPaper(questionIDs)
 }
 
 func (s *sExam) InvalidatePaperForExamCache(ctx context.Context, examPaperId int64) {
@@ -191,13 +156,8 @@ func (s *sExam) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64
 	return &out, nil
 }
 
-type randomAnswerPayload struct {
-	SelectedOptionIDs []int64 `json:"selected_option_ids,omitempty"`
-	Text              string  `json:"text,omitempty"`
-}
-
 func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mockPaperID int64, attemptID int64) ([]bo.RandomAnswerDraftItem, error) {
-	cfg := clientexam.LoadExamCfg(ctx)
+	cfg := LoadExamCfg(ctx)
 	if !cfg.EnableRandomAnswerHelper {
 		return nil, gerror.NewCode(consts.CodeExamTestHelperDisabled, "")
 	}
@@ -257,7 +217,7 @@ func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mock
 		for i, o := range opts {
 			ids[i] = o.Id
 		}
-		picked := randomPickOptionIDs(ids)
+		picked := randomPickOptionIDsForFill(ids)
 		b, err := json.Marshal(randomAnswerPayload{SelectedOptionIDs: picked})
 		if err != nil {
 			return nil, err
@@ -267,7 +227,7 @@ func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mock
 	return out, nil
 }
 
-func randomPickOptionIDs(optionIDs []int64) []int64 {
+func randomPickOptionIDsForFill(optionIDs []int64) []int64 {
 	if len(optionIDs) == 0 {
 		return nil
 	}

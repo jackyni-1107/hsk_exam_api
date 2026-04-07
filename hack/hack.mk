@@ -10,10 +10,11 @@ dao.all:
 	gf gen dao -a
 
 service:
-	gf gen service
+	gf gen service -p exam -s internal/logic -d internal/service/exam
+	gf gen service -p audit -s internal/logic -d internal/service/audit
+	gf gen service -p security -s internal/logic -d internal/service/security
 
-service.all:
-	gf gen service -a
+service.all: service
 
 ctrl:
 	gf gen ctrl

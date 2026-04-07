@@ -7,8 +7,8 @@ import (
 )
 
 // IsPasswordExpired 是否超过口令最长使用期限（maxAgeDays<=0 表示不启用）
-func IsPasswordExpired(ctx context.Context, passwordChangedAt *gtime.Time) bool {
-	cfg := LoadPasswordCfg(ctx)
+func (s *sSecurity) IsPasswordExpired(ctx context.Context, passwordChangedAt *gtime.Time) bool {
+	cfg := s.LoadPasswordCfg(ctx)
 	if cfg.MaxAgeDays <= 0 {
 		return false
 	}

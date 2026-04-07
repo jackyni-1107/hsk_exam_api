@@ -8,8 +8,8 @@ import (
 
 	v1 "exam/api/client/auth/v1"
 	"exam/internal/consts"
-	"exam/internal/logic/security"
 	"exam/internal/middleware"
+	secsvc "exam/internal/service/security"
 )
 
 func (c *ControllerV1) Logout(ctx context.Context, req *v1.LogoutReq) (res *v1.LogoutRes, err error) {
@@ -21,7 +21,7 @@ func (c *ControllerV1) Logout(ctx context.Context, req *v1.LogoutReq) (res *v1.L
 			_, _ = g.Redis().Del(ctx, key)
 		}
 		if d := middleware.GetCtxData(ctx); d != nil && tok != "" {
-			security.RemoveSessionToken(ctx, consts.UserTypeClient, d.UserId, tok)
+			secsvc.Security().RemoveSessionToken(ctx, consts.UserTypeClient, d.UserId, tok)
 		}
 	}
 	return &v1.LogoutRes{}, nil

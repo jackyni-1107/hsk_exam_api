@@ -2,6 +2,10 @@
 # https://goframe.org/docs/cli
 gfcli:
   gen:
+    # gf gen service 单次仅支持一组 srcFolder/dstFolder；多子包请用 hack.mk 的 `make service`（两次 gen）。
+    # 勿对 security 跑 gen：logic/security 无 s* 结构体会生成空 ISecurity 并覆盖手工文件。
+    # 勿用 `gf gen service -a` 当作「全量」：-a 是 stPattern（结构体名正则），会按默认 dst 生成根目录 package service 文件。
+
     dao:
       - link: "mysql:root:123456@tcp(127.0.0.1:3306)/scaffold"
         descriptionTag: true

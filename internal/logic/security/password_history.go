@@ -12,8 +12,8 @@ import (
 )
 
 // ValidatePasswordNotInHistory 新口令不能与近期历史相同
-func ValidatePasswordNotInHistory(ctx context.Context, userType int, userId int64, plainPassword string) error {
-	cfg := LoadPasswordCfg(ctx)
+func (s *sSecurity) ValidatePasswordNotInHistory(ctx context.Context, userType int, userId int64, plainPassword string) error {
+	cfg := s.LoadPasswordCfg(ctx)
 	if cfg.HistoryCount <= 0 || userId <= 0 {
 		return nil
 	}
@@ -36,8 +36,8 @@ func ValidatePasswordNotInHistory(ctx context.Context, userType int, userId int6
 }
 
 // SavePasswordHistory 在更新密码前将旧哈希写入历史表，并裁剪超出条数
-func SavePasswordHistory(ctx context.Context, userType int, userId int64, oldHash string) error {
-	cfg := LoadPasswordCfg(ctx)
+func (s *sSecurity) SavePasswordHistory(ctx context.Context, userType int, userId int64, oldHash string) error {
+	cfg := s.LoadPasswordCfg(ctx)
 	if cfg.HistoryCount <= 0 || oldHash == "" {
 		return nil
 	}

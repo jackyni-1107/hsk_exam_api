@@ -1,0 +1,16 @@
+# 控制器仅允许依赖 service 等上层入口，禁止直连 internal/logic（与业务分层一致）。
+version: "2"
+
+linters:
+  enable:
+    - depguard
+
+linters-settings:
+  depguard:
+    rules:
+      controller_no_logic:
+        files:
+          - "**/internal/controller/**/*.go"
+        deny:
+          - pkg: "exam/internal/logic"
+            desc: "请使用 exam/internal/service/*，勿在 controller 中 import internal/logic"

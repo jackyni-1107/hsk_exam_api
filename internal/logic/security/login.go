@@ -24,13 +24,13 @@ func userTypeTag(ut int) string {
 }
 
 // NormalizeLoginName 登录名规范化（用于 Redis 键）
-func NormalizeLoginName(s string) string {
-	return strings.TrimSpace(strings.ToLower(s))
+func (s *sSecurity) NormalizeLoginName(name string) string {
+	return strings.TrimSpace(strings.ToLower(name))
 }
 
 // CheckIPLoginRateLimit 单 IP 每分钟尝试次数，超限返回 true
-func CheckIPLoginRateLimit(ctx context.Context, ip string) (blocked bool) {
-	cfg := LoadLoginCfg(ctx)
+func (s *sSecurity) CheckIPLoginRateLimit(ctx context.Context, ip string) (blocked bool) {
+	cfg := s.LoadLoginCfg(ctx)
 	if cfg.RateLimitPerMinute <= 0 || ip == "" {
 		return false
 	}
@@ -46,8 +46,8 @@ func CheckIPLoginRateLimit(ctx context.Context, ip string) (blocked bool) {
 }
 
 // IsAccountLocked 账号是否处于锁定窗口
-func IsAccountLocked(ctx context.Context, userType int, username string) bool {
-	name := NormalizeLoginName(username)
+func (s *sSecurity) IsAccountLocked(ctx context.Context, userType int, username string) bool {
+	name := s.NormalizeLoginName(username)
 	if name == "" {
 		return false
 	}
@@ -60,12 +60,12 @@ func IsAccountLocked(ctx context.Context, userType int, username string) bool {
 }
 
 // ShouldRequireCaptcha 是否必须提交验证码（失败次数达到阈值）
-func ShouldRequireCaptcha(ctx context.Context, userType int, username string) bool {
-	cfg := LoadLoginCfg(ctx)
+func (s *sSecurity) ShouldRequireCaptcha(ctx context.Context, userType int, username string) bool {
+	cfg := s.LoadLoginCfg(ctx)
 	if !cfg.CaptchaEnabled || cfg.CaptchaAfterFailures <= 0 {
 		return false
 	}
-	name := NormalizeLoginName(username)
+	name := s.NormalizeLoginName(username)
 	if name == "" {
 		return false
 	}
@@ -78,9 +78,9 @@ func ShouldRequireCaptcha(ctx context.Context, userType int, username string) bo
 }
 
 // RecordLoginFailure 记录失败：计数、可能加锁并记录 brute_force 安全事件
-func RecordLoginFailure(ctx context.Context, userType int, username, ip, userAgent, traceId string) {
-	cfg := LoadLoginCfg(ctx)
-	name := NormalizeLoginName(username)
+func (s *sSecurity) RecordLoginFailure(ctx context.Context, userType int, username, ip, userAgent, traceId string) {
+	cfg := s.LoadLoginCfg(ctx)
+	name := s.NormalizeLoginName(username)
 	if name == "" {
 		return
 	}
@@ -104,8 +104,8 @@ func RecordLoginFailure(ctx context.Context, userType int, username, ip, userAge
 }
 
 // ClearLoginFailure 登录成功时清除失败计数与锁定（若存在可配置为手动解锁，此处仅清失败计数）
-func ClearLoginFailure(ctx context.Context, userType int, username string) {
-	name := NormalizeLoginName(username)
+func (s *sSecurity) ClearLoginFailure(ctx context.Context, userType int, username string) {
+	name := s.NormalizeLoginName(username)
 	if name == "" {
 		return
 	}
@@ -114,8 +114,8 @@ func ClearLoginFailure(ctx context.Context, userType int, username string) {
 }
 
 // UnlockAccount 管理员或到期后解锁（删除锁定键）
-func UnlockAccount(ctx context.Context, userType int, username string) {
-	name := NormalizeLoginName(username)
+func (s *sSecurity) UnlockAccount(ctx context.Context, userType int, username string) {
+	name := s.NormalizeLoginName(username)
 	if name == "" {
 		return
 	}

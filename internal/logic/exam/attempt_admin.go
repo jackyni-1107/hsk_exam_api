@@ -11,8 +11,7 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/logic/clientexam"
-	"exam/internal/logic/examresult"
+	"exam/internal/examutil"
 	"exam/internal/model/bo"
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
@@ -175,8 +174,8 @@ func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.At
 			Options:  optionsByQ[ar.ExamQuestionId],
 		}
 		if q.Id != 0 && q.IsExample == 0 && q.IsSubjective == 0 {
-			payload := clientexam.ParseAnswerPayload(ar.AnswerJson)
-			ok := clientexam.ObjectiveAnswerCorrect(correctByQ[q.Id], payload.SelectedOptionIDs)
+			payload := examutil.ParseAnswerPayload(ar.AnswerJson)
+			ok := examutil.ObjectiveAnswerCorrect(correctByQ[q.Id], payload.SelectedOptionIDs)
 			row.ObjectiveCorrect = boolPtr(ok)
 		}
 		out.Answers = append(out.Answers, row)
@@ -297,7 +296,7 @@ func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID 
 		}); err != nil {
 			return err
 		}
-		if err := examresult.UpsertFromAttemptTx(ctx, tx, attemptID); err != nil {
+		if err := examutil.UpsertFromAttemptTx(ctx, tx, attemptID); err != nil {
 			return err
 		}
 		subjectiveSum = sum
