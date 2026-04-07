@@ -86,7 +86,7 @@ func (c *ControllerV1) AttemptCreateByBatch(ctx context.Context, req *v1.Attempt
 	if err != nil {
 		return nil, err
 	}
-	id, err := exam.Exam().CreateAttemptForBatch(ctx, ctxData.UserId, batch.BatchId, batch.MemberId)
+	id, err := exam.Exam().CreateAttemptForBatch(ctx, batch.MemberId, batch.BatchId, batch.MockLevelId)
 	if err != nil {
 		return nil, err
 	}
