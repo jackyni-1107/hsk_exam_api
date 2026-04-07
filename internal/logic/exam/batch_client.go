@@ -26,7 +26,7 @@ func examWindowStatus(now, start, end *gtime.Time) string {
 }
 
 // MyExamBatches 当前学员在批次成员表中的考试批次（联 exam_batch、exam_paper）。
-// 仅返回「考试时间窗口内」且「未提交/未结束」的考试资格列表，不分页。
+// 返回会员批次列表，并过滤已提交/已结束会话，不分页。
 func (s *sExam) MyExamBatches(ctx context.Context, memberID int64) (list []bo.MyExamBatchItem, err error) {
 	//todo 待优化
 	base := g.DB().Ctx(ctx).Model("exam_batch_member ebm").
@@ -93,11 +93,8 @@ func (s *sExam) MyExamBatches(ctx context.Context, memberID int64) (list []bo.My
 	now := gtime.Now()
 	list = make([]bo.MyExamBatchItem, 0, len(rows))
 	for _, r := range rows {
-		// 仅展示考试窗口开放中的批次。
+		// 保留窗口状态（upcoming/open/closed），由前端决定展示策略。
 		winStatus := examWindowStatus(now, r.ExamStartAt, r.ExamEndAt)
-		if winStatus != "open" {
-			continue
-		}
 		// 已有会话且状态为「已交卷/已结束」则不再展示。
 		key := fmt.Sprintf("%d:%d", r.BatchId, r.MockLevelId)
 		if st, ok := statusMap[key]; ok && (st == consts.ExamAttemptSubmitted || st == consts.ExamAttemptEnded) {
