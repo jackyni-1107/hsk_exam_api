@@ -5,10 +5,10 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 
-	"exam/api/admin/security_event_log/v1"
+	v1 "exam/api/admin/security_event_log/v1"
 	"exam/internal/consts"
-	daosys "exam/internal/dao/sys"
-	entitysys "exam/internal/model/entity/sys"
+	sysdao "exam/internal/dao/sys"
+	sysentity "exam/internal/model/entity/sys"
 	"exam/internal/util"
 )
 
@@ -20,7 +20,7 @@ func (c *ControllerV1) SecurityEventLogList(ctx context.Context, req *v1.Securit
 		req.Size = 10
 	}
 
-	model := daosys.SysSecurityEventLog.Ctx(ctx)
+	model := sysdao.SysSecurityEventLog.Ctx(ctx)
 	if req.EventType != "" {
 		model = model.Where("event_type", req.EventType)
 	}
@@ -36,7 +36,7 @@ func (c *ControllerV1) SecurityEventLogList(ctx context.Context, req *v1.Securit
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 
-	var logs []entitysys.SysSecurityEventLog
+	var logs []sysentity.SysSecurityEventLog
 	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&logs)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")

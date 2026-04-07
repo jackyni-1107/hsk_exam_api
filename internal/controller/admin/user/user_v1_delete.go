@@ -3,11 +3,12 @@ package user
 import (
 	"context"
 
-	"exam/api/admin/user/v1"
+	v1 "exam/api/admin/user/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
-	dosys "exam/internal/model/do/sys"
+	sysdo "exam/internal/model/do/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -19,7 +20,7 @@ func (c *ControllerV1) UserDelete(ctx context.Context, req *v1.UserDeleteReq) (r
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	_, err = dao.SystemUser.Ctx(ctx).Where("id", req.Id).Data(dosys.SysUser{
+	_, err = dao.SystemUser.Ctx(ctx).Where("id", req.Id).Data(sysdo.SysUser{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
 	}).Update()

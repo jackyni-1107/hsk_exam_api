@@ -34,8 +34,8 @@ func Execute(ctx context.Context, handlerName string, taskID int64, params strin
 }
 
 const (
-	DemoHandlerName               = "DemoHandler"
-	ExamScoreFinalizeHandlerName  = "ExamScoreFinalizeHandler"
+	DemoHandlerName              = "DemoHandler"
+	ExamScoreFinalizeHandlerName = "ExamScoreFinalizeHandler"
 )
 
 func init() {

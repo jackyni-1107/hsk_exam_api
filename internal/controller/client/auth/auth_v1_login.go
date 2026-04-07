@@ -15,7 +15,7 @@ import (
 	"exam/internal/dao"
 	"exam/internal/logic/security"
 	"exam/internal/middleware"
-	"exam/internal/model/entity"
+	sysentity "exam/internal/model/entity/sys"
 	"exam/internal/utility"
 )
 
@@ -43,7 +43,7 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 		return nil, gerror.NewCode(consts.CodeAccountLocked, "")
 	}
 
-	var u entity.ClientUser
+	var u sysentity.SysMember
 	// 与风控键一致：规范化后查询；LOWER 避免库中用户名大小写与输入不一致
 	_ = dao.SysMember.Ctx(ctx).
 		Wheref("username = ?", name).

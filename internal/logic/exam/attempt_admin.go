@@ -14,8 +14,9 @@ import (
 	"exam/internal/logic/clientexam"
 	"exam/internal/logic/examresult"
 	"exam/internal/model/bo"
-	"exam/internal/model/do"
-	"exam/internal/model/entity"
+	examdo "exam/internal/model/do/exam"
+	examentity "exam/internal/model/entity/exam"
+	sysentity "exam/internal/model/entity/sys"
 )
 
 // AttemptAdminList 分页查询答题会话（联表学员、试卷）。
@@ -92,7 +93,7 @@ func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.At
 	if attemptID <= 0 {
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 	}
-	var att entity.ExamAttempt
+	var att examentity.ExamAttempt
 	if err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -102,18 +103,18 @@ func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.At
 	if att.Id == 0 {
 		return nil, gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
-	var user entity.ClientUser
+	var user sysentity.SysMember
 	_ = dao.SysMember.Ctx(ctx).
 		Where("id", att.MemberId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&user)
-	var paper entity.ExamPaper
+	var paper examentity.ExamPaper
 	_ = dao.ExamPaper.Ctx(ctx).
 		Where("id", att.ExamPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&paper)
 
-	var ansRows []entity.ExamAttemptAnswer
+	var ansRows []examentity.ExamAttemptAnswer
 	if err := dao.ExamAttemptAnswer.Ctx(ctx).
 		Where("attempt_id", att.Id).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -125,9 +126,9 @@ func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.At
 	for _, a := range ansRows {
 		qIDs = append(qIDs, a.ExamQuestionId)
 	}
-	qByID := make(map[int64]entity.ExamQuestion)
+	qByID := make(map[int64]examentity.ExamQuestion)
 	if len(qIDs) > 0 {
-		var qs []entity.ExamQuestion
+		var qs []examentity.ExamQuestion
 		if err := dao.ExamQuestion.Ctx(ctx).
 			Where("exam_paper_id", att.ExamPaperId).
 			WhereIn("id", qIDs).
@@ -159,7 +160,7 @@ func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.At
 	}
 	for _, ar := range ansRows {
 		q := qByID[ar.ExamQuestionId]
-		var secPtr *entity.ExamSection
+		var secPtr *examentity.ExamSection
 		if blk, ok := blockByID[q.BlockId]; ok {
 			if sec, ok2 := sectionByID[blk.SectionId]; ok2 {
 				// 复制一份，避免后续误修改原始 map
@@ -191,7 +192,7 @@ func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID 
 	if len(items) == 0 {
 		return 0, 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 	}
-	var att entity.ExamAttempt
+	var att examentity.ExamAttempt
 	if err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -218,7 +219,7 @@ func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID 
 	}
 
 	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		var attTx entity.ExamAttempt
+		var attTx examentity.ExamAttempt
 		if err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Scan(&attTx); err != nil {
 			return err
 		}
@@ -234,7 +235,7 @@ func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID 
 		paperID := attTx.ExamPaperId
 
 		for _, it := range uniq {
-			var q entity.ExamQuestion
+			var q examentity.ExamQuestion
 			if err := tx.Model(dao.ExamQuestion.Table()).Ctx(ctx).
 				Where("id", it.QuestionID).
 				Where("exam_paper_id", paperID).
@@ -249,7 +250,7 @@ func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID 
 				return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 			}
 
-			var row entity.ExamAttemptAnswer
+			var row examentity.ExamAttemptAnswer
 			_ = tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
 				Where("attempt_id", attemptID).
 				Where("exam_question_id", it.QuestionID).
@@ -257,7 +258,7 @@ func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID 
 				Scan(&row)
 			scoreVal := it.Score
 			if row.Id == 0 {
-				if _, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Insert(do.ExamAttemptAnswer{
+				if _, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Insert(examdo.ExamAttemptAnswer{
 					AttemptId:      attemptID,
 					ExamQuestionId: it.QuestionID,
 					AnswerJson:     "{}",
@@ -272,7 +273,7 @@ func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID 
 					return err
 				}
 			} else {
-				if _, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Where("id", row.Id).Update(do.ExamAttemptAnswer{
+				if _, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Where("id", row.Id).Update(examdo.ExamAttemptAnswer{
 					AwardedScore: &scoreVal,
 					Updater:      "admin",
 					UpdateTime:   gtime.Now(),
@@ -288,7 +289,7 @@ func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID 
 		}
 		obj := attTx.ObjectiveScore
 		tot := obj + sum
-		if _, err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Update(do.ExamAttempt{
+		if _, err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Update(examdo.ExamAttempt{
 			SubjectiveScore: sum,
 			TotalScore:      tot,
 			Updater:         "admin",
@@ -364,7 +365,7 @@ func loadCorrectOptionIDsByQuestion(ctx context.Context, qIDs []interface{}) map
 	if len(qIDs) == 0 {
 		return out
 	}
-	var opts []entity.ExamOption
+	var opts []examentity.ExamOption
 	if err := dao.ExamOption.Ctx(ctx).
 		WhereIn("question_id", qIDs).
 		Where("is_correct", 1).
@@ -379,12 +380,12 @@ func loadCorrectOptionIDsByQuestion(ctx context.Context, qIDs []interface{}) map
 	return out
 }
 
-func loadBlocksByID(ctx context.Context, blockIDs []interface{}) map[int64]entity.ExamQuestionBlock {
-	out := make(map[int64]entity.ExamQuestionBlock)
+func loadBlocksByID(ctx context.Context, blockIDs []interface{}) map[int64]examentity.ExamQuestionBlock {
+	out := make(map[int64]examentity.ExamQuestionBlock)
 	if len(blockIDs) == 0 {
 		return out
 	}
-	var blocks []entity.ExamQuestionBlock
+	var blocks []examentity.ExamQuestionBlock
 	if err := dao.ExamQuestionBlock.Ctx(ctx).
 		WhereIn("id", blockIDs).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -398,8 +399,8 @@ func loadBlocksByID(ctx context.Context, blockIDs []interface{}) map[int64]entit
 	return out
 }
 
-func loadSectionsByID(ctx context.Context, examPaperId int64, blocks map[int64]entity.ExamQuestionBlock) map[int64]entity.ExamSection {
-	out := make(map[int64]entity.ExamSection)
+func loadSectionsByID(ctx context.Context, examPaperId int64, blocks map[int64]examentity.ExamQuestionBlock) map[int64]examentity.ExamSection {
+	out := make(map[int64]examentity.ExamSection)
 	if len(blocks) == 0 {
 		return out
 	}
@@ -415,7 +416,7 @@ func loadSectionsByID(ctx context.Context, examPaperId int64, blocks map[int64]e
 	if len(sectionIDs) == 0 {
 		return out
 	}
-	var sections []entity.ExamSection
+	var sections []examentity.ExamSection
 	if err := dao.ExamSection.Ctx(ctx).
 		Where("exam_paper_id", examPaperId).
 		WhereIn("id", sectionIDs).
@@ -430,12 +431,12 @@ func loadSectionsByID(ctx context.Context, examPaperId int64, blocks map[int64]e
 	return out
 }
 
-func loadOptionsByQuestion(ctx context.Context, qIDs []interface{}) map[int64][]entity.ExamOption {
-	out := make(map[int64][]entity.ExamOption)
+func loadOptionsByQuestion(ctx context.Context, qIDs []interface{}) map[int64][]examentity.ExamOption {
+	out := make(map[int64][]examentity.ExamOption)
 	if len(qIDs) == 0 {
 		return out
 	}
-	var opts []entity.ExamOption
+	var opts []examentity.ExamOption
 	if err := dao.ExamOption.Ctx(ctx).
 		WhereIn("question_id", qIDs).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).

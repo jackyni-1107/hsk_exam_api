@@ -11,7 +11,7 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/entity"
+	examentity "exam/internal/model/entity/exam"
 )
 
 type randomAnswerPayload struct {
@@ -28,7 +28,7 @@ func RandomFillAnswersForTest(ctx context.Context, userID, paperID, attemptID in
 	}
 	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
 
-	var att entity.ExamAttempt
+	var att examentity.ExamAttempt
 	err = dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
 		Where("member_id", userID).
@@ -56,7 +56,7 @@ func RandomFillAnswersForTest(ctx context.Context, userID, paperID, attemptID in
 		return 0, gerror.NewCode(consts.CodeExamTimeExpired, "")
 	}
 
-	var qs []entity.ExamQuestion
+	var qs []examentity.ExamQuestion
 	if err := dao.ExamQuestion.Ctx(ctx).
 		Where("exam_paper_id", att.ExamPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -70,7 +70,7 @@ func RandomFillAnswersForTest(ctx context.Context, userID, paperID, attemptID in
 		if q.IsExample != 0 {
 			continue
 		}
-		var opts []entity.ExamOption
+		var opts []examentity.ExamOption
 		_ = dao.ExamOption.Ctx(ctx).
 			Where("question_id", q.Id).
 			Where("delete_flag", consts.DeleteFlagNotDeleted).

@@ -8,7 +8,7 @@ import (
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
-	"exam/internal/model/entity"
+	sysentity "exam/internal/model/entity/sys"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -18,7 +18,7 @@ func (c *ControllerV1) Menus(ctx context.Context, req *v1.MenusReq) (res *v1.Men
 	if d == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
 	}
-	var all []entity.SystemMenu
+	var all []sysentity.SysMenu
 	err = dao.SystemMenu.Ctx(ctx).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Where("status", consts.StatusNormal).
@@ -27,7 +27,7 @@ func (c *ControllerV1) Menus(ctx context.Context, req *v1.MenusReq) (res *v1.Men
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
-	byID := make(map[int64]entity.SystemMenu, len(all))
+	byID := make(map[int64]sysentity.SysMenu, len(all))
 	for _, m := range all {
 		byID[m.Id] = m
 	}
@@ -57,7 +57,7 @@ func (c *ControllerV1) Menus(ctx context.Context, req *v1.MenusReq) (res *v1.Men
 			id = m.ParentId
 		}
 	}
-	filtered := make([]entity.SystemMenu, 0, len(visible))
+	filtered := make([]sysentity.SysMenu, 0, len(visible))
 	for _, m := range all {
 		if _, ok := visible[m.Id]; ok {
 			filtered = append(filtered, m)
@@ -67,7 +67,7 @@ func (c *ControllerV1) Menus(ctx context.Context, req *v1.MenusReq) (res *v1.Men
 }
 
 func menuIdsForUser(ctx context.Context, userId int64) (map[int64]struct{}, error) {
-	var userRoles []entity.SystemUserRole
+	var userRoles []sysentity.SysUserRole
 	if err := dao.SystemUserRole.Ctx(ctx).Where("user_id", userId).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&userRoles); err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
@@ -78,7 +78,7 @@ func menuIdsForUser(ctx context.Context, userId int64) (map[int64]struct{}, erro
 	for _, ur := range userRoles {
 		roleIds = append(roleIds, ur.RoleId)
 	}
-	var roleMenus []entity.SystemRoleMenu
+	var roleMenus []sysentity.SysRoleMenu
 	if err := dao.SystemRoleMenu.Ctx(ctx).WhereIn("role_id", roleIds).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&roleMenus); err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
@@ -89,8 +89,8 @@ func menuIdsForUser(ctx context.Context, userId int64) (map[int64]struct{}, erro
 	return out, nil
 }
 
-func buildMenuTreeV1(list []entity.SystemMenu, parentId int64) []*v1.MenuTreeNode {
-	children := make(map[int64][]entity.SystemMenu)
+func buildMenuTreeV1(list []sysentity.SysMenu, parentId int64) []*v1.MenuTreeNode {
+	children := make(map[int64][]sysentity.SysMenu)
 	for _, m := range list {
 		pid := m.ParentId
 		children[pid] = append(children[pid], m)

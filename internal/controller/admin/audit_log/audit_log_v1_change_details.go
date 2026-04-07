@@ -5,16 +5,16 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 
-	"exam/api/admin/audit_log/v1"
+	v1 "exam/api/admin/audit_log/v1"
 	"exam/internal/consts"
-	daosys "exam/internal/dao/sys"
-	entitysys "exam/internal/model/entity/sys"
+	sysdao "exam/internal/dao/sys"
+	sysentity "exam/internal/model/entity/sys"
 	"exam/internal/util"
 )
 
 func (c *ControllerV1) AuditLogChangeDetails(ctx context.Context, req *v1.AuditLogChangeDetailsReq) (res *v1.AuditLogChangeDetailsRes, err error) {
-	var details []entitysys.SysAuditChangeDetail
-	err = daosys.SysAuditChangeDetail.Ctx(ctx).Where("operation_log_id", req.Id).OrderAsc("id").Scan(&details)
+	var details []sysentity.SysAuditChangeDetail
+	err = sysdao.SysAuditChangeDetail.Ctx(ctx).Where("operation_log_id", req.Id).OrderAsc("id").Scan(&details)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}

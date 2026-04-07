@@ -3,12 +3,13 @@ package config
 import (
 	"context"
 
-	"exam/api/admin/config/v1"
+	v1 "exam/api/admin/config/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
-	"exam/internal/model/do"
-	"exam/internal/model/entity"
+	sysdo "exam/internal/model/do/sys"
+	sysentity "exam/internal/model/entity/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -27,7 +28,7 @@ func (c *ControllerV1) DictTypeList(ctx context.Context, req *v1.DictTypeListReq
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
-	var list []entity.SystemDictType
+	var list []sysentity.SysDictType
 	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&list)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -44,7 +45,7 @@ func (c *ControllerV1) DictTypeList(ctx context.Context, req *v1.DictTypeListReq
 }
 
 func (c *ControllerV1) DictTypeCreate(ctx context.Context, req *v1.DictTypeCreateReq) (res *v1.DictTypeCreateRes, err error) {
-	var exist entity.SystemDictType
+	var exist sysentity.SysDictType
 	_ = dao.SystemDictType.Ctx(ctx).Where("dict_type", req.DictType).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&exist)
 	if exist.Id > 0 {
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.dict_type_exists")
@@ -53,7 +54,7 @@ func (c *ControllerV1) DictTypeCreate(ctx context.Context, req *v1.DictTypeCreat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := dao.SystemDictType.Ctx(ctx).InsertAndGetId(do.SystemDictType{
+	id, err := dao.SystemDictType.Ctx(ctx).InsertAndGetId(sysdo.SysDictType{
 		DictName: req.DictName, DictType: req.DictType, Status: req.Status, Remark: req.Remark,
 		Creator: creator, Updater: creator, DeleteFlag: consts.DeleteFlagNotDeleted,
 	})
@@ -68,7 +69,7 @@ func (c *ControllerV1) DictTypeUpdate(ctx context.Context, req *v1.DictTypeUpdat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	data := do.SystemDictType{Updater: updater}
+	data := sysdo.SysDictType{Updater: updater}
 	if req.DictName != "" {
 		data.DictName = req.DictName
 	}
@@ -88,7 +89,7 @@ func (c *ControllerV1) DictTypeDelete(ctx context.Context, req *v1.DictTypeDelet
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	_, err = dao.SystemDictType.Ctx(ctx).Where("id", req.Id).Data(do.SystemDictType{
+	_, err = dao.SystemDictType.Ctx(ctx).Where("id", req.Id).Data(sysdo.SysDictType{
 		DeleteFlag: consts.DeleteFlagDeleted, Updater: updater,
 	}).Update()
 	if err != nil {
@@ -109,7 +110,7 @@ func (c *ControllerV1) DictDataList(ctx context.Context, req *v1.DictDataListReq
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
-	var list []entity.SystemDictData
+	var list []sysentity.SysDictData
 	err = model.Page(req.Page, req.Size).OrderAsc("sort").OrderAsc("id").Scan(&list)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -130,7 +131,7 @@ func (c *ControllerV1) DictDataCreate(ctx context.Context, req *v1.DictDataCreat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := dao.SystemDictData.Ctx(ctx).InsertAndGetId(do.SystemDictData{
+	id, err := dao.SystemDictData.Ctx(ctx).InsertAndGetId(sysdo.SysDictData{
 		DictType: req.DictType, DictLabel: req.DictLabel, DictValue: req.DictValue,
 		Sort: req.Sort, Status: req.Status, Remark: req.Remark,
 		Creator: creator, Updater: creator, DeleteFlag: consts.DeleteFlagNotDeleted,
@@ -146,7 +147,7 @@ func (c *ControllerV1) DictDataUpdate(ctx context.Context, req *v1.DictDataUpdat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	data := do.SystemDictData{Updater: updater}
+	data := sysdo.SysDictData{Updater: updater}
 	if req.DictLabel != "" {
 		data.DictLabel = req.DictLabel
 	}
@@ -170,7 +171,7 @@ func (c *ControllerV1) DictDataDelete(ctx context.Context, req *v1.DictDataDelet
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	_, err = dao.SystemDictData.Ctx(ctx).Where("id", req.Id).Data(do.SystemDictData{
+	_, err = dao.SystemDictData.Ctx(ctx).Where("id", req.Id).Data(sysdo.SysDictData{
 		DeleteFlag: consts.DeleteFlagDeleted, Updater: updater,
 	}).Update()
 	if err != nil {

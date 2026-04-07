@@ -5,10 +5,10 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 
-	"exam/api/admin/role/v1"
+	v1 "exam/api/admin/role/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/entity"
+	sysentity "exam/internal/model/entity/sys"
 )
 
 func (c *ControllerV1) RoleList(ctx context.Context, req *v1.RoleListReq) (res *v1.RoleListRes, err error) {
@@ -33,7 +33,7 @@ func (c *ControllerV1) RoleList(ctx context.Context, req *v1.RoleListReq) (res *
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 
-	var roles []entity.SystemRole
+	var roles []sysentity.SysRole
 	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&roles)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -53,7 +53,7 @@ func (c *ControllerV1) RoleList(ctx context.Context, req *v1.RoleListReq) (res *
 		if r.CreateTime != nil {
 			item.CreateTime = r.CreateTime.Format("Y-m-d H:i:s")
 		}
-		var roleMenus []entity.SystemRoleMenu
+		var roleMenus []sysentity.SysRoleMenu
 		_ = dao.SystemRoleMenu.Ctx(ctx).Where("role_id", r.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&roleMenus)
 		for _, rm := range roleMenus {
 			item.MenuIds = append(item.MenuIds, rm.MenuId)

@@ -8,20 +8,20 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/do/exam"
-	"exam/internal/model/entity"
+	examdo "exam/internal/model/do/exam"
+	examentity "exam/internal/model/entity/exam"
 )
 
 // UpsertFromAttemptTx 将会话快照同步到 exam_result（交卷/计分后调用）。
 func UpsertFromAttemptTx(ctx context.Context, tx gdb.TX, attemptID int64) error {
-	var att entity.ExamAttempt
+	var att examentity.ExamAttempt
 	if err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Scan(&att); err != nil {
 		return err
 	}
 	if att.Id == 0 {
 		return nil
 	}
-	row := exam.ExamResult{
+	row := examdo.ExamResult{
 		AttemptId:              att.Id,
 		MemberId:               att.MemberId,
 		ExamPaperId:            att.ExamPaperId,
@@ -40,7 +40,7 @@ func UpsertFromAttemptTx(ctx context.Context, tx gdb.TX, attemptID int64) error 
 		UpdateTime:             gtime.Now(),
 		DeleteFlag:             consts.DeleteFlagNotDeleted,
 	}
-	var exist entity.ExamResult
+	var exist examentity.ExamResult
 	_ = tx.Model(dao.ExamResult.Table()).Ctx(ctx).Where("attempt_id", attemptID).Scan(&exist)
 	if exist.AttemptId == 0 {
 		_, err := tx.Model(dao.ExamResult.Table()).Ctx(ctx).Insert(row)

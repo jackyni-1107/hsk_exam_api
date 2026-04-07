@@ -12,8 +12,8 @@ import (
 	"exam/internal/dao"
 	"exam/internal/exampaper"
 	"exam/internal/logic/examresult"
-	"exam/internal/model/do"
-	"exam/internal/model/entity"
+	examdo "exam/internal/model/do/exam"
+	examentity "exam/internal/model/entity/exam"
 	"exam/internal/util"
 )
 
@@ -26,7 +26,7 @@ type SaveAnswerItem struct {
 
 // AttemptView 会话详情（接口返回）。
 type AttemptView struct {
-	Attempt         entity.ExamAttempt
+	Attempt         examentity.ExamAttempt
 	ServerTime      string
 	DeadlineReached bool
 }
@@ -54,7 +54,7 @@ func CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, moc
 	if batchID <= 0 || mockLevelID <= 0 {
 		return 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 	}
-	var batch entity.ExamBatch
+	var batch examentity.ExamBatch
 	if err := dao.ExamBatch.Ctx(ctx).
 		Where("id", batchID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -78,7 +78,7 @@ func CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, moc
 	if nLevel == 0 {
 		return 0, gerror.NewCode(consts.CodeExamBatchLevelNotInBatch, "")
 	}
-	var link entity.ExamBatchMember
+	var link examentity.ExamBatchMember
 	if err := dao.ExamBatchMember.Ctx(ctx).
 		Where("batch_id", batchID).
 		Where("member_id", userID).
@@ -105,7 +105,7 @@ func CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, moc
 	if dup > 0 {
 		return 0, gerror.NewCode(consts.CodeExamAttemptExistsForBatch, "")
 	}
-	id, err := dao.ExamAttempt.Ctx(ctx).InsertAndGetId(do.ExamAttempt{
+	id, err := dao.ExamAttempt.Ctx(ctx).InsertAndGetId(examdo.ExamAttempt{
 		MemberId:               userID,
 		ExamPaperId:            paper.Id,
 		MockExaminationPaperId: paper.MockExaminationPaperId,
@@ -128,7 +128,7 @@ func CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, moc
 // StartAttempt 开考：进入进行中并写入截止时间。
 func StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDurationSeconds int) error {
 	cfg := LoadExamCfg(ctx)
-	var att entity.ExamAttempt
+	var att examentity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
 		Where("member_id", userID).
@@ -143,7 +143,7 @@ func StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDura
 	if att.Status != consts.ExamAttemptNotStarted {
 		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 	}
-	var paper entity.ExamPaper
+	var paper examentity.ExamPaper
 	_ = dao.ExamPaper.Ctx(ctx).Where("id", att.ExamPaperId).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&paper)
 	if paper.Id == 0 {
 		return gerror.NewCode(consts.CodeInvalidParams, "err.exam_paper_not_found")
@@ -152,7 +152,7 @@ func StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDura
 	now := gtime.Now()
 	deadline := gtime.NewFromTimeStamp(now.Timestamp() + int64(dur))
 
-	_, err = dao.ExamAttempt.Ctx(ctx).Where("id", att.Id).Update(do.ExamAttempt{
+	_, err = dao.ExamAttempt.Ctx(ctx).Where("id", att.Id).Update(examdo.ExamAttempt{
 		Status:          consts.ExamAttemptInProgress,
 		DurationSeconds: dur,
 		StartedAt:       now,
@@ -166,7 +166,7 @@ func StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDura
 // GetAttempt 查询会话；若已超时仍进行中则自动交卷并计分。
 func GetAttempt(ctx context.Context, userID int64, attemptID int64) (*AttemptView, error) {
 	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
-	var att entity.ExamAttempt
+	var att examentity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
 		Where("member_id", userID).
@@ -195,7 +195,7 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []Sav
 	}
 	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
 
-	var att entity.ExamAttempt
+	var att examentity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
 		Where("member_id", userID).
@@ -235,14 +235,14 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []Sav
 
 	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		for _, it := range items {
-			var row entity.ExamAttemptAnswer
+			var row examentity.ExamAttemptAnswer
 			_ = tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
 				Where("attempt_id", attemptID).
 				Where("exam_question_id", it.QuestionID).
 				Where("delete_flag", consts.DeleteFlagNotDeleted).
 				Scan(&row)
 			if row.Id == 0 {
-				_, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Insert(do.ExamAttemptAnswer{
+				_, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Insert(examdo.ExamAttemptAnswer{
 					AttemptId:      attemptID,
 					ExamQuestionId: it.QuestionID,
 					AnswerJson:     it.AnswerJSON,
@@ -261,7 +261,7 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []Sav
 			if it.ExpectedVersion != nil && *it.ExpectedVersion != row.Version {
 				return gerror.NewCode(consts.CodeExamAnswerVersionConflict, "")
 			}
-			_, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Where("id", row.Id).Update(do.ExamAttemptAnswer{
+			_, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Where("id", row.Id).Update(examdo.ExamAttemptAnswer{
 				AnswerJson: it.AnswerJSON,
 				Version:    row.Version + 1,
 				Updater:    "client",
@@ -278,7 +278,7 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []Sav
 // SubmitAttempt 主动交卷：标记已交卷后立即计算客观分并同步 exam_result（与超时自动交卷一致）。
 func SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error {
 	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
-	var att entity.ExamAttempt
+	var att examentity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
 		Where("member_id", userID).
@@ -309,7 +309,7 @@ func SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error {
 
 // maybeAutoSubmitIfOverdue 考试时间到达且仍为进行中时自动交卷并立即计分（由客户端拉取/保存答案等触发）。
 func maybeAutoSubmitIfOverdue(ctx context.Context, userID int64, attemptID int64) error {
-	var att entity.ExamAttempt
+	var att examentity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
 		Where("member_id", userID).
@@ -358,7 +358,7 @@ func markSubmitted(ctx context.Context, attemptID int64, onlyIfOverdue bool, upd
 	defer ReleaseSubmitLock(ctx, attemptID)
 
 	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		var att entity.ExamAttempt
+		var att examentity.ExamAttempt
 		if err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Scan(&att); err != nil {
 			return err
 		}
@@ -371,7 +371,7 @@ func markSubmitted(ctx context.Context, attemptID int64, onlyIfOverdue bool, upd
 				return nil
 			}
 		}
-		_, err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Update(do.ExamAttempt{
+		_, err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Update(examdo.ExamAttempt{
 			Status:      consts.ExamAttemptSubmitted,
 			SubmittedAt: now,
 			Updater:     updater,
@@ -392,7 +392,7 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 	defer ReleaseSubmitLock(ctx, attemptID)
 
 	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		var att entity.ExamAttempt
+		var att examentity.ExamAttempt
 		if err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Scan(&att); err != nil {
 			return err
 		}
@@ -420,7 +420,7 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 		if hasSubj {
 			hasFlag = 1
 		}
-		_, err = tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Update(do.ExamAttempt{
+		_, err = tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Update(examdo.ExamAttempt{
 			Status:          consts.ExamAttemptEnded,
 			EndedAt:         now,
 			ObjectiveScore:  objScore,
@@ -438,7 +438,7 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 }
 
 func loadQuestionScoreMetaTx(ctx context.Context, tx gdb.TX, paperID int64) ([]QuestionScoreMeta, error) {
-	var qs []entity.ExamQuestion
+	var qs []examentity.ExamQuestion
 	if err := tx.Model(dao.ExamQuestion.Table()).Ctx(ctx).
 		Where("exam_paper_id", paperID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -447,7 +447,7 @@ func loadQuestionScoreMetaTx(ctx context.Context, tx gdb.TX, paperID int64) ([]Q
 	}
 	out := make([]QuestionScoreMeta, 0, len(qs))
 	for _, q := range qs {
-		var opts []entity.ExamOption
+		var opts []examentity.ExamOption
 		_ = tx.Model(dao.ExamOption.Table()).Ctx(ctx).
 			Where("question_id", q.Id).
 			Where("is_correct", 1).
@@ -470,7 +470,7 @@ func loadQuestionScoreMetaTx(ctx context.Context, tx gdb.TX, paperID int64) ([]Q
 }
 
 func loadAnswersMapTx(ctx context.Context, tx gdb.TX, attemptID int64) (map[int64]AnswerPayload, error) {
-	var rows []entity.ExamAttemptAnswer
+	var rows []examentity.ExamAttemptAnswer
 	if err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
 		Where("attempt_id", attemptID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).

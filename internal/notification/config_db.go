@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 
 	"exam/internal/consts"
-	daosys "exam/internal/dao/sys"
-	entitysys "exam/internal/model/entity/sys"
+	sysdao "exam/internal/dao/sys"
+	sysentity "exam/internal/model/entity/sys"
 )
 
 // SMTPConfig 闁喕娆?SMTP 闁板秶鐤
@@ -37,8 +37,8 @@ type TencentSMSConfig struct {
 
 // GetActiveEmailConfig 閼惧嘲褰囪ぐ鎾冲閸氼垳鏁ら惃鍕仏娴犲爼鍘ら敓
 func GetActiveEmailConfig(ctx context.Context) (provider string, cfg interface{}, ok bool) {
-	var e entitysys.SysNotificationChannelConfig
-	err := daosys.SysNotificationChannelConfig.Ctx(ctx).
+	var e sysentity.SysNotificationChannelConfig
+	err := sysdao.SysNotificationChannelConfig.Ctx(ctx).
 		Where("channel", "email").
 		Where("is_active", 1).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -57,8 +57,8 @@ func GetActiveEmailConfig(ctx context.Context) (provider string, cfg interface{}
 
 // GetActiveSMSConfig 閼惧嘲褰囪ぐ鎾冲閸氼垳鏁ら惃鍕叚娣囷繝鍘ら敓
 func GetActiveSMSConfig(ctx context.Context) (provider string, cfg interface{}, ok bool) {
-	var e entitysys.SysNotificationChannelConfig
-	err := daosys.SysNotificationChannelConfig.Ctx(ctx).
+	var e sysentity.SysNotificationChannelConfig
+	err := sysdao.SysNotificationChannelConfig.Ctx(ctx).
 		Where("channel", "sms").
 		Where("is_active", 1).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).

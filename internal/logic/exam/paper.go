@@ -9,14 +9,14 @@ import (
 
 	"exam/internal/consts"
 	examdao "exam/internal/dao/exam"
-	exam "exam/internal/model/bo/exam"
+	exambo "exam/internal/model/bo/exam"
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
 	"exam/internal/util"
 )
 
 // PaperDetail 返回试卷及嵌套大题、题块、小题、选项（只读查看）。
-func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exam.PaperDetailTree, error) {
+func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.PaperDetailTree, error) {
 	var paper examentity.ExamPaper
 	err := examdao.ExamPaper.Ctx(ctx).
 		Where("id", examPaperId).
@@ -38,12 +38,12 @@ func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exam.Paper
 		return nil, err
 	}
 
-	out := &exam.PaperDetailTree{
+	out := &exambo.PaperDetailTree{
 		Paper: examPaperEntityToBOHead(paper),
 	}
 
 	for _, sec := range sections {
-		sv := exam.SectionDetailView{
+		sv := exambo.SectionDetailView{
 			Id:             sec.Id,
 			SortOrder:      sec.SortOrder,
 			TopicTitle:     sec.TopicTitle,
@@ -63,7 +63,7 @@ func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exam.Paper
 			Scan(&blocks)
 
 		for _, blk := range blocks {
-			bv := exam.BlockDetailView{
+			bv := exambo.BlockDetailView{
 				Id:                      blk.Id,
 				BlockOrder:              blk.BlockOrder,
 				GroupIndex:              blk.GroupIndex,
@@ -78,7 +78,7 @@ func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exam.Paper
 				Scan(&qs)
 
 			for _, q := range qs {
-				qv := exam.QuestionDetailView{
+				qv := exambo.QuestionDetailView{
 					Id:                      q.Id,
 					SortInBlock:             q.SortInBlock,
 					QuestionNo:              q.QuestionNo,
@@ -101,7 +101,7 @@ func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exam.Paper
 					Scan(&opts)
 
 				for _, o := range opts {
-					qv.Options = append(qv.Options, exam.OptionDetailView{
+					qv.Options = append(qv.Options, exambo.OptionDetailView{
 						Id:         o.Id,
 						Flag:       o.Flag,
 						SortOrder:  o.SortOrder,
@@ -121,7 +121,7 @@ func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exam.Paper
 }
 
 // UpdatePaperSettings 修改试卷听力 HLS 配置（答题时长以 mock_examination_paper 为准）。
-func (s *sExam) UpdatePaperSettings(ctx context.Context, examPaperId int64, in exam.PaperHlsExamAdminUpdate, updater string) error {
+func (s *sExam) UpdatePaperSettings(ctx context.Context, examPaperId int64, in exambo.PaperHlsExamAdminUpdate, updater string) error {
 	if examPaperId <= 0 {
 		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 	}
@@ -160,8 +160,8 @@ func (s *sExam) UpdatePaperSettings(ctx context.Context, examPaperId int64, in e
 	return nil
 }
 
-func examPaperEntityToBOHead(p examentity.ExamPaper) exam.PaperHeadView {
-	v := exam.PaperHeadView{
+func examPaperEntityToBOHead(p examentity.ExamPaper) exambo.PaperHeadView {
+	v := exambo.PaperHeadView{
 		Id:                      p.MockExaminationPaperId,
 		Level:                   p.Level,
 		PaperId:                 p.PaperId,

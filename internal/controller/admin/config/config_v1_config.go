@@ -3,12 +3,13 @@ package config
 import (
 	"context"
 
-	"exam/api/admin/config/v1"
+	v1 "exam/api/admin/config/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
-	"exam/internal/model/do"
-	"exam/internal/model/entity"
+	sysdo "exam/internal/model/do/sys"
+	sysentity "exam/internal/model/entity/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -30,7 +31,7 @@ func (c *ControllerV1) ConfigList(ctx context.Context, req *v1.ConfigListReq) (r
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
-	var list []entity.SystemConfig
+	var list []sysentity.SysConfig
 	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&list)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -50,7 +51,7 @@ func (c *ControllerV1) ConfigList(ctx context.Context, req *v1.ConfigListReq) (r
 }
 
 func (c *ControllerV1) ConfigCreate(ctx context.Context, req *v1.ConfigCreateReq) (res *v1.ConfigCreateRes, err error) {
-	var exist entity.SystemConfig
+	var exist sysentity.SysConfig
 	_ = dao.SystemConfig.Ctx(ctx).Where("config_key", req.ConfigKey).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&exist)
 	if exist.Id > 0 {
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.config_exists")
@@ -67,7 +68,7 @@ func (c *ControllerV1) ConfigCreate(ctx context.Context, req *v1.ConfigCreateReq
 	if groupName == "" {
 		groupName = "default"
 	}
-	id, err := dao.SystemConfig.Ctx(ctx).InsertAndGetId(do.SystemConfig{
+	id, err := dao.SystemConfig.Ctx(ctx).InsertAndGetId(sysdo.SysConfig{
 		ConfigKey: req.ConfigKey, ConfigValue: req.ConfigValue, ConfigType: configType,
 		GroupName: groupName, Remark: req.Remark, Creator: creator, Updater: creator,
 		DeleteFlag: consts.DeleteFlagNotDeleted,
@@ -83,7 +84,7 @@ func (c *ControllerV1) ConfigUpdate(ctx context.Context, req *v1.ConfigUpdateReq
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	data := do.SystemConfig{Updater: updater}
+	data := sysdo.SysConfig{Updater: updater}
 	if req.ConfigValue != "" {
 		data.ConfigValue = req.ConfigValue
 	}
@@ -102,7 +103,7 @@ func (c *ControllerV1) ConfigDelete(ctx context.Context, req *v1.ConfigDeleteReq
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	_, err = dao.SystemConfig.Ctx(ctx).Where("id", req.Id).Data(do.SystemConfig{
+	_, err = dao.SystemConfig.Ctx(ctx).Where("id", req.Id).Data(sysdo.SysConfig{
 		DeleteFlag: consts.DeleteFlagDeleted, Updater: updater,
 	}).Update()
 	if err != nil {
@@ -112,7 +113,7 @@ func (c *ControllerV1) ConfigDelete(ctx context.Context, req *v1.ConfigDeleteReq
 }
 
 func (c *ControllerV1) ConfigGet(ctx context.Context, req *v1.ConfigGetReq) (res *v1.ConfigGetRes, err error) {
-	var e entity.SystemConfig
+	var e sysentity.SysConfig
 	err = dao.SystemConfig.Ctx(ctx).Where("config_key", req.Key).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil || e.Id == 0 {
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.config_not_found")

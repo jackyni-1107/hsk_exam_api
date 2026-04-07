@@ -6,11 +6,11 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gtime"
 
-	"exam/api/client/me/v1"
+	v1 "exam/api/client/me/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
-	entitysys "exam/internal/model/entity/sys"
+	sysentity "exam/internal/model/entity/sys"
 )
 
 func gtimeRFC3339(t *gtime.Time) string {
@@ -25,7 +25,7 @@ func (c *ControllerV1) Profile(ctx context.Context, req *v1.ProfileReq) (res *v1
 	if d == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
 	}
-	var u entitysys.SysMember
+	var u sysentity.SysMember
 	err = dao.SysMember.Ctx(ctx).
 		Where("id", d.UserId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).

@@ -3,7 +3,7 @@ package exam
 import (
 	"context"
 
-	"exam/api/admin/exam/v1"
+	v1 "exam/api/admin/exam/v1"
 	"exam/internal/service/exam"
 	"exam/internal/util"
 )

@@ -10,9 +10,9 @@ import (
 	"github.com/gogf/gf/v2/os/gtime"
 
 	"exam/internal/consts"
-	daosys "exam/internal/dao/sys"
-	dosys "exam/internal/model/do/sys"
-	entitysys "exam/internal/model/entity/sys"
+	sysdao "exam/internal/dao/sys"
+	sysdo "exam/internal/model/do/sys"
+	sysentity "exam/internal/model/entity/sys"
 	"exam/internal/notification"
 	"exam/internal/task/handler"
 )
@@ -28,8 +28,8 @@ type ExecRequest struct {
 
 // Execute 执行任务：并发控制、日志、Handler、重试与告警。
 func Execute(ctx context.Context, req ExecRequest) error {
-	var t entitysys.SysTask
-	err := daosys.SysTask.Ctx(ctx).Where("id", req.TaskID).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&t)
+	var t sysentity.SysTask
+	err := sysdao.SysTask.Ctx(ctx).Where("id", req.TaskID).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&t)
 	if err != nil || t.Id == 0 {
 		return err
 	}
@@ -63,13 +63,13 @@ func Execute(ctx context.Context, req ExecRequest) error {
 
 	// 2. 写入运行中日志
 	node, _ := os.Hostname()
-	logData := dosys.SysTaskLog{
+	logData := sysdo.SysTaskLog{
 		TaskId: req.TaskID, RunId: req.RunID, TriggerType: req.TriggerType,
 		Status: consts.TaskRunStatusRunning, RetryCount: req.RetryCount, Node: node,
 	}
 	now := gtime.Now()
 	logData.StartTime = now
-	_, err = daosys.SysTaskLog.Ctx(ctx).Insert(logData)
+	_, err = sysdao.SysTaskLog.Ctx(ctx).Insert(logData)
 	if err != nil {
 		g.Log().Error(ctx, "task log insert failed", err)
 		return err
@@ -100,8 +100,8 @@ func Execute(ctx context.Context, req ExecRequest) error {
 		}
 		result = ""
 	}
-	_, _ = daosys.SysTaskLog.Ctx(ctx).Where("task_id", req.TaskID).Where("run_id", req.RunID).
-		Data(dosys.SysTaskLog{
+	_, _ = sysdao.SysTaskLog.Ctx(ctx).Where("task_id", req.TaskID).Where("run_id", req.RunID).
+		Data(sysdo.SysTaskLog{
 			Status: status, EndTime: endTime, DurationMs: durationMs,
 			ErrorMsg: errorMsg, Result: result,
 		}).Update()
@@ -118,7 +118,7 @@ func Execute(ctx context.Context, req ExecRequest) error {
 	return nil
 }
 
-func sendFailAlert(ctx context.Context, t *entitysys.SysTask, runID, errMsg string) {
+func sendFailAlert(ctx context.Context, t *sysentity.SysTask, runID, errMsg string) {
 	receivers := strings.Split(t.AlertReceivers, ",")
 	vars := map[string]string{
 		"task_name": t.Name,

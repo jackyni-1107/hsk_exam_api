@@ -11,8 +11,8 @@ import (
 	v1 "exam/api/admin/task/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/do"
-	"exam/internal/model/entity"
+	sysdo "exam/internal/model/do/sys"
+	sysentity "exam/internal/model/entity/sys"
 	taskpkg "exam/internal/task"
 )
 
@@ -20,12 +20,12 @@ func (c *ControllerV1) TaskCreate(ctx context.Context, req *v1.TaskCreateReq) (r
 	if err := validateTaskTypeAndSchedule(req.Type, req.CronExpr, req.DelaySeconds); err != nil {
 		return nil, err
 	}
-	var exist entity.SysTask
+	var exist sysentity.SysTask
 	_ = dao.SysTask.Ctx(ctx).Where("code", req.Code).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&exist)
 	if exist.Id > 0 {
 		return nil, gerror.NewCode(consts.CodeTaskCodeExists, "")
 	}
-	id, err := dao.SysTask.Ctx(ctx).InsertAndGetId(do.SysTask{
+	id, err := dao.SysTask.Ctx(ctx).InsertAndGetId(sysdo.SysTask{
 		Name:           req.Name,
 		Code:           req.Code,
 		Type:           req.Type,
@@ -56,14 +56,14 @@ func (c *ControllerV1) TaskUpdate(ctx context.Context, req *v1.TaskUpdateReq) (r
 	if err := validateTaskTypeAndSchedule(req.Type, req.CronExpr, req.DelaySeconds); err != nil {
 		return nil, err
 	}
-	var cur entity.SysTask
+	var cur sysentity.SysTask
 	if err := dao.SysTask.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&cur); err != nil {
 		return nil, err
 	}
 	if cur.Id == 0 {
 		return nil, gerror.NewCode(consts.CodeTaskNotFound, "")
 	}
-	var dup entity.SysTask
+	var dup sysentity.SysTask
 	_ = dao.SysTask.Ctx(ctx).
 		Where("code", req.Code).
 		WhereNot("id", req.Id).
@@ -72,7 +72,7 @@ func (c *ControllerV1) TaskUpdate(ctx context.Context, req *v1.TaskUpdateReq) (r
 	if dup.Id > 0 {
 		return nil, gerror.NewCode(consts.CodeTaskCodeExists, "")
 	}
-	_, err = dao.SysTask.Ctx(ctx).Where("id", req.Id).Data(do.SysTask{
+	_, err = dao.SysTask.Ctx(ctx).Where("id", req.Id).Data(sysdo.SysTask{
 		Name:           req.Name,
 		Code:           req.Code,
 		Type:           req.Type,
@@ -98,7 +98,7 @@ func (c *ControllerV1) TaskUpdate(ctx context.Context, req *v1.TaskUpdateReq) (r
 
 func (c *ControllerV1) TaskDelete(ctx context.Context, req *v1.TaskDeleteReq) (res *v1.TaskDeleteRes, err error) {
 	_, err = dao.SysTask.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Data(do.SysTask{DeleteFlag: consts.DeleteFlagDeleted, Updater: "admin", UpdateTime: gtime.Now()}).Update()
+		Data(sysdo.SysTask{DeleteFlag: consts.DeleteFlagDeleted, Updater: "admin", UpdateTime: gtime.Now()}).Update()
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (c *ControllerV1) TaskDelete(ctx context.Context, req *v1.TaskDeleteReq) (r
 }
 
 func (c *ControllerV1) TaskRun(ctx context.Context, req *v1.TaskRunReq) (res *v1.TaskRunRes, err error) {
-	var t entity.SysTask
+	var t sysentity.SysTask
 	if err := dao.SysTask.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&t); err != nil {
 		return nil, err
 	}

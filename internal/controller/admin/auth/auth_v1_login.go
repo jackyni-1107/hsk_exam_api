@@ -15,7 +15,7 @@ import (
 	"exam/internal/dao"
 	"exam/internal/logic/security"
 	"exam/internal/middleware"
-	"exam/internal/model/entity"
+	sysentity "exam/internal/model/entity/sys"
 	"exam/internal/utility"
 )
 
@@ -38,7 +38,7 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 		return nil, gerror.NewCode(consts.CodeAccountLocked, "")
 	}
 
-	var u entity.SystemUser
+	var u sysentity.SysUser
 	_ = dao.SystemUser.Ctx(ctx).
 		Wheref("LOWER(username) = ?", name).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).

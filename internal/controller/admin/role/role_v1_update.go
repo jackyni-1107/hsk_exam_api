@@ -3,11 +3,12 @@ package role
 import (
 	"context"
 
-	"exam/api/admin/role/v1"
+	v1 "exam/api/admin/role/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
-	dosys "exam/internal/model/do/sys"
+	sysdo "exam/internal/model/do/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -16,7 +17,7 @@ func (c *ControllerV1) RoleUpdate(ctx context.Context, req *v1.RoleUpdateReq) (r
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	data := dosys.SysRole{Updater: updater}
+	data := sysdo.SysRole{Updater: updater}
 	if req.Name != "" {
 		data.Name = req.Name
 	}

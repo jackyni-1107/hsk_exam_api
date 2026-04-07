@@ -3,11 +3,12 @@ package member
 import (
 	"context"
 
-	"exam/api/admin/member/v1"
+	v1 "exam/api/admin/member/v1"
 	"exam/internal/consts"
-	daosys "exam/internal/dao/sys"
+	sysdao "exam/internal/dao/sys"
 	"exam/internal/middleware"
-	dosys "exam/internal/model/do/sys"
+	sysdo "exam/internal/model/do/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -16,7 +17,7 @@ func (c *ControllerV1) MemberDelete(ctx context.Context, req *v1.MemberDeleteReq
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	_, err = daosys.SysMember.Ctx(ctx).Where("id", req.Id).Data(dosys.SysMember{
+	_, err = sysdao.SysMember.Ctx(ctx).Where("id", req.Id).Data(sysdo.SysMember{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
 	}).Update()

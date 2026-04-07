@@ -12,7 +12,7 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/entity"
+	examentity "exam/internal/model/entity/exam"
 	"exam/internal/util"
 )
 
@@ -180,7 +180,7 @@ func trimForExamLarge(s string) string {
 }
 
 func paperDetailForExamInitFromDB(ctx context.Context, examPaperId int64) (*PaperDetailForExamInitTree, error) {
-	var paper entity.ExamPaper
+	var paper examentity.ExamPaper
 	err := dao.ExamPaper.Ctx(ctx).
 		Where("id", examPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -192,7 +192,7 @@ func paperDetailForExamInitFromDB(ctx context.Context, examPaperId int64) (*Pape
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.exam_paper_not_found")
 	}
 
-	var sections []entity.ExamSection
+	var sections []examentity.ExamSection
 	if err := dao.ExamSection.Ctx(ctx).
 		Where("exam_paper_id", examPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -207,7 +207,7 @@ func paperDetailForExamInitFromDB(ctx context.Context, examPaperId int64) (*Pape
 		sectionIDs = append(sectionIDs, sec.Id)
 	}
 
-	var allBlocks []entity.ExamQuestionBlock
+	var allBlocks []examentity.ExamQuestionBlock
 	if len(sectionIDs) > 0 {
 		if err := dao.ExamQuestionBlock.Ctx(ctx).
 			WhereIn("section_id", sectionIDs).
@@ -220,7 +220,7 @@ func paperDetailForExamInitFromDB(ctx context.Context, examPaperId int64) (*Pape
 		}
 	}
 
-	blocksBySection := make(map[int64][]entity.ExamQuestionBlock, len(sections))
+	blocksBySection := make(map[int64][]examentity.ExamQuestionBlock, len(sections))
 	blockIDs := make([]interface{}, 0, len(allBlocks))
 	for _, b := range allBlocks {
 		blocksBySection[b.SectionId] = append(blocksBySection[b.SectionId], b)
@@ -287,7 +287,7 @@ func paperDetailForExamInitFromDB(ctx context.Context, examPaperId int64) (*Pape
 }
 
 func paperSectionDetailForExamFromDB(ctx context.Context, examPaperId, sectionId int64) (*SectionDetailForExamView, error) {
-	var sec entity.ExamSection
+	var sec examentity.ExamSection
 	if err := dao.ExamSection.Ctx(ctx).
 		Where("id", sectionId).
 		Where("exam_paper_id", examPaperId).
@@ -299,7 +299,7 @@ func paperSectionDetailForExamFromDB(ctx context.Context, examPaperId, sectionId
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.exam_section_not_found")
 	}
 
-	var blocks []entity.ExamQuestionBlock
+	var blocks []examentity.ExamQuestionBlock
 	if err := dao.ExamQuestionBlock.Ctx(ctx).
 		Where("section_id", sectionId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -315,7 +315,7 @@ func paperSectionDetailForExamFromDB(ctx context.Context, examPaperId, sectionId
 	}
 
 	qcols := dao.ExamQuestion.Columns()
-	var allQuestions []entity.ExamQuestion
+	var allQuestions []examentity.ExamQuestion
 	if len(blockIDs) > 0 {
 		if err := dao.ExamQuestion.Ctx(ctx).
 			Fields(
@@ -343,7 +343,7 @@ func paperSectionDetailForExamFromDB(ctx context.Context, examPaperId, sectionId
 		}
 	}
 
-	qsByBlock := make(map[int64][]entity.ExamQuestion)
+	qsByBlock := make(map[int64][]examentity.ExamQuestion)
 	for _, q := range allQuestions {
 		qsByBlock[q.BlockId] = append(qsByBlock[q.BlockId], q)
 	}
@@ -362,7 +362,7 @@ func paperSectionDetailForExamFromDB(ctx context.Context, examPaperId, sectionId
 		qIDs = append(qIDs, q.Id)
 	}
 
-	var allOpts []entity.ExamOption
+	var allOpts []examentity.ExamOption
 	if len(qIDs) > 0 {
 		if err := dao.ExamOption.Ctx(ctx).
 			WhereIn("question_id", qIDs).
@@ -374,7 +374,7 @@ func paperSectionDetailForExamFromDB(ctx context.Context, examPaperId, sectionId
 			return nil, err
 		}
 	}
-	optsByQ := make(map[int64][]entity.ExamOption)
+	optsByQ := make(map[int64][]examentity.ExamOption)
 	for _, o := range allOpts {
 		optsByQ[o.QuestionId] = append(optsByQ[o.QuestionId], o)
 	}
@@ -439,7 +439,7 @@ func paperSectionDetailForExamFromDB(ctx context.Context, examPaperId, sectionId
 	return out, nil
 }
 
-func paperHeadForExam(p entity.ExamPaper) PaperHeadForExamView {
+func paperHeadForExam(p examentity.ExamPaper) PaperHeadForExamView {
 	v := PaperHeadForExamView{
 		Id:                 p.MockExaminationPaperId,
 		Level:              p.Level,
@@ -454,6 +454,7 @@ func paperHeadForExam(p entity.ExamPaper) PaperHeadForExamView {
 	v.CreateTime = util.ToRFC3339UTC(p.CreateTime)
 	return v
 }
+
 // PaperDetailForExamInitTree 考前初始化视图（轻量）。
 type PaperDetailForExamInitTree struct {
 	Paper    PaperHeadForExamView        `json:"paper"`
@@ -543,4 +544,3 @@ type OptionDetailForExamView struct {
 	OptionType string `json:"option_type"`
 	Content    string `json:"content"`
 }
-

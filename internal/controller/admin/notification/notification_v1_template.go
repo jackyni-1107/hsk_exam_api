@@ -3,12 +3,13 @@ package notification
 import (
 	"context"
 
-	"exam/api/admin/notification/v1"
+	v1 "exam/api/admin/notification/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
-	"exam/internal/model/do"
-	"exam/internal/model/entity"
+	sysdo "exam/internal/model/do/sys"
+	sysentity "exam/internal/model/entity/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -30,7 +31,7 @@ func (c *ControllerV1) TemplateList(ctx context.Context, req *v1.TemplateListReq
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
-	var list []entity.SysNotificationTemplate
+	var list []sysentity.SysNotificationTemplate
 	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&list)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -50,7 +51,7 @@ func (c *ControllerV1) TemplateList(ctx context.Context, req *v1.TemplateListReq
 }
 
 func (c *ControllerV1) TemplateCreate(ctx context.Context, req *v1.TemplateCreateReq) (res *v1.TemplateCreateRes, err error) {
-	var exist entity.SysNotificationTemplate
+	var exist sysentity.SysNotificationTemplate
 	_ = dao.SysNotificationTemplate.Ctx(ctx).Where("code", req.Code).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&exist)
 	if exist.Id > 0 {
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.template_exists")
@@ -59,7 +60,7 @@ func (c *ControllerV1) TemplateCreate(ctx context.Context, req *v1.TemplateCreat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := dao.SysNotificationTemplate.Ctx(ctx).InsertAndGetId(do.SysNotificationTemplate{
+	id, err := dao.SysNotificationTemplate.Ctx(ctx).InsertAndGetId(sysdo.SysNotificationTemplate{
 		Code: req.Code, Name: req.Name, Channel: req.Channel, Content: req.Content,
 		Variables: req.Variables, Status: req.Status, Creator: creator, Updater: creator,
 		DeleteFlag: consts.DeleteFlagNotDeleted,
@@ -75,7 +76,7 @@ func (c *ControllerV1) TemplateUpdate(ctx context.Context, req *v1.TemplateUpdat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	data := do.SysNotificationTemplate{Updater: updater}
+	data := sysdo.SysNotificationTemplate{Updater: updater}
 	if req.Name != "" {
 		data.Name = req.Name
 	}
@@ -98,7 +99,7 @@ func (c *ControllerV1) TemplateDelete(ctx context.Context, req *v1.TemplateDelet
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	_, err = dao.SysNotificationTemplate.Ctx(ctx).Where("id", req.Id).Data(do.SysNotificationTemplate{
+	_, err = dao.SysNotificationTemplate.Ctx(ctx).Where("id", req.Id).Data(sysdo.SysNotificationTemplate{
 		DeleteFlag: consts.DeleteFlagDeleted, Updater: updater,
 	}).Update()
 	if err != nil {

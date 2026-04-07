@@ -3,12 +3,13 @@ package file
 import (
 	"context"
 
-	"exam/api/admin/file/v1"
+	v1 "exam/api/admin/file/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/do"
-	"exam/internal/model/entity"
+	sysdo "exam/internal/model/do/sys"
+	sysentity "exam/internal/model/entity/sys"
 	"exam/internal/storage"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -27,7 +28,7 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.FileListReq) (res *v1.F
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
-	var list []entity.SysFileStorage
+	var list []sysentity.SysFileStorage
 	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&list)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -47,13 +48,13 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.FileListReq) (res *v1.F
 }
 
 func (c *ControllerV1) Delete(ctx context.Context, req *v1.FileDeleteReq) (res *v1.FileDeleteRes, err error) {
-	var f entity.SysFileStorage
+	var f sysentity.SysFileStorage
 	err = dao.SysFileStorage.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&f)
 	if err != nil || f.Id == 0 {
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.file_not_found")
 	}
 	adapter := storage.NewAdapter()
 	_ = adapter.Delete(ctx, f.Bucket, f.Path)
-	_, _ = dao.SysFileStorage.Ctx(ctx).Where("id", req.Id).Data(do.SysFileStorage{DeleteFlag: consts.DeleteFlagDeleted}).Update()
+	_, _ = dao.SysFileStorage.Ctx(ctx).Where("id", req.Id).Data(sysdo.SysFileStorage{DeleteFlag: consts.DeleteFlagDeleted}).Update()
 	return &v1.FileDeleteRes{}, nil
 }

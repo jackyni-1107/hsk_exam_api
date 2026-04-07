@@ -14,8 +14,8 @@ import (
 	"exam/internal/exampaper"
 	"exam/internal/logic/clientexam"
 	"exam/internal/model/bo"
-	exam "exam/internal/model/bo/exam"
-	"exam/internal/model/entity"
+	exambo "exam/internal/model/bo/exam"
+	examentity "exam/internal/model/entity/exam"
 )
 
 func (s *sExam) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (map[string]interface{}, error) {
@@ -23,7 +23,7 @@ func (s *sExam) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64,
 	if err != nil {
 		return nil, err
 	}
-	var sec entity.ExamSection
+	var sec examentity.ExamSection
 	if err := dao.ExamSection.Ctx(ctx).
 		Where("id", sectionId).
 		Where("exam_paper_id", paper.Id).
@@ -151,7 +151,7 @@ func (s *sExam) InvalidatePaperSectionForExamCache(ctx context.Context, examPape
 	InvalidatePaperSectionForExamCache(ctx, examPaperId, sectionId)
 }
 
-func (s *sExam) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*exam.PaperDetailForExamInitTree, error) {
+func (s *sExam) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, error) {
 	paper, err := exampaper.ByMockID(ctx, mockPaperID)
 	if err != nil {
 		return nil, err
@@ -164,14 +164,14 @@ func (s *sExam) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (
 	if err != nil {
 		return nil, err
 	}
-	var out exam.PaperDetailForExamInitTree
+	var out exambo.PaperDetailForExamInitTree
 	if err := json.Unmarshal(b, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
 }
 
-func (s *sExam) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exam.SectionDetailForExamView, error) {
+func (s *sExam) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionDetailForExamView, error) {
 	paper, err := exampaper.ByMockID(ctx, mockPaperID)
 	if err != nil {
 		return nil, err
@@ -184,7 +184,7 @@ func (s *sExam) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64
 	if err != nil {
 		return nil, err
 	}
-	var out exam.SectionDetailForExamView
+	var out exambo.SectionDetailForExamView
 	if err := json.Unmarshal(b, &out); err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mock
 	if !cfg.EnableRandomAnswerHelper {
 		return nil, gerror.NewCode(consts.CodeExamTestHelperDisabled, "")
 	}
-	var att entity.ExamAttempt
+	var att examentity.ExamAttempt
 	if err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
 		Where("member_id", userID).
@@ -223,7 +223,7 @@ func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mock
 		return nil, gerror.NewCode(consts.CodeExamTimeExpired, "")
 	}
 
-	var qs []entity.ExamQuestion
+	var qs []examentity.ExamQuestion
 	if err := dao.ExamQuestion.Ctx(ctx).
 		Where("exam_paper_id", att.ExamPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -236,7 +236,7 @@ func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mock
 		if q.IsExample != 0 {
 			continue
 		}
-		var opts []entity.ExamOption
+		var opts []examentity.ExamOption
 		_ = dao.ExamOption.Ctx(ctx).
 			Where("question_id", q.Id).
 			Where("delete_flag", consts.DeleteFlagNotDeleted).

@@ -6,7 +6,8 @@ import (
 	v1 "exam/api/client/mock/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
-	entitymock "exam/internal/model/entity/mock"
+	mockentity "exam/internal/model/entity/mock"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -15,7 +16,7 @@ func (c *ControllerV1) ExaminationPaperList(ctx context.Context, req *v1.Examina
 	if req.LevelId > 0 {
 		m = m.Where("level_id", req.LevelId)
 	}
-	var list []entitymock.MockExaminationPaper
+	var list []mockentity.MockExaminationPaper
 	err = m.OrderAsc("seq").OrderAsc("id").Scan(&list)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -31,7 +32,7 @@ func (c *ControllerV1) ExaminationPaperList(ctx context.Context, req *v1.Examina
 }
 
 func (c *ControllerV1) ExaminationPaperDetail(ctx context.Context, req *v1.ExaminationPaperDetailReq) (res *v1.ExaminationPaperDetailRes, err error) {
-	var e entitymock.MockExaminationPaper
+	var e mockentity.MockExaminationPaper
 	err = dao.MockExaminationPaper.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil || e.Id == 0 {
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.not_found")

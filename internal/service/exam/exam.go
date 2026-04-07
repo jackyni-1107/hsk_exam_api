@@ -8,8 +8,8 @@ package exam
 import (
 	"context"
 	"exam/internal/model/bo"
-	exam "exam/internal/model/bo/exam"
-	"exam/internal/model/entity"
+	exambo "exam/internal/model/bo/exam"
+	examentity "exam/internal/model/entity/exam"
 )
 
 type (
@@ -56,24 +56,24 @@ type (
 		// EmptyAnswerRowsForPaper 根据试卷全部小题 ID 生成「空答题行」描述（供单测与客户端初始化占位）。
 		EmptyAnswerRowsForPaper(questionIDs []int64) []int64
 		// PaperDetail 返回试卷及嵌套大题、题块、小题、选项（只读查看）。
-		PaperDetail(ctx context.Context, examPaperId int64) (*exam.PaperDetailTree, error)
+		PaperDetail(ctx context.Context, examPaperId int64) (*exambo.PaperDetailTree, error)
 		// InvalidatePaperForExamCache 试卷树变更后删除考前相关缓存（初始化 + 各 section 详情 + 历史整卷 key）。
 		InvalidatePaperForExamCache(ctx context.Context, examPaperId int64)
 		// InvalidatePaperSectionForExamCache 删除单个 section 的考前详情缓存（精确 key）。
 		InvalidatePaperSectionForExamCache(ctx context.Context, examPaperId int64, sectionId int64)
 		// PaperDetailForExamInit 客户端考前初始化：仅试卷结构（paper + section 概要 + block 概要 + 题量），不含题目与选项。
 		// 流程：Redis → singleflight → DB；TTL 1h。
-		PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*exam.PaperDetailForExamInitTree, error)
+		PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, error)
 		// PaperSectionDetailForExam 按 section 拉取完整题目树（blocks + questions + options），不含选项正误。
-		PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exam.SectionDetailForExamView, error)
+		PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionDetailForExamView, error)
 		// PaperSectionTopicForExam 按 section 返回与 topic JSON 根结构一致的 map（脱敏 + 注入 question_id）。
 		PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (map[string]interface{}, error)
 		// ImportFromIndex 拉取或解析 index.json，写入 exam_* 表。
-		ImportFromIndex(ctx context.Context, p exam.ImportParams) (*exam.ImportResult, error)
+		ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*exambo.ImportResult, error)
 		// UpdatePaperSettings 修改试卷听力 HLS 配置（答题时长以 mock 卷为准）。
-		UpdatePaperSettings(ctx context.Context, examPaperId int64, in exam.PaperHlsExamAdminUpdate, updater string) error
+		UpdatePaperSettings(ctx context.Context, examPaperId int64, in exambo.PaperHlsExamAdminUpdate, updater string) error
 		// PaperList 分页试卷列表（管理端）
-		PaperList(ctx context.Context, page int, size int, level string) (list []entity.ExamPaper, total int, err error)
+		PaperList(ctx context.Context, page int, size int, level string) (list []examentity.ExamPaper, total int, err error)
 		// ExamBatch* 考试批次（时间窗、多选 mock_levels、批次学员）
 		ExamBatchList(ctx context.Context, mockPaperID int64, page, size int) (list []bo.ExamBatchAdminItem, total int, err error)
 		ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdminItem, error)
@@ -83,7 +83,7 @@ type (
 		ExamBatchMembersImport(ctx context.Context, batchID int64, mockLevelID int64, memberIDs []int64, creator string) (inserted int, err error)
 		ExamBatchMemberList(ctx context.Context, batchID int64, page, size int) (list []bo.ExamBatchMemberAdminRow, total int, err error)
 		ExamBatchMembersRemove(ctx context.Context, batchID int64, mockLevelID int64, memberIDs []int64) (removed int, err error)
-		ExamBatchMemberDetail(ctx context.Context, batchID int64, userID int64) (*entity.ExamBatchMember, error)
+		ExamBatchMemberDetail(ctx context.Context, batchID int64, userID int64) (*examentity.ExamBatchMember, error)
 		// MyExamBatches 学员端：当前会员所在批次，仅返回考试时间窗口内且未提交/未结束的记录。
 		MyExamBatches(ctx context.Context, memberID int64) (list []bo.MyExamBatchItem, err error)
 		// IssueAudioHlsPlay 校验会话与题目 HLS 配置后写入 Redis 票据，返回相对 play_url。

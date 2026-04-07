@@ -5,10 +5,10 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 
-	"exam/api/admin/exception_log/v1"
+	v1 "exam/api/admin/exception_log/v1"
 	"exam/internal/consts"
-	daosys "exam/internal/dao/sys"
-	entitysys "exam/internal/model/entity/sys"
+	sysdao "exam/internal/dao/sys"
+	sysentity "exam/internal/model/entity/sys"
 	"exam/internal/util"
 )
 
@@ -20,7 +20,7 @@ func (c *ControllerV1) ExceptionLogList(ctx context.Context, req *v1.ExceptionLo
 		req.Size = 10
 	}
 
-	model := daosys.SysExceptionLog.Ctx(ctx)
+	model := sysdao.SysExceptionLog.Ctx(ctx)
 	if req.TraceId != "" {
 		model = model.Where("trace_id", req.TraceId)
 	}
@@ -39,7 +39,7 @@ func (c *ControllerV1) ExceptionLogList(ctx context.Context, req *v1.ExceptionLo
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 
-	var logs []entitysys.SysExceptionLog
+	var logs []sysentity.SysExceptionLog
 	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&logs)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")

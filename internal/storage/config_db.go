@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"exam/internal/consts"
-	daosys "exam/internal/dao/sys"
-	entitysys "exam/internal/model/entity/sys"
+	sysdao "exam/internal/dao/sys"
+	sysentity "exam/internal/model/entity/sys"
 )
 
 // jsonConfig 对应表字段 config_json。
@@ -26,8 +26,8 @@ type jsonConfig struct {
 func GetActiveConfig(ctx context.Context) (cfg Config, cleanupDays int) {
 	cfg = Config{Type: "local", BasePath: "./storage", Bucket: "default"}
 	cleanupDays = 30
-	var e entitysys.SysFileStorageConfig
-	err := daosys.SysFileStorageConfig.Ctx(ctx).
+	var e sysentity.SysFileStorageConfig
+	err := sysdao.SysFileStorageConfig.Ctx(ctx).
 		Where("is_active", 1).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&e)

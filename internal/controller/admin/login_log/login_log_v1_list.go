@@ -5,10 +5,10 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 
-	"exam/api/admin/login_log/v1"
+	v1 "exam/api/admin/login_log/v1"
 	"exam/internal/consts"
-	daosys "exam/internal/dao/sys"
-	entitysys "exam/internal/model/entity/sys"
+	sysdao "exam/internal/dao/sys"
+	sysentity "exam/internal/model/entity/sys"
 	"exam/internal/util"
 )
 
@@ -20,7 +20,7 @@ func (c *ControllerV1) LoginLogList(ctx context.Context, req *v1.LoginLogListReq
 		req.Size = 10
 	}
 
-	model := daosys.SysLoginLog.Ctx(ctx)
+	model := sysdao.SysLoginLog.Ctx(ctx)
 	if req.Username != "" {
 		model = model.WhereLike("username", "%"+req.Username+"%")
 	}
@@ -42,7 +42,7 @@ func (c *ControllerV1) LoginLogList(ctx context.Context, req *v1.LoginLogListReq
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 
-	var logs []entitysys.SysLoginLog
+	var logs []sysentity.SysLoginLog
 	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&logs)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")

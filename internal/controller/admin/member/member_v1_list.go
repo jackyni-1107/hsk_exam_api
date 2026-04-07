@@ -3,10 +3,11 @@ package member
 import (
 	"context"
 
-	"exam/api/admin/member/v1"
+	v1 "exam/api/admin/member/v1"
 	"exam/internal/consts"
-	daosys "exam/internal/dao/sys"
-	"exam/internal/model/entity"
+	sysdao "exam/internal/dao/sys"
+	sysentity "exam/internal/model/entity/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -17,7 +18,7 @@ func (c *ControllerV1) MemberList(ctx context.Context, req *v1.MemberListReq) (r
 	if req.Size <= 0 {
 		req.Size = 10
 	}
-	model := daosys.SysMember.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted)
+	model := sysdao.SysMember.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted)
 	if req.Username != "" {
 		model = model.WhereLike("username", "%"+req.Username+"%")
 	}
@@ -28,7 +29,7 @@ func (c *ControllerV1) MemberList(ctx context.Context, req *v1.MemberListReq) (r
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
-	var rows []entity.SystemMember
+	var rows []sysentity.SysMember
 	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&rows)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")

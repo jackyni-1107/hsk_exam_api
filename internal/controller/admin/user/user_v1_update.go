@@ -5,11 +5,12 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"exam/api/admin/user/v1"
+	v1 "exam/api/admin/user/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
-	dosys "exam/internal/model/do/sys"
+	sysdo "exam/internal/model/do/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -18,7 +19,7 @@ func (c *ControllerV1) UserUpdate(ctx context.Context, req *v1.UserUpdateReq) (r
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	data := dosys.SysUser{Updater: updater}
+	data := sysdo.SysUser{Updater: updater}
 	if req.Password != "" {
 		hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {

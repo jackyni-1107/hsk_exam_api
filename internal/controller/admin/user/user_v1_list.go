@@ -3,10 +3,11 @@ package user
 import (
 	"context"
 
-	"exam/api/admin/user/v1"
+	v1 "exam/api/admin/user/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/entity"
+	sysentity "exam/internal/model/entity/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -32,7 +33,7 @@ func (c *ControllerV1) UserList(ctx context.Context, req *v1.UserListReq) (res *
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 
-	var users []entity.SystemUser
+	var users []sysentity.SysUser
 	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&users)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -53,7 +54,7 @@ func (c *ControllerV1) UserList(ctx context.Context, req *v1.UserListReq) (res *
 			item.CreateTime = u.CreateTime.Format("Y-m-d H:i:s")
 		}
 		// 查询角色
-		var userRoles []entity.SystemUserRole
+		var userRoles []sysentity.SysUserRole
 		_ = dao.SystemUserRole.Ctx(ctx).Where("user_id", u.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&userRoles)
 		for _, ur := range userRoles {
 			item.RoleIds = append(item.RoleIds, ur.RoleId)

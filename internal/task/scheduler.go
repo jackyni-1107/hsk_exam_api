@@ -12,8 +12,8 @@ import (
 	"github.com/gogf/gf/v2/util/gconv"
 
 	"exam/internal/consts"
-	daosys "exam/internal/dao/sys"
-	entitysys "exam/internal/model/entity/sys"
+	sysdao "exam/internal/dao/sys"
+	sysentity "exam/internal/model/entity/sys"
 	"exam/internal/task/handler"
 )
 
@@ -39,8 +39,8 @@ func triggerHandlerInit() error {
 }
 
 func loadCronTasks(ctx context.Context) {
-	var list []entitysys.SysTask
-	err := daosys.SysTask.Ctx(ctx).
+	var list []sysentity.SysTask
+	err := sysdao.SysTask.Ctx(ctx).
 		Where("type", consts.TaskTypeCron).
 		Where("status", consts.TaskStatusEnabled).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -76,7 +76,7 @@ func loadCronTasks(ctx context.Context) {
 	cronMu.Unlock()
 }
 
-func addCronTaskLocked(ctx context.Context, t *entitysys.SysTask) {
+func addCronTaskLocked(ctx context.Context, t *sysentity.SysTask) {
 	if t.CronExpr == "" {
 		return
 	}

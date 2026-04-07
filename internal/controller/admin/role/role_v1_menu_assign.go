@@ -3,11 +3,12 @@ package role
 import (
 	"context"
 
-	"exam/api/admin/role/v1"
+	v1 "exam/api/admin/role/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
-	dosys "exam/internal/model/do/sys"
+	sysdo "exam/internal/model/do/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -21,7 +22,7 @@ func (c *ControllerV1) RoleMenuAssign(ctx context.Context, req *v1.RoleMenuAssig
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 	for _, mid := range req.MenuIds {
-		_, err = dao.SystemRoleMenu.Ctx(ctx).Insert(dosys.SysRoleMenu{
+		_, err = dao.SystemRoleMenu.Ctx(ctx).Insert(sysdo.SysRoleMenu{
 			RoleId: req.Id, MenuId: mid, Creator: creator, Updater: creator,
 			DeleteFlag: consts.DeleteFlagNotDeleted,
 		})

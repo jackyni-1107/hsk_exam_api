@@ -12,7 +12,7 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/entity"
+	sysentity "exam/internal/model/entity/sys"
 	"exam/internal/service/audit"
 )
 
@@ -79,7 +79,7 @@ func getUserPermissions(ctx context.Context, userId int64) ([]string, error) {
 	}
 
 	// 从 DB 查询：user -> roles -> menus -> permissions
-	var userRoles []entity.SystemUserRole
+	var userRoles []sysentity.SysUserRole
 	if err := dao.SystemUserRole.Ctx(ctx).Where("user_id", userId).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&userRoles); err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func getUserPermissions(ctx context.Context, userId int64) ([]string, error) {
 		roleIds = append(roleIds, ur.RoleId)
 	}
 
-	var roleMenus []entity.SystemRoleMenu
+	var roleMenus []sysentity.SysRoleMenu
 	if err := dao.SystemRoleMenu.Ctx(ctx).WhereIn("role_id", roleIds).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&roleMenus); err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func getUserPermissions(ctx context.Context, userId int64) ([]string, error) {
 		menuIds = append(menuIds, rm.MenuId)
 	}
 
-	var menus []entity.SystemMenu
+	var menus []sysentity.SysMenu
 	if err := dao.SystemMenu.Ctx(ctx).WhereIn("id", menuIds).Where("delete_flag", consts.DeleteFlagNotDeleted).Where("status", consts.StatusNormal).Scan(&menus); err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func getUserPermissions(ctx context.Context, userId int64) ([]string, error) {
 func GetUserMenuIds(ctx context.Context, userId int64) ([]int64, error) {
 	// 超级管理员：返回所有菜单 ID
 	if userId == consts.SuperAdminUserId {
-		var menus []entity.SystemMenu
+		var menus []sysentity.SysMenu
 		if err := dao.SystemMenu.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&menus); err != nil {
 			return nil, err
 		}
@@ -147,7 +147,7 @@ func GetUserMenuIds(ctx context.Context, userId int64) ([]int64, error) {
 		return ids, nil
 	}
 
-	var userRoles []entity.SystemUserRole
+	var userRoles []sysentity.SysUserRole
 	if err := dao.SystemUserRole.Ctx(ctx).Where("user_id", userId).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&userRoles); err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func GetUserMenuIds(ctx context.Context, userId int64) ([]int64, error) {
 		roleIds = append(roleIds, ur.RoleId)
 	}
 
-	var roleMenus []entity.SystemRoleMenu
+	var roleMenus []sysentity.SysRoleMenu
 	if err := dao.SystemRoleMenu.Ctx(ctx).WhereIn("role_id", roleIds).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&roleMenus); err != nil {
 		return nil, err
 	}

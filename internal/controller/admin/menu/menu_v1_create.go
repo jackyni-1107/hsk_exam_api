@@ -3,11 +3,12 @@ package menu
 import (
 	"context"
 
-	"exam/api/admin/menu/v1"
+	v1 "exam/api/admin/menu/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
-	dosys "exam/internal/model/do/sys"
+	sysdo "exam/internal/model/do/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -16,7 +17,7 @@ func (c *ControllerV1) MenuCreate(ctx context.Context, req *v1.MenuCreateReq) (r
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := dao.SystemMenu.Ctx(ctx).InsertAndGetId(dosys.SysMenu{
+	id, err := dao.SystemMenu.Ctx(ctx).InsertAndGetId(sysdo.SysMenu{
 		Name: req.Name, Permission: req.Permission, Type: req.Type, Sort: req.Sort, ParentId: req.ParentId,
 		Path: req.Path, Icon: req.Icon, Component: req.Component, ComponentName: req.ComponentName,
 		Status: req.Status, Visible: req.Visible, KeepAlive: req.KeepAlive, AlwaysShow: req.AlwaysShow,

@@ -3,12 +3,13 @@ package notification
 import (
 	"context"
 
-	"exam/api/admin/notification/v1"
+	v1 "exam/api/admin/notification/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
-	"exam/internal/model/do"
-	"exam/internal/model/entity"
+	sysdo "exam/internal/model/do/sys"
+	sysentity "exam/internal/model/entity/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -17,7 +18,7 @@ func (c *ControllerV1) ChannelConfigList(ctx context.Context, req *v1.ChannelCon
 	if req.Channel != "" {
 		model = model.Where("channel", req.Channel)
 	}
-	var list []entity.SysNotificationChannelConfig
+	var list []sysentity.SysNotificationChannelConfig
 	err = model.OrderAsc("id").Scan(&list)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -52,7 +53,7 @@ func (c *ControllerV1) ChannelConfigCreate(ctx context.Context, req *v1.ChannelC
 	if req.Channel == "sms" && req.Provider != "aliyun" && req.Provider != "tencent" {
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.sms_must_use_aliyun_or_tencent")
 	}
-	id, err := dao.SysNotificationChannelConfig.Ctx(ctx).InsertAndGetId(do.SysNotificationChannelConfig{
+	id, err := dao.SysNotificationChannelConfig.Ctx(ctx).InsertAndGetId(sysdo.SysNotificationChannelConfig{
 		Channel:    req.Channel,
 		Provider:   req.Provider,
 		Name:       req.Name,
@@ -88,7 +89,7 @@ func (c *ControllerV1) ChannelConfigUpdate(ctx context.Context, req *v1.ChannelC
 }
 
 func (c *ControllerV1) ChannelConfigDelete(ctx context.Context, req *v1.ChannelConfigDeleteReq) (res *v1.ChannelConfigDeleteRes, err error) {
-	var e entity.SysNotificationChannelConfig
+	var e sysentity.SysNotificationChannelConfig
 	err = dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil || e.Id == 0 {
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.config_not_found")
@@ -100,7 +101,7 @@ func (c *ControllerV1) ChannelConfigDelete(ctx context.Context, req *v1.ChannelC
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	_, err = dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", req.Id).Data(do.SysNotificationChannelConfig{
+	_, err = dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", req.Id).Data(sysdo.SysNotificationChannelConfig{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
 	}).Update()
@@ -111,7 +112,7 @@ func (c *ControllerV1) ChannelConfigDelete(ctx context.Context, req *v1.ChannelC
 }
 
 func (c *ControllerV1) ChannelConfigSetActive(ctx context.Context, req *v1.ChannelConfigSetActiveReq) (res *v1.ChannelConfigSetActiveRes, err error) {
-	var e entity.SysNotificationChannelConfig
+	var e sysentity.SysNotificationChannelConfig
 	err = dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil || e.Id == 0 {
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.config_not_found")
@@ -124,10 +125,10 @@ func (c *ControllerV1) ChannelConfigSetActive(ctx context.Context, req *v1.Chann
 	_, _ = dao.SysNotificationChannelConfig.Ctx(ctx).
 		Where("channel", e.Channel).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Data(do.SysNotificationChannelConfig{IsActive: 0, Updater: updater}).
+		Data(sysdo.SysNotificationChannelConfig{IsActive: 0, Updater: updater}).
 		Update()
 	// 再启用当前
-	_, err = dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", req.Id).Data(do.SysNotificationChannelConfig{
+	_, err = dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", req.Id).Data(sysdo.SysNotificationChannelConfig{
 		IsActive: 1,
 		Updater:  updater,
 	}).Update()

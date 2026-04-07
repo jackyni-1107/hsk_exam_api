@@ -3,7 +3,8 @@ package bo
 import (
 	"github.com/gogf/gf/v2/os/gtime"
 
-	"exam/internal/model/entity"
+	examentity "exam/internal/model/entity/exam"
+	sysentity "exam/internal/model/entity/sys"
 )
 
 // AttemptAdminListRow 管理端会话列表行（与 Raw 列别名一致）。
@@ -31,18 +32,18 @@ type AttemptAdminListRow struct {
 
 // AttemptAdminAnswerRow 单题答题展示行。
 type AttemptAdminAnswerRow struct {
-	Answer           entity.ExamAttemptAnswer
-	Question         entity.ExamQuestion
-	Section          *entity.ExamSection
-	Options          []entity.ExamOption
+	Answer           examentity.ExamAttemptAnswer
+	Question         examentity.ExamQuestion
+	Section          *examentity.ExamSection
+	Options          []examentity.ExamOption
 	ObjectiveCorrect *bool
 }
 
 // AttemptAdminDetailView 管理端会话详情。
 type AttemptAdminDetailView struct {
-	Attempt entity.ExamAttempt
-	User    entity.ClientUser
-	Paper   entity.ExamPaper
+	Attempt examentity.ExamAttempt
+	User    sysentity.SysMember
+	Paper   examentity.ExamPaper
 	Answers []AttemptAdminAnswerRow
 }
 

@@ -4,15 +4,16 @@ import (
 	"context"
 	"sort"
 
-	"exam/api/admin/menu/v1"
+	v1 "exam/api/admin/menu/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/entity"
+	sysentity "exam/internal/model/entity/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
 func (c *ControllerV1) MenuTree(ctx context.Context, req *v1.MenuTreeReq) (res *v1.MenuTreeRes, err error) {
-	var all []entity.SystemMenu
+	var all []sysentity.SysMenu
 	err = dao.SystemMenu.Ctx(ctx).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		OrderAsc("sort").OrderAsc("id").
@@ -23,8 +24,8 @@ func (c *ControllerV1) MenuTree(ctx context.Context, req *v1.MenuTreeReq) (res *
 	return &v1.MenuTreeRes{List: buildAdminMenuTree(all, 0)}, nil
 }
 
-func buildAdminMenuTree(list []entity.SystemMenu, parentId int64) []*v1.MenuTreeNode {
-	children := make(map[int64][]entity.SystemMenu)
+func buildAdminMenuTree(list []sysentity.SysMenu, parentId int64) []*v1.MenuTreeNode {
+	children := make(map[int64][]sysentity.SysMenu)
 	for _, m := range list {
 		pid := m.ParentId
 		children[pid] = append(children[pid], m)

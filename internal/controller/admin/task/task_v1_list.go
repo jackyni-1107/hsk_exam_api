@@ -3,10 +3,11 @@ package task
 import (
 	"context"
 
-	"exam/api/admin/task/v1"
+	v1 "exam/api/admin/task/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/entity"
+	sysentity "exam/internal/model/entity/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -37,7 +38,7 @@ func (c *ControllerV1) TaskList(ctx context.Context, req *v1.TaskListReq) (res *
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
-	var list []entity.SysTask
+	var list []sysentity.SysTask
 	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&list)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")

@@ -13,7 +13,8 @@ import (
 	"exam/internal/dao"
 	"exam/internal/exampaper"
 	"exam/internal/model/bo"
-	"exam/internal/model/entity"
+	examentity "exam/internal/model/entity/exam"
+	sysentity "exam/internal/model/entity/sys"
 )
 
 func dedupPositiveInt64(ids []int64) []int64 {
@@ -86,8 +87,8 @@ func (s *sExam) ensureMembersExist(ctx context.Context, ids []int64) error {
 	return nil
 }
 
-func (s *sExam) examBatchByID(ctx context.Context, id int64) (entity.ExamBatch, error) {
-	var b entity.ExamBatch
+func (s *sExam) examBatchByID(ctx context.Context, id int64) (examentity.ExamBatch, error) {
+	var b examentity.ExamBatch
 	if err := dao.ExamBatch.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&b); err != nil {
 		return b, err
 	}
@@ -98,7 +99,7 @@ func (s *sExam) examBatchByID(ctx context.Context, id int64) (entity.ExamBatch, 
 }
 
 func (s *sExam) loadMockLevelIDsForBatch(ctx context.Context, batchID int64) ([]int64, error) {
-	var rows []entity.ExamBatchMockLevel
+	var rows []examentity.ExamBatchMockLevel
 	if err := dao.ExamBatchMockLevel.Ctx(ctx).Where("batch_id", batchID).OrderAsc("mock_level_id").Scan(&rows); err != nil {
 		return nil, err
 	}
@@ -137,7 +138,7 @@ func (s *sExam) mockLevelsByBatchIDs(ctx context.Context, batchIDs []int64) (map
 	if len(batchIDs) == 0 {
 		return map[int64][]int64{}, nil
 	}
-	var rows []entity.ExamBatchMockLevel
+	var rows []examentity.ExamBatchMockLevel
 	if err := dao.ExamBatchMockLevel.Ctx(ctx).WhereIn("batch_id", batchIDs).OrderAsc("mock_level_id").Scan(&rows); err != nil {
 		return nil, err
 	}
@@ -148,7 +149,7 @@ func (s *sExam) mockLevelsByBatchIDs(ctx context.Context, batchIDs []int64) (map
 	return m, nil
 }
 
-func (s *sExam) toBatchAdminItem(b entity.ExamBatch, levelIDs []int64, memberCount int) bo.ExamBatchAdminItem {
+func (s *sExam) toBatchAdminItem(b examentity.ExamBatch, levelIDs []int64, memberCount int) bo.ExamBatchAdminItem {
 	return bo.ExamBatchAdminItem{
 		Id:                     b.Id,
 		MockExaminationPaperId: b.MockExaminationPaperId,
@@ -177,7 +178,7 @@ func (s *sExam) ExamBatchList(ctx context.Context, mockPaperID int64, page, size
 	if err != nil {
 		return nil, 0, err
 	}
-	var batches []entity.ExamBatch
+	var batches []examentity.ExamBatch
 	if err = q.Page(page, size).OrderDesc("id").Scan(&batches); err != nil {
 		return nil, 0, err
 	}
@@ -244,7 +245,7 @@ func (s *sExam) ExamBatchCreate(ctx context.Context, mockPaperID int64, title, e
 	}
 	var newID int64
 	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		row := entity.ExamBatch{
+		row := examentity.ExamBatch{
 			MockExaminationPaperId: mockPaperID,
 			Title:                  strings.TrimSpace(title),
 			ExamStartAt:            st,
@@ -410,7 +411,7 @@ func (s *sExam) ExamBatchMemberList(ctx context.Context, batchID int64, page, si
 	if err != nil {
 		return nil, 0, err
 	}
-	var links []entity.ExamBatchMember
+	var links []examentity.ExamBatchMember
 	if err = q.Page(page, size).OrderDesc("create_time").Scan(&links); err != nil {
 		return nil, 0, err
 	}
@@ -427,11 +428,11 @@ func (s *sExam) ExamBatchMemberList(ctx context.Context, batchID int64, page, si
 		memberIDs[i] = l.MemberId
 		linkTime[linkKey{l.MemberId, l.MockLevelId}] = l.CreateTime
 	}
-	var users []entity.SystemMember
+	var users []sysentity.SysMember
 	if err = dao.SysMember.Ctx(ctx).WhereIn("id", memberIDs).Scan(&users); err != nil {
 		return nil, 0, err
 	}
-	um := make(map[int64]entity.SystemMember, len(users))
+	um := make(map[int64]sysentity.SysMember, len(users))
 	for _, u := range users {
 		um[u.Id] = u
 	}
@@ -473,8 +474,8 @@ func (s *sExam) ExamBatchMembersRemove(ctx context.Context, batchID int64, mockL
 }
 
 // ExamBatchMemberDetail 获取批次信息
-func (s *sExam) ExamBatchMemberDetail(ctx context.Context, batchID int64, userID int64) (*entity.ExamBatchMember, error) {
-	var result *entity.ExamBatchMember
+func (s *sExam) ExamBatchMemberDetail(ctx context.Context, batchID int64, userID int64) (*examentity.ExamBatchMember, error) {
+	var result *examentity.ExamBatchMember
 
 	// Scan 会自动处理 One() 的逻辑并映射到结构体
 	err := dao.ExamBatchMember.Ctx(ctx).

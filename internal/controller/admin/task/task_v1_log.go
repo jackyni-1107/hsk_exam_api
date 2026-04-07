@@ -3,9 +3,10 @@ package task
 import (
 	"context"
 
-	"exam/api/admin/task/v1"
+	v1 "exam/api/admin/task/v1"
 	"exam/internal/dao"
-	"exam/internal/model/entity"
+	sysentity "exam/internal/model/entity/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -31,7 +32,7 @@ func (c *ControllerV1) TaskLogList(ctx context.Context, req *v1.TaskLogListReq) 
 	if err != nil {
 		return nil, gerror.Wrap(err, "count task log")
 	}
-	var list []entity.SysTaskLog
+	var list []sysentity.SysTaskLog
 	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&list)
 	if err != nil {
 		return nil, gerror.Wrap(err, "list task log")

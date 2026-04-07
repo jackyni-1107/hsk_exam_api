@@ -2,7 +2,7 @@ package exam
 
 import (
 	"context"
-	exam2 "exam/internal/model/bo/exam"
+	exambo "exam/internal/model/bo/exam"
 
 	"github.com/gogf/gf/v2/util/gconv"
 
@@ -60,17 +60,17 @@ func (c *ControllerV1) PaperImport(ctx context.Context, req *v1.PaperImportReq) 
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	r, err := exam.Exam().ImportFromIndex(ctx, exam2.ImportParams{
+	r, err := exam.Exam().ImportFromIndex(ctx, exambo.ImportParams{
 		MockExaminationPaperId: req.MockExaminationPaperId,
 		IndexURL:               req.IndexUrl,
-		IndexJSON:      req.IndexJson,
-		Level:          req.Level,
-		PaperID:        req.PaperId,
-		SourceBaseURL:  req.SourceBaseUrl,
-		AudioHlsPrefix: req.AudioHlsPrefix,
-		ConflictMode:   req.ConflictMode,
-		NewPaperID:     req.NewPaperId,
-		Creator:        creator,
+		IndexJSON:              req.IndexJson,
+		Level:                  req.Level,
+		PaperID:                req.PaperId,
+		SourceBaseURL:          req.SourceBaseUrl,
+		AudioHlsPrefix:         req.AudioHlsPrefix,
+		ConflictMode:           req.ConflictMode,
+		NewPaperID:             req.NewPaperId,
+		Creator:                creator,
 	})
 	if err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func (c *ControllerV1) PaperUpdate(ctx context.Context, req *v1.PaperUpdateReq) 
 	if err != nil {
 		return nil, err
 	}
-	err = exam.Exam().UpdatePaperSettings(ctx, paper.Id, exam2.PaperHlsExamAdminUpdate{
+	err = exam.Exam().UpdatePaperSettings(ctx, paper.Id, exambo.PaperHlsExamAdminUpdate{
 		AudioHlsPrefix:          req.AudioHlsPrefix,
 		AudioHlsSegmentCount:    req.AudioHlsSegmentCount,
 		AudioHlsSegmentPattern:  req.AudioHlsSegmentPattern,

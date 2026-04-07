@@ -1,6 +1,6 @@
 package bo
 
-import "exam/internal/model/entity"
+import examentity "exam/internal/model/entity/exam"
 
 // SaveAnswerItem 批量保存中的一题。
 type SaveAnswerItem struct {
@@ -11,7 +11,7 @@ type SaveAnswerItem struct {
 
 // AttemptView 会话详情（接口返回）。
 type AttemptView struct {
-	Attempt         entity.ExamAttempt
+	Attempt         examentity.ExamAttempt
 	ServerTime      string
 	DeadlineReached bool
 }

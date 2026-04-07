@@ -3,11 +3,12 @@ package audit_log
 import (
 	"context"
 
-	"exam/api/admin/audit_log/v1"
+	v1 "exam/api/admin/audit_log/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/entity"
+	sysentity "exam/internal/model/entity/sys"
 	"exam/internal/util"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -47,7 +48,7 @@ func (c *ControllerV1) AuditLogList(ctx context.Context, req *v1.AuditLogListReq
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 
-	var logs []entity.SystemOperationAuditLog
+	var logs []sysentity.SysOperationAuditLog
 	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&logs)
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")

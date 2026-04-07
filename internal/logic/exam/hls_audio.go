@@ -17,7 +17,7 @@ import (
 	"exam/internal/config"
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/entity"
+	examentity "exam/internal/model/entity/exam"
 	"exam/internal/storage"
 )
 
@@ -114,8 +114,8 @@ func (s *sExam) loadPaperHLS(ctx context.Context, paperID int64) (*paperHLSConfi
 	return &cfg, nil
 }
 
-func (s *sExam) assertAttemptInProgress(ctx context.Context, userID, attemptID int64) (*entity.ExamAttempt, error) {
-	var att entity.ExamAttempt
+func (s *sExam) assertAttemptInProgress(ctx context.Context, userID, attemptID int64) (*examentity.ExamAttempt, error) {
+	var att examentity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
 		Where("member_id", userID).
@@ -137,8 +137,8 @@ func (s *sExam) assertAttemptInProgress(ctx context.Context, userID, attemptID i
 	return &att, nil
 }
 
-func (s *sExam) loadQuestionHLS(ctx context.Context, paperID, questionID int64) (*entity.ExamQuestion, error) {
-	var q entity.ExamQuestion
+func (s *sExam) loadQuestionHLS(ctx context.Context, paperID, questionID int64) (*examentity.ExamQuestion, error) {
+	var q examentity.ExamQuestion
 	err := dao.ExamQuestion.Ctx(ctx).
 		Where("id", questionID).
 		Where("exam_paper_id", paperID).
@@ -262,7 +262,7 @@ func (s *sExam) BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte
 	extDur := 10.0
 	effectiveMax := -1
 	if payload.ExamQuestionID > 0 {
-		var att entity.ExamAttempt
+		var att examentity.ExamAttempt
 		err = dao.ExamAttempt.Ctx(ctx).
 			Where("id", payload.AttemptID).
 			Where("member_id", payload.UserID).
@@ -281,7 +281,7 @@ func (s *sExam) BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte
 		if err != nil {
 			return nil, err
 		}
-		var paper entity.ExamPaper
+		var paper examentity.ExamPaper
 		if err := dao.ExamPaper.Ctx(ctx).
 			Where("id", att.ExamPaperId).
 			Where("delete_flag", consts.DeleteFlagNotDeleted).

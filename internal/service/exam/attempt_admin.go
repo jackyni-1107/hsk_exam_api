@@ -13,8 +13,9 @@ import (
 	"exam/internal/dao"
 	"exam/internal/logic/clientexam"
 	"exam/internal/logic/examresult"
-	"exam/internal/model/do"
-	"exam/internal/model/entity"
+	examdo "exam/internal/model/do/exam"
+	examentity "exam/internal/model/entity/exam"
+	sysentity "exam/internal/model/entity/sys"
 )
 
 // AttemptAdminListRow 管理端列表行（与 Raw 列别名一致，供 Scan）。
@@ -42,16 +43,16 @@ type AttemptAdminListRow struct {
 
 // AttemptAdminDetailView 管理端会话详情（服务层聚合）。
 type AttemptAdminDetailView struct {
-	Attempt entity.ExamAttempt
-	User    entity.ClientUser
-	Paper   entity.ExamPaper
+	Attempt examentity.ExamAttempt
+	User    sysentity.SysMember
+	Paper   examentity.ExamPaper
 	Answers []AttemptAdminAnswerRow
 }
 
 // AttemptAdminAnswerRow 单题答题展示行。
 type AttemptAdminAnswerRow struct {
-	Answer           entity.ExamAttemptAnswer
-	Question         entity.ExamQuestion
+	Answer           examentity.ExamAttemptAnswer
+	Question         examentity.ExamQuestion
 	ObjectiveCorrect *bool
 }
 
@@ -129,7 +130,7 @@ func AttemptAdminDetail(ctx context.Context, attemptID int64) (*AttemptAdminDeta
 	if attemptID <= 0 {
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 	}
-	var att entity.ExamAttempt
+	var att examentity.ExamAttempt
 	if err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -139,18 +140,18 @@ func AttemptAdminDetail(ctx context.Context, attemptID int64) (*AttemptAdminDeta
 	if att.Id == 0 {
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.exam_attempt_not_found")
 	}
-	var user entity.ClientUser
+	var user sysentity.SysMember
 	_ = dao.SysMember.Ctx(ctx).
 		Where("id", att.MemberId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&user)
-	var paper entity.ExamPaper
+	var paper examentity.ExamPaper
 	_ = dao.ExamPaper.Ctx(ctx).
 		Where("id", att.ExamPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&paper)
 
-	var ansRows []entity.ExamAttemptAnswer
+	var ansRows []examentity.ExamAttemptAnswer
 	if err := dao.ExamAttemptAnswer.Ctx(ctx).
 		Where("attempt_id", att.Id).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -162,9 +163,9 @@ func AttemptAdminDetail(ctx context.Context, attemptID int64) (*AttemptAdminDeta
 	for _, a := range ansRows {
 		qIDs = append(qIDs, a.ExamQuestionId)
 	}
-	qByID := make(map[int64]entity.ExamQuestion)
+	qByID := make(map[int64]examentity.ExamQuestion)
 	if len(qIDs) > 0 {
-		var qs []entity.ExamQuestion
+		var qs []examentity.ExamQuestion
 		if err := dao.ExamQuestion.Ctx(ctx).
 			Where("exam_paper_id", att.ExamPaperId).
 			WhereIn("id", qIDs).
@@ -211,7 +212,7 @@ func AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, item
 	if len(items) == 0 {
 		return 0, 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 	}
-	var att entity.ExamAttempt
+	var att examentity.ExamAttempt
 	if err := dao.ExamAttempt.Ctx(ctx).
 		Where("id", attemptID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -238,7 +239,7 @@ func AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, item
 	}
 
 	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		var attTx entity.ExamAttempt
+		var attTx examentity.ExamAttempt
 		if err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Scan(&attTx); err != nil {
 			return err
 		}
@@ -254,7 +255,7 @@ func AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, item
 		paperID := attTx.ExamPaperId
 
 		for _, it := range uniq {
-			var q entity.ExamQuestion
+			var q examentity.ExamQuestion
 			if err := tx.Model(dao.ExamQuestion.Table()).Ctx(ctx).
 				Where("id", it.QuestionID).
 				Where("exam_paper_id", paperID).
@@ -269,7 +270,7 @@ func AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, item
 				return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 			}
 
-			var row entity.ExamAttemptAnswer
+			var row examentity.ExamAttemptAnswer
 			_ = tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
 				Where("attempt_id", attemptID).
 				Where("exam_question_id", it.QuestionID).
@@ -277,7 +278,7 @@ func AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, item
 				Scan(&row)
 			score := it.Score
 			if row.Id == 0 {
-				if _, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Insert(do.ExamAttemptAnswer{
+				if _, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Insert(examdo.ExamAttemptAnswer{
 					AttemptId:      attemptID,
 					ExamQuestionId: it.QuestionID,
 					AnswerJson:     "{}",
@@ -292,7 +293,7 @@ func AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, item
 					return err
 				}
 			} else {
-				if _, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Where("id", row.Id).Update(do.ExamAttemptAnswer{
+				if _, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Where("id", row.Id).Update(examdo.ExamAttemptAnswer{
 					AwardedScore: score,
 					Updater:      "admin",
 					UpdateTime:   gtime.Now(),
@@ -308,7 +309,7 @@ func AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, item
 		}
 		obj := attTx.ObjectiveScore
 		tot := obj + sum
-		if _, err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Update(do.ExamAttempt{
+		if _, err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Update(examdo.ExamAttempt{
 			SubjectiveScore: sum,
 			TotalScore:      tot,
 			Updater:         "admin",
@@ -384,7 +385,7 @@ func loadCorrectOptionIDsByQuestion(ctx context.Context, qIDs []interface{}) map
 	if len(qIDs) == 0 {
 		return out
 	}
-	var opts []entity.ExamOption
+	var opts []examentity.ExamOption
 	if err := dao.ExamOption.Ctx(ctx).
 		WhereIn("question_id", qIDs).
 		Where("is_correct", 1).

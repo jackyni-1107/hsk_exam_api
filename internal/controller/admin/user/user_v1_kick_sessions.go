@@ -3,9 +3,10 @@ package user
 import (
 	"context"
 
-	"exam/api/admin/user/v1"
+	v1 "exam/api/admin/user/v1"
 	"exam/internal/consts"
 	"exam/internal/logic/security"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 

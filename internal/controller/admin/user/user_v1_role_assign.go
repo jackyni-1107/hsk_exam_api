@@ -3,11 +3,12 @@ package user
 import (
 	"context"
 
-	"exam/api/admin/user/v1"
+	v1 "exam/api/admin/user/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
-	dosys "exam/internal/model/do/sys"
+	sysdo "exam/internal/model/do/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -21,7 +22,7 @@ func (c *ControllerV1) UserRoleAssign(ctx context.Context, req *v1.UserRoleAssig
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 	for _, rid := range req.RoleIds {
-		_, err = dao.SystemUserRole.Ctx(ctx).Insert(dosys.SysUserRole{
+		_, err = dao.SystemUserRole.Ctx(ctx).Insert(sysdo.SysUserRole{
 			UserId: req.Id, RoleId: rid, Creator: creator, Updater: creator,
 			DeleteFlag: consts.DeleteFlagNotDeleted,
 		})

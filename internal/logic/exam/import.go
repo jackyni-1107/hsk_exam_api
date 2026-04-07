@@ -10,9 +10,8 @@ import (
 	"exam/internal/consts"
 	examdao "exam/internal/dao/exam"
 	"exam/internal/exampaper"
-	exam "exam/internal/model/bo/exam"
+	exambo "exam/internal/model/bo/exam"
 	examdo "exam/internal/model/do/exam"
-	"exam/internal/model/entity"
 	examentity "exam/internal/model/entity/exam"
 
 	"github.com/gogf/gf/v2/database/gdb"
@@ -24,8 +23,8 @@ import (
 )
 
 // ImportFromIndex 拉取或解析 index.json，写入 exam_* 表。
-func (s *sExam) ImportFromIndex(ctx context.Context, p exam.ImportParams) (*exam.ImportResult, error) {
-	res := &exam.ImportResult{}
+func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*exambo.ImportResult, error) {
+	res := &exambo.ImportResult{}
 	if err := exampaper.EnsureMockExaminationPaper(ctx, p.MockExaminationPaperId); err != nil {
 		return nil, err
 	}
@@ -237,7 +236,7 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p exam.ImportParams) (*exam
 	return res, nil
 }
 
-func resolveIndexPayload(ctx context.Context, p exam.ImportParams) (indexStr, baseURL, level, paperID string, err error) {
+func resolveIndexPayload(ctx context.Context, p exambo.ImportParams) (indexStr, baseURL, level, paperID string, err error) {
 	if p.IndexJSON != "" {
 		indexStr = p.IndexJSON
 		if p.Level == "" || p.PaperID == "" {
@@ -573,7 +572,7 @@ func insertOneQuestion(ctx context.Context, tx gdb.TX, examPaperId, mockPaperID,
 }
 
 // PaperList 分页试卷列表（管理端）
-func (s *sExam) PaperList(ctx context.Context, page, size int, level string) (list []entity.ExamPaper, total int, err error) {
+func (s *sExam) PaperList(ctx context.Context, page, size int, level string) (list []examentity.ExamPaper, total int, err error) {
 	if page <= 0 {
 		page = 1
 	}

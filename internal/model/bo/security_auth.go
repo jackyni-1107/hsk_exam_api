@@ -15,7 +15,7 @@ type LoginCfg struct {
 }
 
 type PasswordCfg struct {
-	MinLength      int   `json:"MinLength"`
+	MinLength      int  `json:"MinLength"`
 	RequireUpper   bool `json:"RequireUpper"`
 	RequireLower   bool `json:"RequireLower"`
 	RequireDigit   bool `json:"RequireDigit"`
@@ -26,7 +26,7 @@ type PasswordCfg struct {
 
 type SessionCfg struct {
 	TokenTTLSeconds       int64 `json:"TokenTTLSeconds"`
-	MaxConcurrentSessions int `json:"MaxConcurrentSessions"`
+	MaxConcurrentSessions int   `json:"MaxConcurrentSessions"`
 }
 
 type MFACfg struct {

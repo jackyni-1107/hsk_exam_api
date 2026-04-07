@@ -3,11 +3,12 @@ package menu
 import (
 	"context"
 
-	"exam/api/admin/menu/v1"
+	v1 "exam/api/admin/menu/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/middleware"
-	dosys "exam/internal/model/do/sys"
+	sysdo "exam/internal/model/do/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -16,7 +17,7 @@ func (c *ControllerV1) MenuUpdate(ctx context.Context, req *v1.MenuUpdateReq) (r
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	data := dosys.SysMenu{Updater: updater}
+	data := sysdo.SysMenu{Updater: updater}
 	if req.Name != "" {
 		data.Name = req.Name
 	}

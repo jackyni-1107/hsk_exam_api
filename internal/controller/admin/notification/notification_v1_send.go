@@ -4,17 +4,18 @@ import (
 	"context"
 	"encoding/json"
 
-	"exam/api/admin/notification/v1"
+	v1 "exam/api/admin/notification/v1"
 	"exam/internal/consts"
 	"exam/internal/dao"
-	dosys "exam/internal/model/do/sys"
-	"exam/internal/model/entity"
+	sysdo "exam/internal/model/do/sys"
+	sysentity "exam/internal/model/entity/sys"
 	notifpkg "exam/internal/notification"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
 func (c *ControllerV1) Send(ctx context.Context, req *v1.NotificationSendReq) (res *v1.NotificationSendRes, err error) {
-	var tpl entity.SysNotificationTemplate
+	var tpl sysentity.SysNotificationTemplate
 	err = dao.SysNotificationTemplate.Ctx(ctx).
 		Where("code", req.TemplateCode).
 		Where("channel", req.Channel).
@@ -42,7 +43,7 @@ func (c *ControllerV1) Send(ctx context.Context, req *v1.NotificationSendReq) (r
 		status = 2
 		errMsg = err.Error()
 	}
-	_, _ = dao.SysNotificationLog.Ctx(ctx).Insert(dosys.SysNotificationLog{
+	_, _ = dao.SysNotificationLog.Ctx(ctx).Insert(sysdo.SysNotificationLog{
 		TemplateCode: req.TemplateCode,
 		Channel:      req.Channel,
 		Recipient:    req.Recipient,

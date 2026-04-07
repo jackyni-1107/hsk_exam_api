@@ -7,12 +7,12 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/model/entity"
+	examentity "exam/internal/model/entity/exam"
 )
 
 // PaperDetailForExam 客户端考前拉题：不含选项正误，含 is_subjective。
 func PaperDetailForExam(ctx context.Context, examPaperId int64) (*PaperDetailForExamTree, error) {
-	var paper entity.ExamPaper
+	var paper examentity.ExamPaper
 	err := dao.ExamPaper.Ctx(ctx).
 		Where("id", examPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -24,7 +24,7 @@ func PaperDetailForExam(ctx context.Context, examPaperId int64) (*PaperDetailFor
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.exam_paper_not_found")
 	}
 
-	var sections []entity.ExamSection
+	var sections []examentity.ExamSection
 	if err := dao.ExamSection.Ctx(ctx).
 		Where("exam_paper_id", examPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -50,7 +50,7 @@ func PaperDetailForExam(ctx context.Context, examPaperId int64) (*PaperDetailFor
 			TopicJson:      sec.TopicJson,
 		}
 
-		var blocks []entity.ExamQuestionBlock
+		var blocks []examentity.ExamQuestionBlock
 		_ = dao.ExamQuestionBlock.Ctx(ctx).
 			Where("section_id", sec.Id).
 			Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -65,7 +65,7 @@ func PaperDetailForExam(ctx context.Context, examPaperId int64) (*PaperDetailFor
 				QuestionDescriptionJson: blk.QuestionDescriptionJson,
 			}
 
-			var qs []entity.ExamQuestion
+			var qs []examentity.ExamQuestion
 			_ = dao.ExamQuestion.Ctx(ctx).
 				Where("block_id", blk.Id).
 				Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -89,7 +89,7 @@ func PaperDetailForExam(ctx context.Context, examPaperId int64) (*PaperDetailFor
 					RawJson:                 q.RawJson,
 				}
 
-				var opts []entity.ExamOption
+				var opts []examentity.ExamOption
 				_ = dao.ExamOption.Ctx(ctx).
 					Where("question_id", q.Id).
 					Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -115,7 +115,7 @@ func PaperDetailForExam(ctx context.Context, examPaperId int64) (*PaperDetailFor
 	return out, nil
 }
 
-func paperHeadForExam(p entity.ExamPaper) PaperHeadForExamView {
+func paperHeadForExam(p examentity.ExamPaper) PaperHeadForExamView {
 	v := PaperHeadForExamView{
 		Id:                 p.MockExaminationPaperId,
 		Level:              p.Level,
@@ -201,7 +201,7 @@ type OptionDetailForExamView struct {
 
 // PaperDetail 返回试卷及嵌套大题、题块、小题、选项（只读查看）。
 func PaperDetail(ctx context.Context, examPaperId int64) (*PaperDetailTree, error) {
-	var paper entity.ExamPaper
+	var paper examentity.ExamPaper
 	err := dao.ExamPaper.Ctx(ctx).
 		Where("id", examPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -213,7 +213,7 @@ func PaperDetail(ctx context.Context, examPaperId int64) (*PaperDetailTree, erro
 		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.exam_paper_not_found")
 	}
 
-	var sections []entity.ExamSection
+	var sections []examentity.ExamSection
 	if err := dao.ExamSection.Ctx(ctx).
 		Where("exam_paper_id", examPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -239,7 +239,7 @@ func PaperDetail(ctx context.Context, examPaperId int64) (*PaperDetailTree, erro
 			TopicJson:      sec.TopicJson,
 		}
 
-		var blocks []entity.ExamQuestionBlock
+		var blocks []examentity.ExamQuestionBlock
 		_ = dao.ExamQuestionBlock.Ctx(ctx).
 			Where("section_id", sec.Id).
 			Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -254,7 +254,7 @@ func PaperDetail(ctx context.Context, examPaperId int64) (*PaperDetailTree, erro
 				QuestionDescriptionJson: blk.QuestionDescriptionJson,
 			}
 
-			var qs []entity.ExamQuestion
+			var qs []examentity.ExamQuestion
 			_ = dao.ExamQuestion.Ctx(ctx).
 				Where("block_id", blk.Id).
 				Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -277,7 +277,7 @@ func PaperDetail(ctx context.Context, examPaperId int64) (*PaperDetailTree, erro
 					RawJson:                 q.RawJson,
 				}
 
-				var opts []entity.ExamOption
+				var opts []examentity.ExamOption
 				_ = dao.ExamOption.Ctx(ctx).
 					Where("question_id", q.Id).
 					Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -369,7 +369,7 @@ type OptionDetailView struct {
 	Content    string `json:"content"`
 }
 
-func paperToView(p entity.ExamPaper) PaperHeadView {
+func paperToView(p examentity.ExamPaper) PaperHeadView {
 	v := PaperHeadView{
 		Id:                 p.Id,
 		Level:              p.Level,
