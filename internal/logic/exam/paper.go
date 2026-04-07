@@ -2,6 +2,7 @@ package exam
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -38,6 +39,90 @@ func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.Pap
 		return nil, err
 	}
 
+	sectionIDs := make([]interface{}, 0, len(sections))
+	for _, sec := range sections {
+		sectionIDs = append(sectionIDs, sec.Id)
+	}
+
+	var allBlocks []examentity.ExamQuestionBlock
+	if len(sectionIDs) > 0 {
+		if err := examdao.ExamQuestionBlock.Ctx(ctx).
+			WhereIn("section_id", sectionIDs).
+			Where("delete_flag", consts.DeleteFlagNotDeleted).
+			Scan(&allBlocks); err != nil {
+			return nil, err
+		}
+	}
+	blocksBySection := make(map[int64][]examentity.ExamQuestionBlock, len(sectionIDs))
+	for _, blk := range allBlocks {
+		blocksBySection[blk.SectionId] = append(blocksBySection[blk.SectionId], blk)
+	}
+	for sid, blks := range blocksBySection {
+		sort.Slice(blks, func(i, j int) bool {
+			if blks[i].BlockOrder != blks[j].BlockOrder {
+				return blks[i].BlockOrder < blks[j].BlockOrder
+			}
+			return blks[i].Id < blks[j].Id
+		})
+		blocksBySection[sid] = blks
+	}
+
+	blockIDs := make([]interface{}, 0, len(allBlocks))
+	for _, blk := range allBlocks {
+		blockIDs = append(blockIDs, blk.Id)
+	}
+
+	var allQuestions []examentity.ExamQuestion
+	if len(blockIDs) > 0 {
+		if err := examdao.ExamQuestion.Ctx(ctx).
+			WhereIn("block_id", blockIDs).
+			Where("delete_flag", consts.DeleteFlagNotDeleted).
+			Scan(&allQuestions); err != nil {
+			return nil, err
+		}
+	}
+	questionsByBlock := make(map[int64][]examentity.ExamQuestion, len(blockIDs))
+	for _, q := range allQuestions {
+		questionsByBlock[q.BlockId] = append(questionsByBlock[q.BlockId], q)
+	}
+	for bid, qs := range questionsByBlock {
+		sort.Slice(qs, func(i, j int) bool {
+			if qs[i].SortInBlock != qs[j].SortInBlock {
+				return qs[i].SortInBlock < qs[j].SortInBlock
+			}
+			return qs[i].Id < qs[j].Id
+		})
+		questionsByBlock[bid] = qs
+	}
+
+	qIDs := make([]interface{}, 0, len(allQuestions))
+	for _, q := range allQuestions {
+		qIDs = append(qIDs, q.Id)
+	}
+
+	var allOptions []examentity.ExamOption
+	if len(qIDs) > 0 {
+		if err := examdao.ExamOption.Ctx(ctx).
+			WhereIn("question_id", qIDs).
+			Where("delete_flag", consts.DeleteFlagNotDeleted).
+			Scan(&allOptions); err != nil {
+			return nil, err
+		}
+	}
+	optionsByQuestion := make(map[int64][]examentity.ExamOption, len(qIDs))
+	for _, o := range allOptions {
+		optionsByQuestion[o.QuestionId] = append(optionsByQuestion[o.QuestionId], o)
+	}
+	for qid, opts := range optionsByQuestion {
+		sort.Slice(opts, func(i, j int) bool {
+			if opts[i].SortOrder != opts[j].SortOrder {
+				return opts[i].SortOrder < opts[j].SortOrder
+			}
+			return opts[i].Id < opts[j].Id
+		})
+		optionsByQuestion[qid] = opts
+	}
+
 	out := &exambo.PaperDetailTree{
 		Paper: examPaperEntityToBOHead(paper),
 	}
@@ -54,30 +139,14 @@ func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.Pap
 			TopicItemsFile: sec.TopicItemsFile,
 			TopicJson:      sec.TopicJson,
 		}
-
-		var blocks []examentity.ExamQuestionBlock
-		_ = examdao.ExamQuestionBlock.Ctx(ctx).
-			Where("section_id", sec.Id).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			OrderAsc("block_order").
-			Scan(&blocks)
-
-		for _, blk := range blocks {
+		for _, blk := range blocksBySection[sec.Id] {
 			bv := exambo.BlockDetailView{
 				Id:                      blk.Id,
 				BlockOrder:              blk.BlockOrder,
 				GroupIndex:              blk.GroupIndex,
 				QuestionDescriptionJson: blk.QuestionDescriptionJson,
 			}
-
-			var qs []examentity.ExamQuestion
-			_ = examdao.ExamQuestion.Ctx(ctx).
-				Where("block_id", blk.Id).
-				Where("delete_flag", consts.DeleteFlagNotDeleted).
-				OrderAsc("sort_in_block").
-				Scan(&qs)
-
-			for _, q := range qs {
+			for _, q := range questionsByBlock[blk.Id] {
 				qv := exambo.QuestionDetailView{
 					Id:                      q.Id,
 					SortInBlock:             q.SortInBlock,
@@ -92,15 +161,7 @@ func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.Pap
 					QuestionDescriptionJson: q.QuestionDescriptionJson,
 					RawJson:                 q.RawJson,
 				}
-
-				var opts []examentity.ExamOption
-				_ = examdao.ExamOption.Ctx(ctx).
-					Where("question_id", q.Id).
-					Where("delete_flag", consts.DeleteFlagNotDeleted).
-					OrderAsc("sort_order").
-					Scan(&opts)
-
-				for _, o := range opts {
+				for _, o := range optionsByQuestion[q.Id] {
 					qv.Options = append(qv.Options, exambo.OptionDetailView{
 						Id:         o.Id,
 						Flag:       o.Flag,

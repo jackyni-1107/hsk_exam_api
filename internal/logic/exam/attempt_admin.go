@@ -103,15 +103,19 @@ func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.At
 		return nil, gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
 	var user sysentity.SysMember
-	_ = dao.SysMember.Ctx(ctx).
+	if err := dao.SysMember.Ctx(ctx).
 		Where("id", att.MemberId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&user)
+		Scan(&user); err != nil {
+		return nil, err
+	}
 	var paper examentity.ExamPaper
-	_ = dao.ExamPaper.Ctx(ctx).
+	if err := dao.ExamPaper.Ctx(ctx).
 		Where("id", att.ExamPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&paper)
+		Scan(&paper); err != nil {
+		return nil, err
+	}
 
 	var ansRows []examentity.ExamAttemptAnswer
 	if err := dao.ExamAttemptAnswer.Ctx(ctx).
@@ -250,11 +254,13 @@ func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID 
 			}
 
 			var row examentity.ExamAttemptAnswer
-			_ = tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
+			if err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
 				Where("attempt_id", attemptID).
 				Where("exam_question_id", it.QuestionID).
 				Where("delete_flag", consts.DeleteFlagNotDeleted).
-				Scan(&row)
+				Scan(&row); err != nil {
+				return err
+			}
 			scoreVal := it.Score
 			if row.Id == 0 {
 				if _, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Insert(examdo.ExamAttemptAnswer{

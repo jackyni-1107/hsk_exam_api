@@ -65,10 +65,12 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*ex
 
 	mockID := p.MockExaminationPaperId
 	var exist examentity.ExamPaper
-	_ = examdao.ExamPaper.Ctx(ctx).
+	if err := examdao.ExamPaper.Ctx(ctx).
 		Where("mock_examination_paper_id", mockID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&exist)
+		Scan(&exist); err != nil {
+		return nil, err
+	}
 	if exist.Id > 0 {
 		switch mode {
 		case consts.ExamImportConflictFail:
@@ -83,12 +85,14 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*ex
 			}
 			paperID = p.NewPaperID
 			var dup examentity.ExamPaper
-			_ = examdao.ExamPaper.Ctx(ctx).
+			if err := examdao.ExamPaper.Ctx(ctx).
 				Where("level", level).
 				Where("paper_id", paperID).
 				Where("delete_flag", consts.DeleteFlagNotDeleted).
 				WhereNot("id", exist.Id).
-				Scan(&dup)
+				Scan(&dup); err != nil {
+				return nil, err
+			}
 			if dup.Id > 0 {
 				return nil, gerror.NewCode(consts.CodeExamNewPaperIdExists)
 			}
@@ -97,11 +101,13 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*ex
 		}
 	} else {
 		var pathDup examentity.ExamPaper
-		_ = examdao.ExamPaper.Ctx(ctx).
+		if err := examdao.ExamPaper.Ctx(ctx).
 			Where("level", level).
 			Where("paper_id", paperID).
 			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Scan(&pathDup)
+			Scan(&pathDup); err != nil {
+			return nil, err
+		}
 		if pathDup.Id > 0 {
 			return nil, gerror.NewCode(consts.CodeExamNewPaperIdExists)
 		}

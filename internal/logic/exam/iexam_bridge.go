@@ -125,14 +125,7 @@ func (s *sExam) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (
 	if err != nil {
 		return nil, err
 	}
-	b, err := json.Marshal(t)
-	if err != nil {
-		return nil, err
-	}
-	var out exambo.PaperDetailForExamInitTree
-	if err := json.Unmarshal(b, &out); err != nil {
-		return nil, err
-	}
+	out := paperDetailForExamInitTreeToBO(t)
 	return &out, nil
 }
 
@@ -145,14 +138,7 @@ func (s *sExam) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64
 	if err != nil {
 		return nil, err
 	}
-	b, err := json.Marshal(t)
-	if err != nil {
-		return nil, err
-	}
-	var out exambo.SectionDetailForExamView
-	if err := json.Unmarshal(b, &out); err != nil {
-		return nil, err
-	}
+	out := sectionDetailForExamViewToBO(t)
 	return &out, nil
 }
 
@@ -191,17 +177,23 @@ func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mock
 		Scan(&qs); err != nil {
 		return nil, err
 	}
+	qIDs := make([]int64, 0, len(qs))
+	for _, q := range qs {
+		if q.IsExample != 0 {
+			continue
+		}
+		qIDs = append(qIDs, q.Id)
+	}
+	optsByQ, err := loadExamOptionsGrouped(ctx, qIDs)
+	if err != nil {
+		return nil, err
+	}
 	out := make([]bo.RandomAnswerDraftItem, 0, len(qs))
 	for _, q := range qs {
 		if q.IsExample != 0 {
 			continue
 		}
-		var opts []examentity.ExamOption
-		_ = dao.ExamOption.Ctx(ctx).
-			Where("question_id", q.Id).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			OrderAsc("sort_order").
-			Scan(&opts)
+		opts := optsByQ[q.Id]
 		if q.IsSubjective != 0 {
 			b, err := json.Marshal(randomAnswerPayload{Text: fmt.Sprintf("test-rand-%d-%016x", gtime.Now().TimestampMilli(), rand.Uint64())})
 			if err != nil {
@@ -235,4 +227,115 @@ func randomPickOptionIDsForFill(optionIDs []int64) []int64 {
 	rand.Shuffle(len(x), func(i, j int) { x[i], x[j] = x[j], x[i] })
 	n := 1 + rand.IntN(len(x))
 	return x[:n]
+}
+
+func paperDetailForExamInitTreeToBO(t *PaperDetailForExamInitTree) exambo.PaperDetailForExamInitTree {
+	if t == nil {
+		return exambo.PaperDetailForExamInitTree{}
+	}
+	out := exambo.PaperDetailForExamInitTree{
+		Paper: exambo.PaperHeadForExamView{
+			Id:                 t.Paper.Id,
+			Level:              t.Paper.Level,
+			PaperId:            t.Paper.PaperId,
+			Title:              t.Paper.Title,
+			PrepareInstruction: t.Paper.PrepareInstruction,
+			PrepareAudioFile:   t.Paper.PrepareAudioFile,
+			SourceBaseUrl:      t.Paper.SourceBaseUrl,
+			IndexJson:          t.Paper.IndexJson,
+			DurationSeconds:    t.Paper.DurationSeconds,
+			CreateTime:         t.Paper.CreateTime,
+		},
+		Sections: make([]exambo.SectionOutlineForExamView, len(t.Sections)),
+	}
+	for i, s := range t.Sections {
+		blocks := make([]exambo.BlockOutlineForExamView, len(s.Blocks))
+		for j, b := range s.Blocks {
+			blocks[j] = exambo.BlockOutlineForExamView{
+				Id:                      b.Id,
+				BlockOrder:              b.BlockOrder,
+				GroupIndex:              b.GroupIndex,
+				QuestionDescriptionJson: b.QuestionDescriptionJson,
+				QuestionCount:           b.QuestionCount,
+			}
+		}
+		out.Sections[i] = exambo.SectionOutlineForExamView{
+			Id:             s.Id,
+			SortOrder:      s.SortOrder,
+			TopicTitle:     s.TopicTitle,
+			TopicSubtitle:  s.TopicSubtitle,
+			TopicType:      s.TopicType,
+			PartCode:       s.PartCode,
+			SegmentCode:    s.SegmentCode,
+			TopicItemsFile: s.TopicItemsFile,
+			TopicJson:      s.TopicJson,
+			Blocks:         blocks,
+		}
+	}
+	return out
+}
+
+func sectionDetailForExamViewToBO(v *SectionDetailForExamView) exambo.SectionDetailForExamView {
+	if v == nil {
+		return exambo.SectionDetailForExamView{}
+	}
+	out := exambo.SectionDetailForExamView{
+		Id:             v.Id,
+		SortOrder:      v.SortOrder,
+		TopicTitle:     v.TopicTitle,
+		TopicSubtitle:  v.TopicSubtitle,
+		TopicType:      v.TopicType,
+		PartCode:       v.PartCode,
+		SegmentCode:    v.SegmentCode,
+		TopicItemsFile: v.TopicItemsFile,
+		TopicJson:      v.TopicJson,
+		Blocks:         make([]exambo.BlockDetailForExamView, len(v.Blocks)),
+	}
+	for i, b := range v.Blocks {
+		out.Blocks[i] = blockDetailForExamViewToBO(b)
+	}
+	return out
+}
+
+func blockDetailForExamViewToBO(b BlockDetailForExamView) exambo.BlockDetailForExamView {
+	qs := make([]exambo.QuestionDetailForExamView, len(b.Questions))
+	for i, q := range b.Questions {
+		qs[i] = questionDetailForExamViewToBO(q)
+	}
+	return exambo.BlockDetailForExamView{
+		Id:                      b.Id,
+		BlockOrder:              b.BlockOrder,
+		GroupIndex:              b.GroupIndex,
+		QuestionDescriptionJson: b.QuestionDescriptionJson,
+		Questions:               qs,
+	}
+}
+
+func questionDetailForExamViewToBO(q QuestionDetailForExamView) exambo.QuestionDetailForExamView {
+	opts := make([]exambo.OptionDetailForExamView, len(q.Options))
+	for i, o := range q.Options {
+		opts[i] = exambo.OptionDetailForExamView{
+			Id:         o.Id,
+			Flag:       o.Flag,
+			SortOrder:  o.SortOrder,
+			OptionType: o.OptionType,
+			Content:    o.Content,
+		}
+	}
+	return exambo.QuestionDetailForExamView{
+		Id:                      q.Id,
+		SortInBlock:             q.SortInBlock,
+		QuestionNo:              q.QuestionNo,
+		Score:                   q.Score,
+		IsExample:               q.IsExample,
+		IsSubjective:            q.IsSubjective,
+		ContentType:             q.ContentType,
+		AudioFile:               q.AudioFile,
+		StemText:                q.StemText,
+		ScreenTextJson:          q.ScreenTextJson,
+		AnalysisJson:            q.AnalysisJson,
+		QuestionDescriptionJson: q.QuestionDescriptionJson,
+		RawJson:                 q.RawJson,
+		Options:                 opts,
+	}
 }

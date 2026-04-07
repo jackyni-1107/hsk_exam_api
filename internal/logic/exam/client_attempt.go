@@ -131,7 +131,9 @@ func StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDura
 		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 	}
 	var paper examentity.ExamPaper
-	_ = dao.ExamPaper.Ctx(ctx).Where("id", att.ExamPaperId).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&paper)
+	if err := dao.ExamPaper.Ctx(ctx).Where("id", att.ExamPaperId).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&paper); err != nil {
+		return err
+	}
 	if paper.Id == 0 {
 		return gerror.NewCode(consts.CodeInvalidParams, "err.exam_paper_not_found")
 	}

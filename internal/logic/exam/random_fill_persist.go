@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand/v2"
+	"sort"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gtime"
@@ -66,17 +67,24 @@ func RandomFillAnswersForTest(ctx context.Context, userID, paperID, attemptID in
 		return 0, err
 	}
 
+	qIDs := make([]int64, 0, len(qs))
+	for _, q := range qs {
+		if q.IsExample != 0 {
+			continue
+		}
+		qIDs = append(qIDs, q.Id)
+	}
+	optsByQ, err := loadExamOptionsGrouped(ctx, qIDs)
+	if err != nil {
+		return 0, err
+	}
+
 	items := make([]bo.SaveAnswerItem, 0, len(qs))
 	for _, q := range qs {
 		if q.IsExample != 0 {
 			continue
 		}
-		var opts []examentity.ExamOption
-		_ = dao.ExamOption.Ctx(ctx).
-			Where("question_id", q.Id).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			OrderAsc("sort_order").
-			Scan(&opts)
+		opts := optsByQ[q.Id]
 
 		if q.IsSubjective != 0 {
 			b, err := json.Marshal(randomAnswerPayload{Text: randomSubjectiveText()})
@@ -122,4 +130,32 @@ func randomPickOptionIDs(optionIDs []int64) []int64 {
 
 func randomSubjectiveText() string {
 	return fmt.Sprintf("test-rand-%d-%016x", gtime.Now().TimestampMilli(), rand.Uint64())
+}
+
+// loadExamOptionsGrouped 按 question_id 批量加载选项，每组内按 sort_order 排序。
+func loadExamOptionsGrouped(ctx context.Context, questionIDs []int64) (map[int64][]examentity.ExamOption, error) {
+	out := make(map[int64][]examentity.ExamOption)
+	if len(questionIDs) == 0 {
+		return out, nil
+	}
+	ids := make([]interface{}, len(questionIDs))
+	for i, id := range questionIDs {
+		ids[i] = id
+	}
+	var all []examentity.ExamOption
+	if err := dao.ExamOption.Ctx(ctx).
+		WhereIn("question_id", ids).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&all); err != nil {
+		return nil, err
+	}
+	for _, o := range all {
+		qid := o.QuestionId
+		out[qid] = append(out[qid], o)
+	}
+	for qid := range out {
+		opts := out[qid]
+		sort.Slice(opts, func(i, j int) bool { return opts[i].SortOrder < opts[j].SortOrder })
+	}
+	return out, nil
 }
