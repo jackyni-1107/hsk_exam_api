@@ -7,6 +7,7 @@ type CaptchaReq struct {
 }
 
 type CaptchaRes struct {
-	CaptchaId string `json:"captcha_id" dc:"验证码 ID"`
-	Question  string `json:"question" dc:"算术题"`
+	CaptchaId     string `json:"captcha_id" dc:"验证码 ID"`
+	Question      string `json:"question" dc:"算术题（文本）"`
+	QuestionImage string `json:"question_image" dc:"算术题 PNG 的 Base64，前端可用 data:image/png;base64,{question_image} 展示"`
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	v1 "exam/api/client/auth/v1"
+	"exam/internal/pkg/captchaimg"
 	secsvc "exam/internal/service/security"
 )
 
@@ -12,5 +13,9 @@ func (c *ControllerV1) Captcha(ctx context.Context, req *v1.CaptchaReq) (res *v1
 	if err != nil {
 		return nil, err
 	}
-	return &v1.CaptchaRes{CaptchaId: ch.CaptchaId, Question: ch.Question}, nil
+	imgB64, err := captchaimg.QuestionToPNGBase64(ch.Question)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.CaptchaRes{CaptchaId: ch.CaptchaId, Question: ch.Question, QuestionImage: imgB64}, nil
 }
