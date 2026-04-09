@@ -72,6 +72,7 @@ func (s *sExam) MarkSubmittedIfOverdue(ctx context.Context, attemptID int64) err
 	return MarkSubmittedIfOverdue(ctx, attemptID)
 }
 
+// FinalizeAttempt 仅供 sys_task（ExamScoreFinalizeHandler）算分；客户端交卷路径不应调用。
 func (s *sExam) FinalizeAttempt(ctx context.Context, attemptID int64) error {
 	return FinalizeAttempt(ctx, attemptID)
 }

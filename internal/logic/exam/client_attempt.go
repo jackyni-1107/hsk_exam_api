@@ -264,7 +264,7 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.
 	})
 }
 
-// SubmitAttempt 主动交卷：标记已交卷后立即计算客观分并同步 exam_result（与超时自动交卷一致）。
+// SubmitAttempt 主动交卷：仅标记为已交卷（待算分）。客观分与 exam_result 由 sys_task（ExamScoreFinalizeHandler）统一算分写入。
 func SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error {
 	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
 	var att examentity.ExamAttempt
@@ -283,20 +283,15 @@ func SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error {
 		return nil
 	}
 	if att.Status == consts.ExamAttemptSubmitted {
-		_ = FinalizeAttempt(ctx, attemptID)
 		return nil
 	}
 	if att.Status != consts.ExamAttemptInProgress {
 		return gerror.NewCode(consts.CodeInvalidParams, "err.exam_already_submitted")
 	}
-	if err := markSubmitted(ctx, attemptID, false, "client"); err != nil {
-		return err
-	}
-	_ = FinalizeAttempt(ctx, attemptID)
-	return nil
+	return markSubmitted(ctx, attemptID, false, "client")
 }
 
-// maybeAutoSubmitIfOverdue 考试时间到达且仍为进行中时自动交卷并立即计分（由客户端拉取/保存答案等触发）。
+// maybeAutoSubmitIfOverdue 考试时间到达且仍为进行中时自动标记已交卷（待算分）。算分仅由定时任务执行。
 func maybeAutoSubmitIfOverdue(ctx context.Context, userID int64, attemptID int64) error {
 	var att examentity.ExamAttempt
 	err := dao.ExamAttempt.Ctx(ctx).
@@ -308,30 +303,21 @@ func maybeAutoSubmitIfOverdue(ctx context.Context, userID int64, attemptID int64
 		return err
 	}
 	if att.Status != consts.ExamAttemptInProgress || att.DeadlineAt == nil {
-		_ = FinalizeAttempt(ctx, attemptID)
 		return nil
 	}
 	now := gtime.Now()
 	if !att.DeadlineAt.Before(now) {
 		return nil
 	}
-	if err := markSubmitted(ctx, attemptID, true, "client"); err != nil {
-		return err
-	}
-	_ = FinalizeAttempt(ctx, attemptID)
-	return nil
+	return markSubmitted(ctx, attemptID, true, "client")
 }
 
-// MarkSubmittedIfOverdue 供定时任务：超时未操作会话标记为已交卷并计分（不校验用户）。
+// MarkSubmittedIfOverdue 供定时任务：超时未操作会话标记为已交卷（待算分，不校验用户）。算分由 ExamScoreFinalizeHandler 执行。
 func MarkSubmittedIfOverdue(ctx context.Context, attemptID int64) error {
-	if err := markSubmitted(ctx, attemptID, true, "task"); err != nil {
-		return err
-	}
-	_ = FinalizeAttempt(ctx, attemptID)
-	return nil
+	return markSubmitted(ctx, attemptID, true, "task")
 }
 
-// FinalizeAttempt 对已交卷（待算分）会话计算客观分并置为已结束，写入 exam_result。
+// FinalizeAttempt 对已交卷（待算分）会话计算客观分并置为已结束，写入 exam_result。仅应由 ExamScoreFinalizeHandler（sys_task）调用。
 func FinalizeAttempt(ctx context.Context, attemptID int64) error {
 	return finalizeScoring(ctx, attemptID)
 }
