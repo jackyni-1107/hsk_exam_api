@@ -34,22 +34,21 @@ var (
 
 // 考试与模拟卷
 var (
-	ExamPaper                = examdao.ExamPaper
-	ExamSection              = examdao.ExamSection
-	ExamQuestionBlock        = examdao.ExamQuestionBlock
-	ExamQuestion             = examdao.ExamQuestion
-	ExamOption               = examdao.ExamOption
-	ExamAttempt              = examdao.ExamAttempt
-	ExamAttemptAnswer        = examdao.ExamAttemptAnswer
-	ExamResult               = examdao.ExamResult
-	ExamAttemptQuestionAudio = examdao.ExamAttemptQuestionAudio
-	ExamBatch                = examdao.ExamBatch
-	ExamBatchMockPaper       = examdao.ExamBatchMockPaper
-	ExamBatchMember          = examdao.ExamBatchMember
-	MockLevels               = mockdao.MockLevels
-	MockExaminationPaper     = mockdao.MockExaminationPaper
-	MockExaminationPart      = mockdao.MockExaminationPart
-	MockExaminationSegment   = mockdao.MockExaminationSegment
+	ExamPaper              = examdao.ExamPaper
+	ExamSection            = examdao.ExamSection
+	ExamQuestionBlock      = examdao.ExamQuestionBlock
+	ExamQuestion           = examdao.ExamQuestion
+	ExamOption             = examdao.ExamOption
+	ExamAttempt            = examdao.ExamAttempt
+	ExamAttemptAnswer      = examdao.ExamAttemptAnswer
+	ExamResult             = examdao.ExamResult
+	ExamBatch              = examdao.ExamBatch
+	ExamBatchMockPaper     = examdao.ExamBatchMockPaper
+	ExamBatchMember        = examdao.ExamBatchMember
+	MockLevels             = mockdao.MockLevels
+	MockExaminationPaper   = mockdao.MockExaminationPaper
+	MockExaminationPart    = mockdao.MockExaminationPart
+	MockExaminationSegment = mockdao.MockExaminationSegment
 
 	// SysMember 客户端会员（表 sys_member，原 client_user 已并入此表）
 	SysMember = sysdao.SysMember
