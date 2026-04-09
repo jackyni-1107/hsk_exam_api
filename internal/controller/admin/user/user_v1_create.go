@@ -19,7 +19,7 @@ func (c *ControllerV1) UserCreate(ctx context.Context, req *v1.UserCreateReq) (r
 	var exist sysentity.SysUser
 	_ = dao.SystemUser.Ctx(ctx).Where("username", req.Username).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&exist)
 	if exist.Id > 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.user_exists")
+		return nil, gerror.NewCode(consts.CodeUserExists)
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {

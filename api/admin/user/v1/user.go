@@ -43,12 +43,12 @@ type UserCreateRes struct {
 
 type UserUpdateReq struct {
 	g.Meta   `path:"/user/{id}" method:"put" tags:"用户" summary:"更新用户"`
-	Id       int64   `json:"id" in:"path" v:"required#err.invalid_params"`
-	Password string  `json:"password"`
-	Nickname string  `json:"nickname"`
-	Email    string  `json:"email"`
-	Mobile   string  `json:"mobile"`
-	Status   int     `json:"status"`
+	Id       int64  `json:"id" in:"path" v:"required#err.invalid_params"`
+	Password string `json:"password"`
+	Nickname string `json:"nickname"`
+	Email    string `json:"email"`
+	Mobile   string `json:"mobile"`
+	Status   int    `json:"status"`
 }
 
 type UserUpdateRes struct{}

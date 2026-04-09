@@ -92,10 +92,10 @@ func (c *ControllerV1) StorageConfigDelete(ctx context.Context, req *v1.StorageC
 	var e sysentity.SysFileStorageConfig
 	err = dao.SysFileStorageConfig.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil || e.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.config_not_found")
+		return nil, gerror.NewCode(consts.CodeConfigNotFound)
 	}
 	if e.IsActive == 1 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.cannot_delete_active_config")
+		return nil, gerror.NewCode(consts.CodeCannotDeleteActiveConfig)
 	}
 	updater := ""
 	if d := middleware.GetCtxData(ctx); d != nil {
@@ -115,7 +115,7 @@ func (c *ControllerV1) StorageConfigSetActive(ctx context.Context, req *v1.Stora
 	var e sysentity.SysFileStorageConfig
 	err = dao.SysFileStorageConfig.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil || e.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.config_not_found")
+		return nil, gerror.NewCode(consts.CodeConfigNotFound)
 	}
 	updater := ""
 	if d := middleware.GetCtxData(ctx); d != nil {

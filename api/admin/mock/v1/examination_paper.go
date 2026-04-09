@@ -3,9 +3,9 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type ExaminationPaperListReq struct {
-	g.Meta `path:"/mock/examination-paper/list" method:"get" tags:"Mock-管理" summary:"模拟卷列表（管理端）；import_status 筛选是否已导入 exam"`
-	LevelId       int64  `json:"level_id"`
-	ImportStatus  string `json:"import_status" dc:"空或 all：全部；imported：仅已导入；not_imported：仅未导入"`
+	g.Meta       `path:"/mock/examination-paper/list" method:"get" tags:"Mock-管理" summary:"模拟卷列表（管理端）；import_status 筛选是否已导入 exam"`
+	LevelId      int64  `json:"level_id"`
+	ImportStatus string `json:"import_status" dc:"空或 all：全部；imported：仅已导入；not_imported：仅未导入"`
 }
 
 type ExaminationPaperListRes struct {

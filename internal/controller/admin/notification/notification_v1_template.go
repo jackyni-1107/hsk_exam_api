@@ -55,7 +55,7 @@ func (c *ControllerV1) TemplateCreate(ctx context.Context, req *v1.TemplateCreat
 	var exist sysentity.SysNotificationTemplate
 	_ = dao.SysNotificationTemplate.Ctx(ctx).Where("code", req.Code).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&exist)
 	if exist.Id > 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.template_exists")
+		return nil, gerror.NewCode(consts.CodeTemplateExists)
 	}
 	creator := ""
 	if d := middleware.GetCtxData(ctx); d != nil {

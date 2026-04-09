@@ -55,7 +55,7 @@ func (c *ControllerV1) ConfigCreate(ctx context.Context, req *v1.ConfigCreateReq
 	var exist sysentity.SysConfig
 	_ = dao.SystemConfig.Ctx(ctx).Where("config_key", req.ConfigKey).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&exist)
 	if exist.Id > 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.config_exists")
+		return nil, gerror.NewCode(consts.CodeConfigExists)
 	}
 	creator := ""
 	if d := middleware.GetCtxData(ctx); d != nil {
@@ -117,7 +117,7 @@ func (c *ControllerV1) ConfigGet(ctx context.Context, req *v1.ConfigGetReq) (res
 	var e sysentity.SysConfig
 	err = dao.SystemConfig.Ctx(ctx).Where("config_key", req.Key).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil || e.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.config_not_found")
+		return nil, gerror.NewCode(consts.CodeConfigNotFound)
 	}
 	return &v1.ConfigGetRes{Value: e.ConfigValue}, nil
 }

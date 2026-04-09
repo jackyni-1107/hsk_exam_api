@@ -36,25 +36,25 @@ func dedupPositiveInt64(ids []int64) []int64 {
 func parseBatchTime(s string) (*gtime.Time, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	t := gtime.NewFromStr(s)
 	if t == nil {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	return t, nil
 }
 
 func (s *sExam) ensureMockPaperInBatch(ctx context.Context, batchID, mockPaperID int64) error {
 	if mockPaperID <= 0 {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return gerror.NewCode(consts.CodeInvalidParams)
 	}
 	c, err := dao.ExamBatchMockPaper.Ctx(ctx).Where("batch_id", batchID).Where("mock_examination_paper_id", mockPaperID).Count()
 	if err != nil {
 		return err
 	}
 	if c == 0 {
-		return gerror.NewCode(consts.CodeExamBatchPaperNotInBatch, "")
+		return gerror.NewCode(consts.CodeExamBatchPaperNotInBatch)
 	}
 	return nil
 }
@@ -70,14 +70,14 @@ func (s *sExam) ensureMockPapersImported(ctx context.Context, ids []int64) error
 
 func (s *sExam) ensureMembersExist(ctx context.Context, ids []int64) error {
 	if len(ids) == 0 {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return gerror.NewCode(consts.CodeInvalidParams)
 	}
 	c, err := dao.SysMember.Ctx(ctx).WhereIn("id", ids).Where("delete_flag", consts.DeleteFlagNotDeleted).Count()
 	if err != nil {
 		return err
 	}
 	if c != len(ids) {
-		return gerror.NewCode(consts.CodeUserNotFound, "")
+		return gerror.NewCode(consts.CodeUserNotFound)
 	}
 	return nil
 }
@@ -88,7 +88,7 @@ func (s *sExam) examBatchByID(ctx context.Context, id int64) (examentity.ExamBat
 		return b, err
 	}
 	if b.Id == 0 {
-		return b, gerror.NewCode(consts.CodeExamBatchNotFound, "")
+		return b, gerror.NewCode(consts.CodeExamBatchNotFound)
 	}
 	return b, nil
 }
@@ -234,7 +234,7 @@ func (s *sExam) ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdm
 func (s *sExam) ExamBatchCreate(ctx context.Context, title, examStartAt, examEndAt string, mockPaperIDs []int64, creator string) (int64, error) {
 	paperIDs := dedupPositiveInt64(mockPaperIDs)
 	if len(paperIDs) == 0 {
-		return 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return 0, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	if err := s.ensureMockPapersImported(ctx, paperIDs); err != nil {
 		return 0, err
@@ -248,7 +248,7 @@ func (s *sExam) ExamBatchCreate(ctx context.Context, title, examStartAt, examEnd
 		return 0, err
 	}
 	if !en.After(st) {
-		return 0, gerror.NewCode(consts.CodeExamBatchTimeInvalid, "")
+		return 0, gerror.NewCode(consts.CodeExamBatchTimeInvalid)
 	}
 	var newID int64
 	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
@@ -308,11 +308,11 @@ func (s *sExam) ExamBatchUpdate(ctx context.Context, id int64, title, examStartA
 		return err
 	}
 	if !en.After(st) {
-		return gerror.NewCode(consts.CodeExamBatchTimeInvalid, "")
+		return gerror.NewCode(consts.CodeExamBatchTimeInvalid)
 	}
 	paperIDs := dedupPositiveInt64(mockPaperIDs)
 	if len(paperIDs) == 0 {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return gerror.NewCode(consts.CodeInvalidParams)
 	}
 	if err := s.ensureMockPapersImported(ctx, paperIDs); err != nil {
 		return err
@@ -322,7 +322,7 @@ func (s *sExam) ExamBatchUpdate(ctx context.Context, id int64, title, examStartA
 		return err
 	}
 	if hasOrphan {
-		return gerror.NewCode(consts.CodeExamBatchPaperHasMembers, "")
+		return gerror.NewCode(consts.CodeExamBatchPaperHasMembers)
 	}
 	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		if _, err := tx.Model(dao.ExamBatch.Table()).Ctx(ctx).Where("id", id).Data(g.Map{
@@ -373,7 +373,7 @@ func (s *sExam) ExamBatchMembersImport(ctx context.Context, batchID int64, mockP
 	}
 	ids := dedupPositiveInt64(memberIDs)
 	if len(ids) == 0 {
-		return 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return 0, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	if err := s.ensureMembersExist(ctx, ids); err != nil {
 		return 0, err
@@ -477,11 +477,11 @@ func (s *sExam) ExamBatchMembersRemove(ctx context.Context, batchID int64, mockP
 		return 0, err
 	}
 	if mockPaperID <= 0 {
-		return 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return 0, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	ids := dedupPositiveInt64(memberIDs)
 	if len(ids) == 0 {
-		return 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return 0, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	r, err := dao.ExamBatchMember.Ctx(ctx).Where("batch_id", batchID).Where("mock_examination_paper_id", mockPaperID).WhereIn("member_id", ids).Delete()
 	if err != nil {
@@ -506,7 +506,7 @@ func (s *sExam) ExamBatchMemberDetail(ctx context.Context, batchID int64, userID
 		return nil, err
 	}
 	if row.BatchId == 0 {
-		return nil, gerror.NewCode(consts.CodeExamBatchMemberNotFound, "")
+		return nil, gerror.NewCode(consts.CodeExamBatchMemberNotFound)
 	}
 	return &row, nil
 }

@@ -15,13 +15,13 @@ type FileListRes struct {
 }
 
 type FileItem struct {
-	Id          int64  `json:"id"`
-	Filename    string `json:"filename"`
-	Path        string `json:"path"`
-	Size        int64  `json:"size"`
-	MimeType    string `json:"mime_type"`
-	IsPrivate   int    `json:"is_private"`
-	CreateTime  string `json:"create_time"`
+	Id         int64  `json:"id"`
+	Filename   string `json:"filename"`
+	Path       string `json:"path"`
+	Size       int64  `json:"size"`
+	MimeType   string `json:"mime_type"`
+	IsPrivate  int    `json:"is_private"`
+	CreateTime string `json:"create_time"`
 }
 
 type FileDeleteReq struct {

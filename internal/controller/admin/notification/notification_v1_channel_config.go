@@ -49,10 +49,10 @@ func (c *ControllerV1) ChannelConfigCreate(ctx context.Context, req *v1.ChannelC
 	}
 	// 校验 provider 与 channel 匹配
 	if req.Channel == "email" && req.Provider != "smtp" {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.email_must_use_smtp")
+		return nil, gerror.NewCode(consts.CodeEmailMustUseSmtp)
 	}
 	if req.Channel == "sms" && req.Provider != "aliyun" && req.Provider != "tencent" {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.sms_must_use_aliyun_or_tencent")
+		return nil, gerror.NewCode(consts.CodeSmsMustUseAliyunOrTencent)
 	}
 	id, err := dao.SysNotificationChannelConfig.Ctx(ctx).InsertAndGetId(sysdo.SysNotificationChannelConfig{
 		Channel:    req.Channel,
@@ -93,10 +93,10 @@ func (c *ControllerV1) ChannelConfigDelete(ctx context.Context, req *v1.ChannelC
 	var e sysentity.SysNotificationChannelConfig
 	err = dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil || e.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.config_not_found")
+		return nil, gerror.NewCode(consts.CodeConfigNotFound)
 	}
 	if e.IsActive == 1 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.cannot_delete_active_config")
+		return nil, gerror.NewCode(consts.CodeCannotDeleteActiveConfig)
 	}
 	updater := ""
 	if d := middleware.GetCtxData(ctx); d != nil {
@@ -116,7 +116,7 @@ func (c *ControllerV1) ChannelConfigSetActive(ctx context.Context, req *v1.Chann
 	var e sysentity.SysNotificationChannelConfig
 	err = dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil || e.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.config_not_found")
+		return nil, gerror.NewCode(consts.CodeConfigNotFound)
 	}
 	updater := ""
 	if d := middleware.GetCtxData(ctx); d != nil {

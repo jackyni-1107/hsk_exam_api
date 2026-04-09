@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strings"
 
@@ -50,19 +49,10 @@ func HandlerResponseI18n(r *ghttp.Request) {
 	})
 }
 
-// errorMessageKey 取用于展示/翻译的文案：优先链路上显式 gerror.Text（可与 Code 的 message 不同），否则 Code.Message，否则 Error()
+// errorMessageKey 取 i18n 词条 key：仅使用 gerror.Code(err).Message()，与业务侧 gerror.NewCode(gcode) 约定一致
 func errorMessageKey(err error) string {
 	if err == nil {
 		return ""
-	}
-	for e := err; e != nil; e = errors.Unwrap(e) {
-		var ge *gerror.Error
-		if !errors.As(e, &ge) {
-			continue
-		}
-		if t := strings.TrimSpace(ge.Text()); t != "" {
-			return ge.TextWithArgs()
-		}
 	}
 	ec := gerror.Code(err)
 	if ec != nil && ec != gcode.CodeNil {

@@ -22,7 +22,7 @@ func (c *ControllerV1) Send(ctx context.Context, req *v1.NotificationSendReq) (r
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&tpl)
 	if err != nil || tpl.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.template_not_found")
+		return nil, gerror.NewCode(consts.CodeTemplateNotFound)
 	}
 	vars := map[string]string{}
 	if req.Variables != "" {
@@ -37,7 +37,7 @@ func (c *ControllerV1) Send(ctx context.Context, req *v1.NotificationSendReq) (r
 	case "sms":
 		err = notifpkg.SMSSender{}.Send(ctx, req.Recipient, body)
 	default:
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.unsupported_channel")
+		return nil, gerror.NewCode(consts.CodeUnsupportedChannel)
 	}
 	if err != nil {
 		status = 2

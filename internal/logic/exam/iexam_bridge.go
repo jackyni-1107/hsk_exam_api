@@ -146,7 +146,7 @@ func (s *sExam) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64
 func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mockPaperID int64, attemptID int64) ([]bo.RandomAnswerDraftItem, error) {
 	cfg := LoadExamCfg(ctx)
 	if !cfg.EnableRandomAnswerHelper {
-		return nil, gerror.NewCode(consts.CodeExamTestHelperDisabled, "")
+		return nil, gerror.NewCode(consts.CodeExamTestHelperDisabled)
 	}
 	var att examentity.ExamAttempt
 	if err := dao.ExamAttempt.Ctx(ctx).
@@ -157,17 +157,17 @@ func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mock
 		return nil, err
 	}
 	if att.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.exam_attempt_not_found")
+		return nil, gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
 	if att.MockExaminationPaperId != mockPaperID {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	if att.Status != consts.ExamAttemptInProgress {
-		return nil, gerror.NewCode(consts.CodeExamAlreadySubmitted, "")
+		return nil, gerror.NewCode(consts.CodeExamAlreadySubmitted)
 	}
 	now := gtime.Now()
 	if att.DeadlineAt != nil && att.DeadlineAt.Before(now) {
-		return nil, gerror.NewCode(consts.CodeExamTimeExpired, "")
+		return nil, gerror.NewCode(consts.CodeExamTimeExpired)
 	}
 
 	var qs []examentity.ExamQuestion

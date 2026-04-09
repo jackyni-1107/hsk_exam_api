@@ -13,7 +13,7 @@ import (
 func (s *sSecurity) ValidatePasswordPolicy(ctx context.Context, password string) error {
 	cfg := s.LoadPasswordCfg(ctx)
 	if len(password) < cfg.MinLength {
-		return gerror.NewCode(consts.CodePasswordWeak, "")
+		return gerror.NewCode(consts.CodePasswordWeak)
 	}
 	var upper, lower, digit, special int
 	for _, r := range password {
@@ -29,16 +29,16 @@ func (s *sSecurity) ValidatePasswordPolicy(ctx context.Context, password string)
 		}
 	}
 	if cfg.RequireUpper && upper == 0 {
-		return gerror.NewCode(consts.CodePasswordWeak, "")
+		return gerror.NewCode(consts.CodePasswordWeak)
 	}
 	if cfg.RequireLower && lower == 0 {
-		return gerror.NewCode(consts.CodePasswordWeak, "")
+		return gerror.NewCode(consts.CodePasswordWeak)
 	}
 	if cfg.RequireDigit && digit == 0 {
-		return gerror.NewCode(consts.CodePasswordWeak, "")
+		return gerror.NewCode(consts.CodePasswordWeak)
 	}
 	if cfg.RequireSpecial && special == 0 {
-		return gerror.NewCode(consts.CodePasswordWeak, "")
+		return gerror.NewCode(consts.CodePasswordWeak)
 	}
 	return nil
 }

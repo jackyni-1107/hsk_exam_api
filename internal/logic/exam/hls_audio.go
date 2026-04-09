@@ -106,10 +106,10 @@ func (s *sExam) loadPaperHLS(ctx context.Context, paperID int64) (*paperHLSConfi
 		return nil, err
 	}
 	if cfg.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	if strings.TrimSpace(cfg.AudioHlsPrefix) == "" || cfg.AudioHlsSegmentCount <= 0 {
-		return nil, gerror.NewCode(consts.CodeExamAudioHlsNotConfigured, "")
+		return nil, gerror.NewCode(consts.CodeExamAudioHlsNotConfigured)
 	}
 	return &cfg, nil
 }
@@ -125,14 +125,14 @@ func (s *sExam) assertAttemptInProgress(ctx context.Context, userID, attemptID i
 		return nil, err
 	}
 	if att.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeExamAttemptNotFound, "")
+		return nil, gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
 	if att.Status != consts.ExamAttemptInProgress {
-		return nil, gerror.NewCode(consts.CodeExamAlreadySubmitted, "")
+		return nil, gerror.NewCode(consts.CodeExamAlreadySubmitted)
 	}
 	now := gtime.Now()
 	if att.DeadlineAt != nil && att.DeadlineAt.Before(now) {
-		return nil, gerror.NewCode(consts.CodeExamTimeExpired, "")
+		return nil, gerror.NewCode(consts.CodeExamTimeExpired)
 	}
 	return &att, nil
 }
@@ -148,10 +148,10 @@ func (s *sExam) loadQuestionHLS(ctx context.Context, paperID, questionID int64) 
 		return nil, err
 	}
 	if q.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	if strings.TrimSpace(q.AudioHlsPrefix) == "" || q.AudioHlsSegmentCount <= 0 {
-		return nil, gerror.NewCode(consts.CodeExamAudioHlsNotConfigured, "")
+		return nil, gerror.NewCode(consts.CodeExamAudioHlsNotConfigured)
 	}
 	return &q, nil
 }
@@ -168,7 +168,7 @@ func (s *sExam) IssueAudioHlsPlay(ctx context.Context, userID, attemptID, questi
 	}
 	stCfg, _ := storage.GetActiveConfig(ctx)
 	if !storageSupportsPresign(stCfg.Type) {
-		return "", "", gerror.NewCode(consts.CodeExamStoragePresignOnly, "")
+		return "", "", gerror.NewCode(consts.CodeExamStoragePresignOnly)
 	}
 	maxDB := q.AudioHlsSegmentCount
 	ticket := uuid.NewString()
@@ -196,11 +196,11 @@ func (s *sExam) IssueAudioHlsPlay(ctx context.Context, userID, attemptID, questi
 // IssuePaperHlsPlay 基于试卷级 HLS 配置签发短期播放票据，返回相对 play_url（以 / 开头）。
 func (s *sExam) IssuePaperHlsPlay(ctx context.Context, userID, paperID int64) (playURL string, expiresAt string, err error) {
 	if paperID <= 0 {
-		return "", "", gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return "", "", gerror.NewCode(consts.CodeInvalidParams)
 	}
 	stCfg, _ := storage.GetActiveConfig(ctx)
 	if !storageSupportsPresign(stCfg.Type) {
-		return "", "", gerror.NewCode(consts.CodeExamStoragePresignOnly, "")
+		return "", "", gerror.NewCode(consts.CodeExamStoragePresignOnly)
 	}
 	paperCfg, err := s.loadPaperHLS(ctx, paperID)
 	if err != nil {
@@ -208,7 +208,7 @@ func (s *sExam) IssuePaperHlsPlay(ctx context.Context, userID, paperID int64) (p
 	}
 	maxDB := paperCfg.AudioHlsSegmentCount - 1
 	if maxDB < 0 {
-		return "", "", gerror.NewCode(consts.CodeExamAudioHlsNotConfigured, "")
+		return "", "", gerror.NewCode(consts.CodeExamAudioHlsNotConfigured)
 	}
 	ticket := uuid.NewString()
 	payload := hlsPlayTicketPayload{
@@ -236,23 +236,23 @@ func (s *sExam) IssuePaperHlsPlay(ctx context.Context, userID, paperID int64) (p
 func (s *sExam) BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte, error) {
 	ticket = strings.TrimSuffix(strings.TrimSpace(ticket), ".m3u8")
 	if ticket == "" {
-		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid, "")
+		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid)
 	}
 	key := redisHlsPlayKeyPrefix + ticket
 	val, err := g.Redis().Get(ctx, key)
 	if err != nil || val.IsEmpty() {
-		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid, "")
+		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid)
 	}
 	var payload hlsPlayTicketPayload
 	if err := json.Unmarshal([]byte(val.String()), &payload); err != nil {
-		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid, "")
+		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid)
 	}
 	stCfg, _ := storage.GetActiveConfig(ctx)
 	if !storageSupportsPresign(stCfg.Type) {
-		return nil, gerror.NewCode(consts.CodeExamStoragePresignOnly, "")
+		return nil, gerror.NewCode(consts.CodeExamStoragePresignOnly)
 	}
 	if payload.ExamPaperID <= 0 {
-		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid, "")
+		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid)
 	}
 	audioPrefix := ""
 	hlsPrefix := ""
@@ -272,10 +272,10 @@ func (s *sExam) BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte
 			return nil, err
 		}
 		if att.Id == 0 || att.ExamPaperId != payload.ExamPaperID {
-			return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid, "")
+			return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid)
 		}
 		if att.Status != consts.ExamAttemptInProgress {
-			return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid, "")
+			return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid)
 		}
 		q, err := s.loadQuestionHLS(ctx, att.ExamPaperId, payload.ExamQuestionID)
 		if err != nil {
@@ -289,7 +289,7 @@ func (s *sExam) BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte
 			return nil, err
 		}
 		if paper.Id == 0 {
-			return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid, "")
+			return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid)
 		}
 		audioPrefix = strings.TrimSpace(paper.AudioHlsPrefix)
 		hlsPrefix = strings.TrimSpace(q.AudioHlsPrefix)
@@ -321,7 +321,7 @@ func (s *sExam) BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte
 		effectiveMax = minInt3(payload.MaxSegSnap, lastIdx, lastIdx)
 	}
 	if effectiveMax < 0 {
-		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid, "")
+		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid)
 	}
 	// RFC 8216：TARGETDURATION 为最大分片时长向上取整；避免浮点 10.000 变成 9.999… 导致偏小
 	targetDur := int(math.Ceil(extDur + 1e-6))

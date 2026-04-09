@@ -20,7 +20,7 @@ type MenuTreeNode struct {
 	Path          string          `json:"path"`
 	Icon          string          `json:"icon"`
 	Component     string          `json:"component"`
-	ComponentName string        `json:"component_name"`
+	ComponentName string          `json:"component_name"`
 	Status        int             `json:"status"`
 	Visible       bool            `json:"visible"`
 	KeepAlive     bool            `json:"keep_alive"`

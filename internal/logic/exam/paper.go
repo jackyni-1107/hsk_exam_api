@@ -184,10 +184,10 @@ func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.Pap
 // UpdatePaperSettings 修改试卷听力 HLS 配置（答题时长以 mock_examination_paper 为准）。
 func (s *sExam) UpdatePaperSettings(ctx context.Context, examPaperId int64, in exambo.PaperHlsExamAdminUpdate, updater string) error {
 	if examPaperId <= 0 {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return gerror.NewCode(consts.CodeInvalidParams)
 	}
 	if in.AudioHlsSegmentCount < 0 || in.AudioHlsSegmentDuration < 0 {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return gerror.NewCode(consts.CodeInvalidParams)
 	}
 	var paper examentity.ExamPaper
 	if err := examdao.ExamPaper.Ctx(ctx).

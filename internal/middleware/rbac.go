@@ -32,7 +32,7 @@ func RBAC(permission string) ghttp.HandlerFunc {
 
 		ctxData := GetCtxData(r.GetCtx())
 		if ctxData == nil {
-			r.SetError(gerror.NewCode(consts.CodeTokenRequired, ""))
+			r.SetError(gerror.NewCode(consts.CodeTokenRequired))
 			r.ExitAll()
 			return
 		}
@@ -58,7 +58,7 @@ func RBAC(permission string) ghttp.HandlerFunc {
 
 		if !hasPermission(perms, permission) {
 			audit.Audit().RecordSecurityEvent(r.GetCtx(), "permission_denied", ctxData.UserId, r.GetClientIp(), r.Header.Get("User-Agent"), "permission denied: "+permission, GetTraceId(r.GetCtx()))
-			r.SetError(gerror.NewCode(consts.CodePermissionDenied, ""))
+			r.SetError(gerror.NewCode(consts.CodePermissionDenied))
 			r.ExitAll()
 			return
 		}

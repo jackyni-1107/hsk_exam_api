@@ -80,6 +80,7 @@
 "err.template_not_found" = "Template not found"
 "err.email_must_use_smtp" = "Email channel must use SMTP"
 "err.sms_must_use_aliyun_or_tencent" = "SMS channel must be Aliyun or Tencent Cloud"
+"err.unsupported_channel" = "Unsupported notification channel"
 
 "err.role_code_exists" = "Role code already exists"
 

@@ -52,7 +52,7 @@ func (c *ControllerV1) Delete(ctx context.Context, req *v1.FileDeleteReq) (res *
 	var f sysentity.SysFileStorage
 	err = dao.SysFileStorage.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&f)
 	if err != nil || f.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.file_not_found")
+		return nil, gerror.NewCode(consts.CodeFileNotFound)
 	}
 	adapter := storage.NewAdapter()
 	_ = adapter.Delete(ctx, f.Bucket, f.Path)

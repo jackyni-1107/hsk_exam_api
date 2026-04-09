@@ -15,7 +15,7 @@ import (
 func (c *ControllerV1) MyExams(ctx context.Context, req *v1.ExamsReq) (res *v1.ExamsRes, err error) {
 	d := middleware.GetCtxData(ctx)
 	if d == nil {
-		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
 	rows, err := examsvc.Exam().MyExamBatches(ctx, d.UserId)
 	if err != nil {

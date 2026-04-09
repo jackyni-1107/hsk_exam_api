@@ -30,8 +30,8 @@ type PaperListItem struct {
 }
 
 type PaperImportReq struct {
-	g.Meta `path:"/exam/paper/import" method:"post" tags:"试卷管理" summary:"从远程 index.json 导入试卷"`
-	MockExaminationPaperId int64  `json:"mock_examination_paper_id" v:"required|min:1#err.invalid_params" dc:"mock 卷 id，业务主键"`
+	g.Meta                 `path:"/exam/paper/import" method:"post" tags:"试卷管理" summary:"从远程 index.json 导入试卷"`
+	MockExaminationPaperId int64 `json:"mock_examination_paper_id" v:"required|min:1#err.invalid_params" dc:"mock 卷 id，业务主键"`
 	// 二选一：index_url 拉取；或 index_json 粘贴（需同时传 level、paper_id、source_base_url）
 	IndexUrl       string `json:"index_url" dc:"完整 index.json URL"`
 	IndexJson      string `json:"index_json" dc:"可选，直接传 index.json 字符串"`

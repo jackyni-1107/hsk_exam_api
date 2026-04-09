@@ -16,7 +16,7 @@ import (
 func (c *ControllerV1) Menus(ctx context.Context, req *v1.MenusReq) (res *v1.MenusRes, err error) {
 	d := middleware.GetCtxData(ctx)
 	if d == nil {
-		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
 	var all []sysentity.SysMenu
 	err = dao.SystemMenu.Ctx(ctx).

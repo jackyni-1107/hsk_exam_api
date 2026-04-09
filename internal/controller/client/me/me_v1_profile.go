@@ -16,7 +16,7 @@ import (
 func (c *ControllerV1) Profile(ctx context.Context, req *v1.ProfileReq) (res *v1.ProfileRes, err error) {
 	d := middleware.GetCtxData(ctx)
 	if d == nil {
-		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
 	var u sysentity.SysMember
 	err = dao.SysMember.Ctx(ctx).
@@ -24,7 +24,7 @@ func (c *ControllerV1) Profile(ctx context.Context, req *v1.ProfileReq) (res *v1
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&u)
 	if err != nil || u.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.user_not_found")
+		return nil, gerror.NewCode(consts.CodeUserNotFound)
 	}
 	return &v1.ProfileRes{
 		Id:                 u.Id,

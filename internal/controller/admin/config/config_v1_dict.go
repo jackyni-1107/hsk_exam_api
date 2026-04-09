@@ -49,7 +49,7 @@ func (c *ControllerV1) DictTypeCreate(ctx context.Context, req *v1.DictTypeCreat
 	var exist sysentity.SysDictType
 	_ = dao.SystemDictType.Ctx(ctx).Where("dict_type", req.DictType).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&exist)
 	if exist.Id > 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.dict_type_exists")
+		return nil, gerror.NewCode(consts.CodeDictTypeExists)
 	}
 	creator := ""
 	if d := middleware.GetCtxData(ctx); d != nil {

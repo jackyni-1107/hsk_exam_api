@@ -16,7 +16,7 @@ import (
 func ByMockID(ctx context.Context, mockExaminationPaperID int64) (examentity.ExamPaper, error) {
 	var p examentity.ExamPaper
 	if mockExaminationPaperID <= 0 {
-		return p, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return p, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	err := dao.ExamPaper.Ctx(ctx).
 		Where(dao.ExamPaper.Columns().MockExaminationPaperId, mockExaminationPaperID).
@@ -43,7 +43,7 @@ func ByMockID(ctx context.Context, mockExaminationPaperID int64) (examentity.Exa
 func ExamPaperByMockLevelID(ctx context.Context, mockLevelID int64) (examentity.ExamPaper, error) {
 	var p examentity.ExamPaper
 	if mockLevelID <= 0 {
-		return p, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return p, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	var rows []struct {
 		Id int64 `json:"id"`

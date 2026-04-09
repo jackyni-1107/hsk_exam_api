@@ -29,7 +29,7 @@ func (s *sSecurity) ValidatePasswordNotInHistory(ctx context.Context, userType i
 	for _, row := range rows {
 		h := row["password_hash"].String()
 		if utility.CheckPassword(h, plainPassword) {
-			return gerror.NewCode(consts.CodePasswordReuse, "")
+			return gerror.NewCode(consts.CodePasswordReuse)
 		}
 	}
 	return nil

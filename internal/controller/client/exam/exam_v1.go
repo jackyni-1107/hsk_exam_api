@@ -67,7 +67,7 @@ func (c *ControllerV1) PaperSectionForExam(ctx context.Context, req *v1.PaperSec
 //func (c *ControllerV1) AttemptCreate(ctx context.Context, req *v1.AttemptCreateReq) (res *v1.AttemptCreateRes, err error) {
 //	ctxData := middleware.GetCtxData(ctx)
 //	if ctxData == nil {
-//		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+//		return nil, gerror.NewCode(consts.CodeTokenRequired)
 //	}
 //	id, err := exam.Exam().CreateAttempt(ctx, ctxData.UserId, req.PaperId)
 //	if err != nil {
@@ -79,7 +79,7 @@ func (c *ControllerV1) PaperSectionForExam(ctx context.Context, req *v1.PaperSec
 func (c *ControllerV1) AttemptCreateByBatch(ctx context.Context, req *v1.AttemptCreateByBatchReq) (res *v1.AttemptCreateRes, err error) {
 	ctxData := middleware.GetCtxData(ctx)
 	if ctxData == nil {
-		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
 	//_, err = exam.Exam().ExamBatchMemberDetail(ctx, req.BatchId, ctxData.UserId, req.MockExaminationPaperId)
 	//if err != nil {
@@ -96,7 +96,7 @@ func (c *ControllerV1) AttemptCreateByBatch(ctx context.Context, req *v1.Attempt
 func (c *ControllerV1) AttemptStart(ctx context.Context, req *v1.AttemptStartReq) (res *v1.AttemptStartRes, err error) {
 	ctxData := middleware.GetCtxData(ctx)
 	if ctxData == nil {
-		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
 	err = exam.Exam().StartAttempt(ctx, ctxData.UserId, req.Id, req.DurationSeconds)
 	if err != nil {
@@ -108,7 +108,7 @@ func (c *ControllerV1) AttemptStart(ctx context.Context, req *v1.AttemptStartReq
 func (c *ControllerV1) AttemptGet(ctx context.Context, req *v1.AttemptGetReq) (res *v1.AttemptGetRes, err error) {
 	ctxData := middleware.GetCtxData(ctx)
 	if ctxData == nil {
-		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
 	v, err := exam.Exam().GetAttempt(ctx, ctxData.UserId, req.Id)
 	if err != nil {
@@ -137,7 +137,7 @@ func (c *ControllerV1) AttemptGet(ctx context.Context, req *v1.AttemptGetReq) (r
 func (c *ControllerV1) AttemptSaveAnswers(ctx context.Context, req *v1.AttemptSaveAnswersReq) (res *v1.AttemptSaveAnswersRes, err error) {
 	ctxData := middleware.GetCtxData(ctx)
 	if ctxData == nil {
-		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
 	items := make([]bo.SaveAnswerItem, 0, len(req.Items))
 	for _, it := range req.Items {
@@ -181,7 +181,7 @@ func (c *ControllerV1) AttemptSaveAnswers(ctx context.Context, req *v1.AttemptSa
 func (c *ControllerV1) AttemptSubmit(ctx context.Context, req *v1.AttemptSubmitReq) (res *v1.AttemptSubmitRes, err error) {
 	ctxData := middleware.GetCtxData(ctx)
 	if ctxData == nil {
-		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
 	err = exam.Exam().SubmitAttempt(ctx, ctxData.UserId, req.Id)
 	if err != nil {
@@ -193,7 +193,7 @@ func (c *ControllerV1) AttemptSubmit(ctx context.Context, req *v1.AttemptSubmitR
 func (c *ControllerV1) AttemptRandomAnswers(ctx context.Context, req *v1.AttemptRandomAnswersReq) (res *v1.AttemptRandomAnswersRes, err error) {
 	ctxData := middleware.GetCtxData(ctx)
 	if ctxData == nil {
-		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
 	drafts, err := exam.Exam().RandomFillAnswersForTest(ctx, ctxData.UserId, req.PaperId, req.AttemptId)
 	if err != nil {
@@ -218,7 +218,7 @@ func (c *ControllerV1) AttemptRandomAnswers(ctx context.Context, req *v1.Attempt
 //func (c *ControllerV1) AudioHlsPlayIssue(ctx context.Context, req *v1.AudioHlsPlayIssueReq) (res *v1.AudioHlsPlayIssueRes, err error) {
 //	ctxData := middleware.GetCtxData(ctx)
 //	if ctxData == nil {
-//		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
+//		return nil, gerror.NewCode(consts.CodeTokenRequired)
 //	}
 //	playURL, exp, err := exam.Exam().IssueAudioHlsPlay(ctx, ctxData.UserId, req.Id, req.QuestionId)
 //	if err != nil {

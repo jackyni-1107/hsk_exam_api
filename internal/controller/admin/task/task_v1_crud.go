@@ -23,7 +23,7 @@ func (c *ControllerV1) TaskCreate(ctx context.Context, req *v1.TaskCreateReq) (r
 	var exist sysentity.SysTask
 	_ = dao.SysTask.Ctx(ctx).Where("code", req.Code).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&exist)
 	if exist.Id > 0 {
-		return nil, gerror.NewCode(consts.CodeTaskCodeExists, "")
+		return nil, gerror.NewCode(consts.CodeTaskCodeExists)
 	}
 	id, err := dao.SysTask.Ctx(ctx).InsertAndGetId(sysdo.SysTask{
 		Name:           req.Name,
@@ -61,7 +61,7 @@ func (c *ControllerV1) TaskUpdate(ctx context.Context, req *v1.TaskUpdateReq) (r
 		return nil, err
 	}
 	if cur.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeTaskNotFound, "")
+		return nil, gerror.NewCode(consts.CodeTaskNotFound)
 	}
 	var dup sysentity.SysTask
 	_ = dao.SysTask.Ctx(ctx).
@@ -70,7 +70,7 @@ func (c *ControllerV1) TaskUpdate(ctx context.Context, req *v1.TaskUpdateReq) (r
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&dup)
 	if dup.Id > 0 {
-		return nil, gerror.NewCode(consts.CodeTaskCodeExists, "")
+		return nil, gerror.NewCode(consts.CodeTaskCodeExists)
 	}
 	_, err = dao.SysTask.Ctx(ctx).Where("id", req.Id).Data(sysdo.SysTask{
 		Name:           req.Name,
@@ -111,10 +111,10 @@ func (c *ControllerV1) TaskRun(ctx context.Context, req *v1.TaskRunReq) (res *v1
 		return nil, err
 	}
 	if t.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeTaskNotFound, "")
+		return nil, gerror.NewCode(consts.CodeTaskNotFound)
 	}
 	if t.Status != consts.TaskStatusEnabled {
-		return nil, gerror.NewCode(consts.CodeTaskDisabled, "")
+		return nil, gerror.NewCode(consts.CodeTaskDisabled)
 	}
 	runID := gconv.String(gtime.Now().TimestampMilli())
 	go func() {
@@ -132,14 +132,14 @@ func validateTaskTypeAndSchedule(typeVal int, cronExpr string, delaySec int) err
 	switch typeVal {
 	case consts.TaskTypeCron:
 		if strings.TrimSpace(cronExpr) == "" {
-			return gerror.NewCode(consts.CodeCronExprRequired, "")
+			return gerror.NewCode(consts.CodeCronExprRequired)
 		}
 	case consts.TaskTypeDelay:
 		if delaySec <= 0 {
-			return gerror.NewCode(consts.CodeDelaySecondsRequired, "")
+			return gerror.NewCode(consts.CodeDelaySecondsRequired)
 		}
 	default:
-		return gerror.NewCode(consts.CodeInvalidParams, "")
+		return gerror.NewCode(consts.CodeInvalidParams)
 	}
 	return nil
 }

@@ -189,7 +189,7 @@ func paperDetailForExamInitFromDB(ctx context.Context, examPaperId int64) (*Pape
 		return nil, err
 	}
 	if paper.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.exam_paper_not_found")
+		return nil, gerror.NewCode(consts.CodeExamPaperNotFound)
 	}
 
 	var sections []examentity.ExamSection
@@ -296,7 +296,7 @@ func paperSectionDetailForExamFromDB(ctx context.Context, examPaperId, sectionId
 		return nil, err
 	}
 	if sec.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.exam_section_not_found")
+		return nil, gerror.NewCode(consts.CodeExamSectionNotFound)
 	}
 
 	var blocks []examentity.ExamQuestionBlock

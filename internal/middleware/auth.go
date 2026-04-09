@@ -30,20 +30,20 @@ func Auth(expectedUserType int) ghttp.HandlerFunc {
 		token := strings.TrimPrefix(raw, "Bearer ")
 		token = strings.TrimSpace(token)
 		if token == "" {
-			r.SetError(gerror.NewCode(consts.CodeTokenRequired, ""))
+			r.SetError(gerror.NewCode(consts.CodeTokenRequired))
 			r.ExitAll()
 			return
 		}
 		key := consts.TokenRedisKeyPrefix + userTypeTag(expectedUserType) + ":" + token
 		val, err := g.Redis().Get(r.GetCtx(), key)
 		if err != nil || val.IsEmpty() {
-			r.SetError(gerror.NewCode(consts.CodeTokenInvalid, ""))
+			r.SetError(gerror.NewCode(consts.CodeTokenInvalid))
 			r.ExitAll()
 			return
 		}
 		var p tokenPayload
 		if json.Unmarshal([]byte(val.String()), &p) != nil || p.UserId == 0 {
-			r.SetError(gerror.NewCode(consts.CodeTokenInvalid, ""))
+			r.SetError(gerror.NewCode(consts.CodeTokenInvalid))
 			r.ExitAll()
 			return
 		}

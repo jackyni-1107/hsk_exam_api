@@ -17,7 +17,7 @@ func (c *ControllerV1) RoleCreate(ctx context.Context, req *v1.RoleCreateReq) (r
 	var exist sysentity.SysRole
 	_ = dao.SystemRole.Ctx(ctx).Where("code", req.Code).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&exist)
 	if exist.Id > 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.role_exists")
+		return nil, gerror.NewCode(consts.CodeRoleExists)
 	}
 	creator := ""
 	if d := middleware.GetCtxData(ctx); d != nil {

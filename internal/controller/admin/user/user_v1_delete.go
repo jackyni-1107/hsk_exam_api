@@ -14,7 +14,7 @@ import (
 
 func (c *ControllerV1) UserDelete(ctx context.Context, req *v1.UserDeleteReq) (res *v1.UserDeleteRes, err error) {
 	if req.Id == consts.SuperAdminUserId {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.cannot_delete_super_admin")
+		return nil, gerror.NewCode(consts.CodeCannotDeleteSuperAdmin)
 	}
 	updater := ""
 	if d := middleware.GetCtxData(ctx); d != nil {

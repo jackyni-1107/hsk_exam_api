@@ -22,20 +22,20 @@ import (
 func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.LoginRes, err error) {
 	r := ghttp.RequestFromCtx(ctx)
 	if r == nil {
-		return nil, gerror.NewCode(consts.CodeLoginFailed, "")
+		return nil, gerror.NewCode(consts.CodeLoginFailed)
 	}
 	ip := r.GetClientIp()
 	if secsvc.Security().CheckIPLoginRateLimit(ctx, ip) {
-		return nil, gerror.NewCode(consts.CodeTooManyRequests, "")
+		return nil, gerror.NewCode(consts.CodeTooManyRequests)
 	}
 	name := secsvc.Security().NormalizeLoginName(req.Username)
 	if secsvc.Security().ShouldRequireCaptcha(ctx, consts.UserTypeAdmin, name) {
 		if req.CaptchaId == "" || !secsvc.Security().VerifyCaptcha(ctx, req.CaptchaId, req.CaptchaAnswer) {
-			return nil, gerror.NewCode(consts.CodeCaptchaRequired, "")
+			return nil, gerror.NewCode(consts.CodeCaptchaRequired)
 		}
 	}
 	if secsvc.Security().IsAccountLocked(ctx, consts.UserTypeAdmin, name) {
-		return nil, gerror.NewCode(consts.CodeAccountLocked, "")
+		return nil, gerror.NewCode(consts.CodeAccountLocked)
 	}
 
 	var u sysentity.SysUser
@@ -45,10 +45,10 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 		Scan(&u)
 	if u.Id == 0 || !utility.CheckPassword(u.Password, req.Password) {
 		secsvc.Security().RecordLoginFailure(ctx, consts.UserTypeAdmin, name, ip, r.Header.Get("User-Agent"), middleware.GetTraceId(ctx))
-		return nil, gerror.NewCode(consts.CodeInvalidCredentials, "")
+		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
 	}
 	if u.Status == consts.StatusDisabled {
-		return nil, gerror.NewCode(consts.CodeUserDisabled, "")
+		return nil, gerror.NewCode(consts.CodeUserDisabled)
 	}
 
 	secsvc.Security().ClearLoginFailure(ctx, consts.UserTypeAdmin, name)

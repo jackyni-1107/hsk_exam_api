@@ -24,7 +24,7 @@ func CreateAttempt(ctx context.Context, userID int64, mockPaperID int64) (int64,
 	_ = ctx
 	_ = userID
 	_ = mockPaperID
-	return 0, gerror.NewCode(consts.CodeExamAttemptUseBatchApi, "")
+	return 0, gerror.NewCode(consts.CodeExamAttemptUseBatchApi)
 }
 
 func batchExamWindowOpen(now *gtime.Time, start, end *gtime.Time) bool {
@@ -47,11 +47,11 @@ func CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64) (in
 		return 0, err
 	}
 	if batch.Id == 0 {
-		return 0, gerror.NewCode(consts.CodeExamBatchNotFound, "")
+		return 0, gerror.NewCode(consts.CodeExamBatchNotFound)
 	}
 	now := gtime.Now()
 	if !batchExamWindowOpen(now, batch.ExamStartAt, batch.ExamEndAt) {
-		return 0, gerror.NewCode(consts.CodeExamBatchWindowNotOpen, "")
+		return 0, gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
 	}
 
 	var link examentity.ExamBatchMember
@@ -63,7 +63,7 @@ func CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64) (in
 		return 0, err
 	}
 	if link.BatchId == 0 {
-		return 0, gerror.NewCode(consts.CodeExamBatchMemberNotFound, "")
+		return 0, gerror.NewCode(consts.CodeExamBatchMemberNotFound)
 	}
 	paper, err := exampaper.ByMockID(ctx, link.MockExaminationPaperId)
 	if err != nil {
@@ -119,17 +119,17 @@ func StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDura
 		return err
 	}
 	if att.Id == 0 {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.exam_attempt_not_found")
+		return gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
 	if att.Status != consts.ExamAttemptNotStarted {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return gerror.NewCode(consts.CodeInvalidParams)
 	}
 	var paper examentity.ExamPaper
 	if err := dao.ExamPaper.Ctx(ctx).Where("id", att.ExamPaperId).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&paper); err != nil {
 		return err
 	}
 	if paper.Id == 0 {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.exam_paper_not_found")
+		return gerror.NewCode(consts.CodeExamPaperNotFound)
 	}
 	dur := ResolveDurationSeconds(cfg, paper.DurationSeconds, clientDurationSeconds)
 	now := gtime.Now()
@@ -159,7 +159,7 @@ func GetAttempt(ctx context.Context, userID int64, attemptID int64) (*bo.Attempt
 		return nil, err
 	}
 	if att.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.exam_attempt_not_found")
+		return nil, gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
 	now := gtime.Now()
 	deadlineReached := att.Status == consts.ExamAttemptInProgress && att.DeadlineAt != nil && att.DeadlineAt.Before(now)
@@ -188,14 +188,14 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.
 		return err
 	}
 	if att.Id == 0 {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.exam_attempt_not_found")
+		return gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
 	if att.Status != consts.ExamAttemptInProgress {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.exam_already_submitted")
+		return gerror.NewCode(consts.CodeExamAlreadySubmitted)
 	}
 	now := gtime.Now()
 	if att.DeadlineAt != nil && att.DeadlineAt.Before(now) {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.exam_time_expired")
+		return gerror.NewCode(consts.CodeExamTimeExpired)
 	}
 	if len(items) == 0 {
 		return nil
@@ -213,7 +213,7 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.
 		return err
 	}
 	if cnt != len(items) {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return gerror.NewCode(consts.CodeInvalidParams)
 	}
 
 	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
@@ -242,7 +242,7 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.
 				continue
 			}
 			if it.ExpectedVersion != nil && *it.ExpectedVersion != row.Version {
-				return gerror.NewCode(consts.CodeExamAnswerVersionConflict, "")
+				return gerror.NewCode(consts.CodeExamAnswerVersionConflict)
 			}
 			_, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Where("id", row.Id).Update(examdo.ExamAttemptAnswer{
 				AnswerJson: it.AnswerJSON,
@@ -271,7 +271,7 @@ func SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error {
 		return err
 	}
 	if att.Id == 0 {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.exam_attempt_not_found")
+		return gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
 	if att.Status == consts.ExamAttemptEnded {
 		return nil
@@ -280,7 +280,7 @@ func SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error {
 		return nil
 	}
 	if att.Status != consts.ExamAttemptInProgress {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.exam_already_submitted")
+		return gerror.NewCode(consts.CodeExamAlreadySubmitted)
 	}
 	return markSubmitted(ctx, attemptID, false, "client")
 }
@@ -366,7 +366,7 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 			return err
 		}
 		if att.Id == 0 {
-			return gerror.NewCode(consts.CodeInvalidParams, "err.exam_attempt_not_found")
+			return gerror.NewCode(consts.CodeExamAttemptNotFound)
 		}
 		if att.Status == consts.ExamAttemptEnded {
 			return nil

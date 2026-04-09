@@ -9,10 +9,10 @@ import (
 
 // ExamBatchMockPaperDao is the data access object for the table exam_batch_mock_paper.
 type ExamBatchMockPaperDao struct {
-	table    string                     // table is the underlying table name of the DAO.
-	group    string                     // group is the database configuration group name of the current DAO.
-	columns  ExamBatchMockPaperColumns  // columns contains all the column names of Table for convenient usage.
-	handlers []gdb.ModelHandler         // handlers for customized model modification.
+	table    string                    // table is the underlying table name of the DAO.
+	group    string                    // group is the database configuration group name of the current DAO.
+	columns  ExamBatchMockPaperColumns // columns contains all the column names of Table for convenient usage.
+	handlers []gdb.ModelHandler        // handlers for customized model modification.
 }
 
 // ExamBatchMockPaperColumns defines and stores column names for the table exam_batch_mock_paper.

@@ -26,7 +26,7 @@ type randomAnswerPayload struct {
 func RandomFillAnswersForTest(ctx context.Context, userID, paperID, attemptID int64) (filled int, err error) {
 	cfg := LoadExamCfg(ctx)
 	if !cfg.EnableRandomAnswerHelper {
-		return 0, gerror.NewCode(consts.CodeExamTestHelperDisabled, "")
+		return 0, gerror.NewCode(consts.CodeExamTestHelperDisabled)
 	}
 	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
 
@@ -40,22 +40,22 @@ func RandomFillAnswersForTest(ctx context.Context, userID, paperID, attemptID in
 		return 0, err
 	}
 	if att.Id == 0 {
-		return 0, gerror.NewCode(consts.CodeInvalidParams, "err.exam_attempt_not_found")
+		return 0, gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
 	if att.MockExaminationPaperId != paperID {
-		return 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return 0, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	switch att.Status {
 	case consts.ExamAttemptNotStarted:
-		return 0, gerror.NewCode(consts.CodeExamNotStarted, "")
+		return 0, gerror.NewCode(consts.CodeExamNotStarted)
 	case consts.ExamAttemptInProgress:
 		// ok
 	default:
-		return 0, gerror.NewCode(consts.CodeExamAlreadySubmitted, "")
+		return 0, gerror.NewCode(consts.CodeExamAlreadySubmitted)
 	}
 	now := gtime.Now()
 	if att.DeadlineAt != nil && att.DeadlineAt.Before(now) {
-		return 0, gerror.NewCode(consts.CodeExamTimeExpired, "")
+		return 0, gerror.NewCode(consts.CodeExamTimeExpired)
 	}
 
 	var qs []examentity.ExamQuestion

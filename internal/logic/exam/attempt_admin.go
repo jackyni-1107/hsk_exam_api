@@ -90,7 +90,7 @@ IFNULL(p.title,'') AS paper_title, IFNULL(p.level,'') AS paper_level, IFNULL(p.p
 // AttemptAdminDetail 按 id 加载会话、学员、试卷及答题明细（含客观题是否选对）。
 func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.AttemptAdminDetailView, error) {
 	if attemptID <= 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	var att examentity.ExamAttempt
 	if err := dao.ExamAttempt.Ctx(ctx).
@@ -190,10 +190,10 @@ func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.At
 // AttemptAdminSaveSubjectiveScores 写入主观题人工分并汇总 subjective_score、total_score（允许部分题目已评）。
 func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, items []bo.SubjectiveScoreItem) (subjectiveSum float64, totalScore float64, err error) {
 	if attemptID <= 0 {
-		return 0, 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return 0, 0, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	if len(items) == 0 {
-		return 0, 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+		return 0, 0, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	var att examentity.ExamAttempt
 	if err := dao.ExamAttempt.Ctx(ctx).
@@ -247,10 +247,10 @@ func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID 
 				return err
 			}
 			if q.Id == 0 || q.IsSubjective != 1 || q.IsExample != 0 {
-				return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+				return gerror.NewCode(consts.CodeInvalidParams)
 			}
 			if it.Score < 0 || it.Score > q.Score {
-				return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+				return gerror.NewCode(consts.CodeInvalidParams)
 			}
 
 			var row examentity.ExamAttemptAnswer

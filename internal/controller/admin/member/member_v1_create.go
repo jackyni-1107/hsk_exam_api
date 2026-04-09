@@ -19,7 +19,7 @@ func (c *ControllerV1) MemberCreate(ctx context.Context, req *v1.MemberCreateReq
 	var exist sysentity.SysMember
 	_ = sysdao.SysMember.Ctx(ctx).Where("username", req.Username).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&exist)
 	if exist.Id > 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.member_exists")
+		return nil, gerror.NewCode(consts.CodeMemberExists)
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {

@@ -3,13 +3,13 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type TaskListReq struct {
-	g.Meta `path:"/task/list" method:"get" tags:"任务" summary:"任务列表"`
-	Page   int    `json:"page"`
-	Size   int    `json:"size"`
-	Name   string `json:"name"`
-	Code   string `json:"code"`
-	Type   int    `json:"type"`
-	Status *int   `json:"status"`
+	g.Meta  `path:"/task/list" method:"get" tags:"任务" summary:"任务列表"`
+	Page    int    `json:"page"`
+	Size    int    `json:"size"`
+	Name    string `json:"name"`
+	Code    string `json:"code"`
+	Type    int    `json:"type"`
+	Status  *int   `json:"status"`
 	Handler string `json:"handler"`
 }
 
@@ -97,12 +97,12 @@ type TaskRunRes struct {
 }
 
 type TaskLogListReq struct {
-	g.Meta  `path:"/task/log" method:"get" tags:"任务" summary:"任务执行日志"`
-	Page    int    `json:"page"`
-	Size    int    `json:"size"`
-	TaskId  int64  `json:"task_id"`
-	RunId   string `json:"run_id"`
-	Status  *int   `json:"status"`
+	g.Meta `path:"/task/log" method:"get" tags:"任务" summary:"任务执行日志"`
+	Page   int    `json:"page"`
+	Size   int    `json:"size"`
+	TaskId int64  `json:"task_id"`
+	RunId  string `json:"run_id"`
+	Status *int   `json:"status"`
 }
 
 type TaskLogListRes struct {

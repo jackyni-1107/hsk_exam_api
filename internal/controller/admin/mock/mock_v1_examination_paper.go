@@ -96,7 +96,7 @@ func (c *ControllerV1) ExaminationPaperDetail(ctx context.Context, req *v1.Exami
 	var e mockentity.MockExaminationPaper
 	err = dao.MockExaminationPaper.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil || e.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeInvalidParams, "err.not_found")
+		return nil, gerror.NewCode(consts.CodeResourceNotFound)
 	}
 	imported := false
 	n, err := examdao.ExamPaper.Ctx(ctx).

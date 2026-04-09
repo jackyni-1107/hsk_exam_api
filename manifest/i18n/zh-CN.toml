@@ -80,6 +80,7 @@
 "err.template_not_found" = "模板不存在"
 "err.email_must_use_smtp" = "邮件渠道须使用 SMTP"
 "err.sms_must_use_aliyun_or_tencent" = "短信渠道须为阿里云或腾讯云"
+"err.unsupported_channel" = "不支持的通知渠道"
 
 "err.role_code_exists" = "角色编码已存在"
 

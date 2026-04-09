@@ -49,7 +49,7 @@ func RateLimitSaveAnswers(ctx context.Context, attemptID int64, perSecond int) e
 		_, _ = g.Redis().Expire(ctx, key, 1)
 	}
 	if int(n) > perSecond {
-		return gerror.NewCode(consts.CodeTooManyRequests, "")
+		return gerror.NewCode(consts.CodeTooManyRequests)
 	}
 	return nil
 }
