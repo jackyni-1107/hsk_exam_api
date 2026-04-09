@@ -15,14 +15,13 @@ type BatchListRes struct {
 }
 
 type BatchListItem struct {
-	Id                     int64   `json:"id"`
-	MockExaminationPaperId int64   `json:"mock_examination_paper_id"`
-	Title                  string  `json:"title"`
-	ExamStartAt            string  `json:"exam_start_at"`
-	ExamEndAt              string  `json:"exam_end_at"`
-	MockLevelIds           []int64 `json:"mock_level_ids"`
-	MemberCount            int     `json:"member_count"`
-	CreateTime             string  `json:"create_time"`
+	Id                      int64   `json:"id"`
+	MockExaminationPaperIds []int64 `json:"mock_examination_paper_ids"`
+	Title                   string  `json:"title"`
+	ExamStartAt             string  `json:"exam_start_at"`
+	ExamEndAt               string  `json:"exam_end_at"`
+	MemberCount             int     `json:"member_count"`
+	CreateTime              string  `json:"create_time"`
 }
 
 type BatchDetailReq struct {
@@ -35,12 +34,11 @@ type BatchDetailRes struct {
 }
 
 type BatchCreateReq struct {
-	g.Meta                 `path:"/exam/batch" method:"post" tags:"考试批次" summary:"创建批次"`
-	MockExaminationPaperId int64   `json:"mock_examination_paper_id" v:"required|min:1#err.invalid_params"`
-	Title                  string  `json:"title" dc:"批次名称"`
-	ExamStartAt            string  `json:"exam_start_at" v:"required#err.invalid_params" dc:"考试允许开始时间，RFC3339 或常见日期时间字符串"`
-	ExamEndAt              string  `json:"exam_end_at" v:"required#err.invalid_params" dc:"考试允许结束时间"`
-	MockLevelIds           []int64 `json:"mock_level_ids" v:"required#err.invalid_params" dc:"mock_levels.id，可多选"`
+	g.Meta                  `path:"/exam/batch" method:"post" tags:"考试批次" summary:"创建批次"`
+	Title                   string  `json:"title" dc:"批次名称"`
+	ExamStartAt             string  `json:"exam_start_at" v:"required#err.invalid_params" dc:"考试允许开始时间，RFC3339 或常见日期时间字符串"`
+	ExamEndAt               string  `json:"exam_end_at" v:"required#err.invalid_params" dc:"考试允许结束时间"`
+	MockExaminationPaperIds []int64 `json:"mock_examination_paper_ids" v:"required#err.invalid_params" dc:"mock 卷 id 多选；须已在考试侧导入 exam_paper"`
 }
 
 type BatchCreateRes struct {
@@ -48,12 +46,12 @@ type BatchCreateRes struct {
 }
 
 type BatchUpdateReq struct {
-	g.Meta       `path:"/exam/batch/{id}" method:"put" tags:"考试批次" summary:"更新批次"`
-	Id           int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params"`
-	Title        string  `json:"title"`
-	ExamStartAt  string  `json:"exam_start_at" v:"required#err.invalid_params"`
-	ExamEndAt    string  `json:"exam_end_at" v:"required#err.invalid_params"`
-	MockLevelIds []int64 `json:"mock_level_ids" v:"required#err.invalid_params"`
+	g.Meta                  `path:"/exam/batch/{id}" method:"put" tags:"考试批次" summary:"更新批次"`
+	Id                      int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params"`
+	Title                   string  `json:"title"`
+	ExamStartAt             string  `json:"exam_start_at" v:"required#err.invalid_params"`
+	ExamEndAt               string  `json:"exam_end_at" v:"required#err.invalid_params"`
+	MockExaminationPaperIds []int64 `json:"mock_examination_paper_ids" v:"required#err.invalid_params"`
 }
 
 type BatchUpdateRes struct{}
@@ -66,10 +64,10 @@ type BatchDeleteReq struct {
 type BatchDeleteRes struct{}
 
 type BatchMembersImportReq struct {
-	g.Meta      `path:"/exam/batch/{id}/members/import" method:"post" tags:"考试批次" summary:"向批次导入学员（sys_member.id）"`
-	Id          int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params"`
-	MockLevelId int64   `json:"mock_level_id" v:"required|min:1#err.invalid_params" dc:"须属于本批次可选等级 mock_levels.id"`
-	MemberIds   []int64 `json:"member_ids" v:"required#err.invalid_params" dc:"学员主键列表，重复会自动去重"`
+	g.Meta                 `path:"/exam/batch/{id}/members/import" method:"post" tags:"考试批次" summary:"向批次导入学员（sys_member.id）"`
+	Id                     int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params"`
+	MockExaminationPaperId int64   `json:"mock_examination_paper_id" v:"required|min:1#err.invalid_params" dc:"须属于本批次已配置的 mock 卷"`
+	MemberIds              []int64 `json:"member_ids" v:"required#err.invalid_params" dc:"学员主键列表，重复会自动去重"`
 }
 
 type BatchMembersImportRes struct {
@@ -89,18 +87,18 @@ type BatchMemberListRes struct {
 }
 
 type BatchMemberListItem struct {
-	MemberId    int64  `json:"member_id"`
-	MockLevelId int64  `json:"mock_level_id"`
-	Username    string `json:"username"`
-	Nickname    string `json:"nickname"`
-	ImportTime  string `json:"import_time"`
+	MemberId               int64  `json:"member_id"`
+	MockExaminationPaperId int64  `json:"mock_examination_paper_id"`
+	Username               string `json:"username"`
+	Nickname               string `json:"nickname"`
+	ImportTime             string `json:"import_time"`
 }
 
 type BatchMembersRemoveReq struct {
-	g.Meta      `path:"/exam/batch/{id}/members/remove" method:"post" tags:"考试批次" summary:"从批次移除学员（指定等级）"`
-	Id          int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params"`
-	MockLevelId int64   `json:"mock_level_id" v:"required|min:1#err.invalid_params"`
-	MemberIds   []int64 `json:"member_ids" v:"required#err.invalid_params"`
+	g.Meta                 `path:"/exam/batch/{id}/members/remove" method:"post" tags:"考试批次" summary:"从批次移除学员（指定 Mock 卷）"`
+	Id                     int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params"`
+	MockExaminationPaperId int64   `json:"mock_examination_paper_id" v:"required|min:1#err.invalid_params"`
+	MemberIds              []int64 `json:"member_ids" v:"required#err.invalid_params"`
 }
 
 type BatchMembersRemoveRes struct {

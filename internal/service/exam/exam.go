@@ -22,22 +22,22 @@ type (
 		AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, items []bo.SubjectiveScoreItem) (subjectiveSum float64, totalScore float64, err error)
 		// ExamBatchList 管理端批次分页；mockPaperID=0 时不按卷筛选。
 		ExamBatchList(ctx context.Context, mockPaperID int64, page int, size int) (list []bo.ExamBatchAdminItem, total int, err error)
-		// ExamBatchDetail 批次详情（含等级 id 列表与学员数）。
+		// ExamBatchDetail 批次详情（含 Mock 卷 id 列表与学员数）。
 		ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdminItem, error)
-		// ExamBatchCreate 创建批次并写入多选 mock_levels。
-		ExamBatchCreate(ctx context.Context, mockPaperID int64, title string, examStartAt string, examEndAt string, mockLevelIds []int64, creator string) (int64, error)
-		// ExamBatchUpdate 更新批次时间与等级多选（全量替换等级关联）。
-		ExamBatchUpdate(ctx context.Context, id int64, title string, examStartAt string, examEndAt string, mockLevelIds []int64, updater string) error
+		// ExamBatchCreate 创建批次并写入多选 Mock 卷（各卷须已导入 exam_paper）。
+		ExamBatchCreate(ctx context.Context, title string, examStartAt string, examEndAt string, mockExaminationPaperIds []int64, creator string) (int64, error)
+		// ExamBatchUpdate 更新批次时间与 Mock 卷多选（全量替换卷关联）。
+		ExamBatchUpdate(ctx context.Context, id int64, title string, examStartAt string, examEndAt string, mockExaminationPaperIds []int64, updater string) error
 		// ExamBatchDelete 逻辑删除批次（不删学员关联与等级行，便于审计；列表已过滤）。
 		ExamBatchDelete(ctx context.Context, id int64) error
-		// ExamBatchMembersImport 导入学员（指定批次内等级）；已存在 (batch,member,level) 则跳过。
-		ExamBatchMembersImport(ctx context.Context, batchID int64, mockLevelID int64, memberIDs []int64, creator string) (inserted int, err error)
+		// ExamBatchMembersImport 导入学员（指定批次内 Mock 卷）；已存在 (batch,member,paper) 则跳过。
+		ExamBatchMembersImport(ctx context.Context, batchID int64, mockExaminationPaperId int64, memberIDs []int64, creator string) (inserted int, err error)
 		// ExamBatchMemberList 批次内学员分页。
 		ExamBatchMemberList(ctx context.Context, batchID int64, page int, size int) (list []bo.ExamBatchMemberAdminRow, total int, err error)
-		// ExamBatchMembersRemove 从批次移除学员（指定 mock_level_id）。
-		ExamBatchMembersRemove(ctx context.Context, batchID int64, mockLevelID int64, memberIDs []int64) (removed int, err error)
-		// ExamBatchMemberDetail 获取批次信息
-		ExamBatchMemberDetail(ctx context.Context, batchID int64, userID int64) (*examentity.ExamBatchMember, error)
+		// ExamBatchMembersRemove 从批次移除学员（指定 mock_examination_paper_id）。
+		ExamBatchMembersRemove(ctx context.Context, batchID int64, mockExaminationPaperId int64, memberIDs []int64) (removed int, err error)
+		// ExamBatchMemberDetail 获取指定 Mock 卷下的批次成员绑定行。
+		ExamBatchMemberDetail(ctx context.Context, batchID int64, userID int64, mockExaminationPaperId int64) (*examentity.ExamBatchMember, error)
 		// MyExamBatches 当前学员在批次成员表中的考试批次（联 exam_batch、exam_paper）。
 		// 仅返回「考试时间窗口内」且「未提交/未结束」的考试资格列表，不分页。
 		MyExamBatches(ctx context.Context, memberID int64) (list []bo.MyExamBatchItem, err error)
@@ -49,7 +49,7 @@ type (
 		BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte, error)
 		PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (map[string]interface{}, error)
 		CreateAttempt(ctx context.Context, userID int64, mockPaperID int64) (int64, error)
-		CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, mockLevelID int64) (int64, error)
+		CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, mockExaminationPaperId int64) (int64, error)
 		StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDurationSeconds int) error
 		GetAttempt(ctx context.Context, userID int64, attemptID int64) (*bo.AttemptView, error)
 		SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.SaveAnswerItem) error

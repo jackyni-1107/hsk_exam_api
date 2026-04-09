@@ -68,9 +68,9 @@ type AttemptCreateRes struct {
 
 // AttemptCreateByBatchReq 按考试批次与报名等级创建答题会话（未开始）。
 type AttemptCreateByBatchReq struct {
-	g.Meta  `path:"/exam/batches/{batchId}/attempts" method:"post" tags:"客户端-考试" summary:"按批次与等级创建答题会话"`
-	BatchId int64 `json:"batchId" in:"path" v:"required|min:1" dc:"exam_batch.id"`
-	//MockLevelId int64 `json:"mock_level_id" v:"required|min:1" dc:"mock_levels.id，须与 exam_batch_member 行一致"`
+	g.Meta                 `path:"/exam/batches/{batchId}/attempts" method:"post" tags:"客户端-考试" summary:"按批次与 Mock 卷创建答题会话"`
+	BatchId                int64 `json:"batchId" in:"path" v:"required|min:1" dc:"exam_batch.id"`
+	MockExaminationPaperId int64 `json:"mock_examination_paper_id" v:"required|min:1" dc:"须与 exam_batch_member 绑定一致"`
 }
 
 type AttemptStartReq struct {

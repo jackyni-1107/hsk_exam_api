@@ -46,10 +46,11 @@
 "err.exam_batch_not_found" = "考试批次不存在"
 "err.exam_batch_time_invalid" = "批次时间无效"
 "err.exam_attempt_use_batch_api" = "请使用批次相关接口"
-"err.exam_batch_level_not_in_batch" = "等级不属于该批次"
 "err.exam_batch_window_not_open" = "当前不在允许的考试时间窗口内"
 "err.exam_batch_member_not_found" = "批次学员不存在"
 "err.exam_attempt_exists_for_batch" = "该批次已有考试记录"
+"err.exam_batch_paper_not_in_batch" = "该 Mock 卷不属于此批次"
+"err.exam_batch_paper_has_members" = "无法移除仍绑定学员的 Mock 卷，请先调整成员"
 
 "err.mock_exam_paper_not_found" = "模拟卷不存在"
 "err.mock_level_not_found" = "模拟等级不存在"

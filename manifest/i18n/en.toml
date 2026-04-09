@@ -46,10 +46,11 @@
 "err.exam_batch_not_found" = "Exam batch not found"
 "err.exam_batch_time_invalid" = "Invalid batch time range"
 "err.exam_attempt_use_batch_api" = "Please use the batch-related API"
-"err.exam_batch_level_not_in_batch" = "Level is not part of this batch"
 "err.exam_batch_window_not_open" = "Exam window is not open"
 "err.exam_batch_member_not_found" = "Batch member not found"
 "err.exam_attempt_exists_for_batch" = "An attempt already exists for this batch"
+"err.exam_batch_paper_not_in_batch" = "This mock paper is not part of the batch"
+"err.exam_batch_paper_has_members" = "Cannot remove a mock paper that still has members; update members first"
 
 "err.mock_exam_paper_not_found" = "Mock exam paper not found"
 "err.mock_level_not_found" = "Mock level not found"

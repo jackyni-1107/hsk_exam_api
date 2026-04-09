@@ -57,10 +57,11 @@ var (
 	CodeExamBatchNotFound         = gcode.New(11115, "err.exam_batch_not_found", nil)
 	CodeExamBatchTimeInvalid      = gcode.New(11116, "err.exam_batch_time_invalid", nil)
 	CodeExamAttemptUseBatchApi    = gcode.New(11117, "err.exam_attempt_use_batch_api", nil)
-	CodeExamBatchLevelNotInBatch  = gcode.New(11118, "err.exam_batch_level_not_in_batch", nil)
 	CodeExamBatchWindowNotOpen    = gcode.New(11119, "err.exam_batch_window_not_open", nil)
 	CodeExamBatchMemberNotFound   = gcode.New(11120, "err.exam_batch_member_not_found", nil)
 	CodeExamAttemptExistsForBatch = gcode.New(11121, "err.exam_attempt_exists_for_batch", nil)
+	CodeExamBatchPaperNotInBatch  = gcode.New(11122, "err.exam_batch_paper_not_in_batch", nil)
+	CodeExamBatchPaperHasMembers  = gcode.New(11123, "err.exam_batch_paper_has_members", nil)
 
 	// Mock 模拟卷（11201-11299）
 	CodeMockExamPaperNotFound   = gcode.New(11201, "err.mock_exam_paper_not_found", nil)

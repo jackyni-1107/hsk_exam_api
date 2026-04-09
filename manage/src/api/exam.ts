@@ -129,11 +129,10 @@ export function updateExamPaper(data: {
 
 export interface ExamBatchListItem {
   id: number
-  mock_examination_paper_id: number
+  mock_examination_paper_ids: number[]
   title: string
   exam_start_at: string
   exam_end_at: string
-  mock_level_ids: number[]
   member_count: number
   create_time: string
 }
@@ -153,18 +152,17 @@ export function getExamBatchDetail(id: number) {
 }
 
 export function createExamBatch(data: {
-  mock_examination_paper_id: number
   title?: string
   exam_start_at: string
   exam_end_at: string
-  mock_level_ids: number[]
+  mock_examination_paper_ids: number[]
 }) {
   return request.post<any, { data: { id: number } }>('/admin/exam/batch', data)
 }
 
 export function updateExamBatch(
   id: number,
-  data: { title?: string; exam_start_at: string; exam_end_at: string; mock_level_ids: number[] }
+  data: { title?: string; exam_start_at: string; exam_end_at: string; mock_examination_paper_ids: number[] }
 ) {
   return request.put<any, { data: Record<string, never> }>(`/admin/exam/batch/${id}`, data)
 }
@@ -175,7 +173,7 @@ export function deleteExamBatch(id: number) {
 
 export interface ExamBatchMemberItem {
   member_id: number
-  mock_level_id: number
+  mock_examination_paper_id: number
   username: string
   nickname: string
   import_time: string
@@ -183,7 +181,7 @@ export interface ExamBatchMemberItem {
 
 export function importExamBatchMembers(
   batchId: number,
-  data: { mock_level_id: number; member_ids: number[] },
+  data: { mock_examination_paper_id: number; member_ids: number[] },
 ) {
   return request.post<any, { data: { inserted: number } }>(
     `/admin/exam/batch/${batchId}/members/import`,
@@ -200,7 +198,7 @@ export function getExamBatchMemberList(batchId: number, params?: { page?: number
 
 export function removeExamBatchMembers(
   batchId: number,
-  data: { mock_level_id: number; member_ids: number[] },
+  data: { mock_examination_paper_id: number; member_ids: number[] },
 ) {
   return request.post<any, { data: { removed: number } }>(
     `/admin/exam/batch/${batchId}/members/remove`,

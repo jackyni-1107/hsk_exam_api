@@ -44,7 +44,7 @@ var (
 	ExamResult               = examdao.ExamResult
 	ExamAttemptQuestionAudio = examdao.ExamAttemptQuestionAudio
 	ExamBatch                = examdao.ExamBatch
-	ExamBatchMockLevel       = examdao.ExamBatchMockLevel
+	ExamBatchMockPaper       = examdao.ExamBatchMockPaper
 	ExamBatchMember          = examdao.ExamBatchMember
 	MockLevels               = mockdao.MockLevels
 	MockExaminationPaper     = mockdao.MockExaminationPaper

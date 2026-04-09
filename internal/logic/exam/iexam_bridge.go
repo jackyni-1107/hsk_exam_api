@@ -48,8 +48,8 @@ func (s *sExam) CreateAttempt(ctx context.Context, userID int64, mockPaperID int
 	return CreateAttempt(ctx, userID, mockPaperID)
 }
 
-func (s *sExam) CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, mockLevelID int64) (int64, error) {
-	return CreateAttemptForBatch(ctx, userID, batchID, mockLevelID)
+func (s *sExam) CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, mockExaminationPaperId int64) (int64, error) {
+	return CreateAttemptForBatch(ctx, userID, batchID, mockExaminationPaperId)
 }
 
 func (s *sExam) StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDurationSeconds int) error {

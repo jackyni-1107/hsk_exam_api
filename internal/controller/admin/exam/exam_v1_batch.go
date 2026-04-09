@@ -11,21 +11,20 @@ import (
 )
 
 func batchListItemPtr(b *bo.ExamBatchAdminItem) *v1.BatchListItem {
-	ids := b.MockLevelIds
+	ids := b.MockExaminationPaperIds
 	if ids == nil {
 		ids = []int64{}
 	}
 	formattedStartAt := util.ToRFC3339UTC(b.ExamStartAt)
 	formattedEndAt := util.ToRFC3339UTC(b.ExamEndAt)
 	return &v1.BatchListItem{
-		Id:                     b.Id,
-		MockExaminationPaperId: b.MockExaminationPaperId,
-		Title:                  b.Title,
-		ExamStartAt:            formattedStartAt,
-		ExamEndAt:              formattedEndAt,
-		MockLevelIds:           ids,
-		MemberCount:            b.MemberCount,
-		CreateTime:             util.ToRFC3339UTC(b.CreateTime),
+		Id:                      b.Id,
+		MockExaminationPaperIds: ids,
+		Title:                   b.Title,
+		ExamStartAt:             formattedStartAt,
+		ExamEndAt:               formattedEndAt,
+		MemberCount:             b.MemberCount,
+		CreateTime:              util.ToRFC3339UTC(b.CreateTime),
 	}
 }
 
@@ -60,7 +59,7 @@ func (c *ControllerV1) BatchCreate(ctx context.Context, req *v1.BatchCreateReq) 
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := exam.Exam().ExamBatchCreate(ctx, req.MockExaminationPaperId, req.Title, req.ExamStartAt, req.ExamEndAt, req.MockLevelIds, creator)
+	id, err := exam.Exam().ExamBatchCreate(ctx, req.Title, req.ExamStartAt, req.ExamEndAt, req.MockExaminationPaperIds, creator)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +71,7 @@ func (c *ControllerV1) BatchUpdate(ctx context.Context, req *v1.BatchUpdateReq) 
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	if err := exam.Exam().ExamBatchUpdate(ctx, req.Id, req.Title, req.ExamStartAt, req.ExamEndAt, req.MockLevelIds, updater); err != nil {
+	if err := exam.Exam().ExamBatchUpdate(ctx, req.Id, req.Title, req.ExamStartAt, req.ExamEndAt, req.MockExaminationPaperIds, updater); err != nil {
 		return nil, err
 	}
 	return &v1.BatchUpdateRes{}, nil
@@ -90,7 +89,7 @@ func (c *ControllerV1) BatchMembersImport(ctx context.Context, req *v1.BatchMemb
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	n, err := exam.Exam().ExamBatchMembersImport(ctx, req.Id, req.MockLevelId, req.MemberIds, creator)
+	n, err := exam.Exam().ExamBatchMembersImport(ctx, req.Id, req.MockExaminationPaperId, req.MemberIds, creator)
 	if err != nil {
 		return nil, err
 	}
@@ -111,18 +110,18 @@ func (c *ControllerV1) BatchMemberList(ctx context.Context, req *v1.BatchMemberL
 	list := make([]*v1.BatchMemberListItem, 0, len(rows))
 	for _, r := range rows {
 		list = append(list, &v1.BatchMemberListItem{
-			MemberId:    r.MemberId,
-			MockLevelId: r.MockLevelId,
-			Username:    r.Username,
-			Nickname:    r.Nickname,
-			ImportTime:  util.ToRFC3339UTC(r.ImportTime),
+			MemberId:               r.MemberId,
+			MockExaminationPaperId: r.MockExaminationPaperId,
+			Username:               r.Username,
+			Nickname:               r.Nickname,
+			ImportTime:             util.ToRFC3339UTC(r.ImportTime),
 		})
 	}
 	return &v1.BatchMemberListRes{List: list, Total: total}, nil
 }
 
 func (c *ControllerV1) BatchMembersRemove(ctx context.Context, req *v1.BatchMembersRemoveReq) (res *v1.BatchMembersRemoveRes, err error) {
-	n, err := exam.Exam().ExamBatchMembersRemove(ctx, req.Id, req.MockLevelId, req.MemberIds)
+	n, err := exam.Exam().ExamBatchMembersRemove(ctx, req.Id, req.MockExaminationPaperId, req.MemberIds)
 	if err != nil {
 		return nil, err
 	}
