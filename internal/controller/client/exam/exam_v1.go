@@ -81,12 +81,12 @@ func (c *ControllerV1) AttemptCreateByBatch(ctx context.Context, req *v1.Attempt
 	if ctxData == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired, "")
 	}
-	_, err = exam.Exam().ExamBatchMemberDetail(ctx, req.BatchId, ctxData.UserId, req.MockExaminationPaperId)
-	if err != nil {
-		return nil, err
-	}
+	//_, err = exam.Exam().ExamBatchMemberDetail(ctx, req.BatchId, ctxData.UserId, req.MockExaminationPaperId)
+	//if err != nil {
+	//	return nil, err
+	//}
 	var id int64
-	id, err = exam.Exam().CreateAttemptForBatch(ctx, ctxData.UserId, req.BatchId, req.MockExaminationPaperId)
+	id, err = exam.Exam().CreateAttemptForBatch(ctx, ctxData.UserId, req.BatchId)
 	if err != nil {
 		return nil, err
 	}

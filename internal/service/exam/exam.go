@@ -49,7 +49,7 @@ type (
 		BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte, error)
 		PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (map[string]interface{}, error)
 		CreateAttempt(ctx context.Context, userID int64, mockPaperID int64) (int64, error)
-		CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, mockExaminationPaperId int64) (int64, error)
+		CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64) (int64, error)
 		StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDurationSeconds int) error
 		GetAttempt(ctx context.Context, userID int64, attemptID int64) (*bo.AttemptView, error)
 		SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.SaveAnswerItem) error
