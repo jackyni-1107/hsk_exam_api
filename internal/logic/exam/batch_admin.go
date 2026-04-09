@@ -45,30 +45,25 @@ func parseBatchTime(s string) (*gtime.Time, error) {
 	return t, nil
 }
 
-func (s *sExam) ensureMockLevelInBatch(ctx context.Context, batchID, mockLevelID int64) error {
-	if mockLevelID <= 0 {
+func (s *sExam) ensureMockPaperInBatch(ctx context.Context, batchID, mockPaperID int64) error {
+	if mockPaperID <= 0 {
 		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 	}
-	c, err := dao.ExamBatchMockLevel.Ctx(ctx).Where("batch_id", batchID).Where("mock_level_id", mockLevelID).Count()
+	c, err := dao.ExamBatchMockPaper.Ctx(ctx).Where("batch_id", batchID).Where("mock_examination_paper_id", mockPaperID).Count()
 	if err != nil {
 		return err
 	}
 	if c == 0 {
-		return gerror.NewCode(consts.CodeExamBatchLevelNotInBatch, "")
+		return gerror.NewCode(consts.CodeExamBatchPaperNotInBatch, "")
 	}
 	return nil
 }
 
-func (s *sExam) ensureMockLevelsExist(ctx context.Context, ids []int64) error {
-	if len(ids) == 0 {
-		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
-	}
-	c, err := dao.MockLevels.Ctx(ctx).WhereIn("id", ids).Where("delete_flag", consts.DeleteFlagNotDeleted).Count()
-	if err != nil {
-		return err
-	}
-	if c != len(ids) {
-		return gerror.NewCode(consts.CodeMockLevelNotFound, "")
+func (s *sExam) ensureMockPapersImported(ctx context.Context, ids []int64) error {
+	for _, id := range ids {
+		if _, err := exampaper.ByMockID(ctx, id); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -98,14 +93,14 @@ func (s *sExam) examBatchByID(ctx context.Context, id int64) (examentity.ExamBat
 	return b, nil
 }
 
-func (s *sExam) loadMockLevelIDsForBatch(ctx context.Context, batchID int64) ([]int64, error) {
-	var rows []examentity.ExamBatchMockLevel
-	if err := dao.ExamBatchMockLevel.Ctx(ctx).Where("batch_id", batchID).OrderAsc("mock_level_id").Scan(&rows); err != nil {
+func (s *sExam) loadMockPaperIDsForBatch(ctx context.Context, batchID int64) ([]int64, error) {
+	var rows []examentity.ExamBatchMockPaper
+	if err := dao.ExamBatchMockPaper.Ctx(ctx).Where("batch_id", batchID).OrderAsc("mock_examination_paper_id").Scan(&rows); err != nil {
 		return nil, err
 	}
 	out := make([]int64, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, r.MockLevelId)
+		out = append(out, r.MockExaminationPaperId)
 	}
 	return out, nil
 }
@@ -134,31 +129,30 @@ func (s *sExam) memberCountByBatchIDs(ctx context.Context, batchIDs []int64) (ma
 	return m, nil
 }
 
-func (s *sExam) mockLevelsByBatchIDs(ctx context.Context, batchIDs []int64) (map[int64][]int64, error) {
+func (s *sExam) mockPapersByBatchIDs(ctx context.Context, batchIDs []int64) (map[int64][]int64, error) {
 	if len(batchIDs) == 0 {
 		return map[int64][]int64{}, nil
 	}
-	var rows []examentity.ExamBatchMockLevel
-	if err := dao.ExamBatchMockLevel.Ctx(ctx).WhereIn("batch_id", batchIDs).OrderAsc("mock_level_id").Scan(&rows); err != nil {
+	var rows []examentity.ExamBatchMockPaper
+	if err := dao.ExamBatchMockPaper.Ctx(ctx).WhereIn("batch_id", batchIDs).OrderAsc("mock_examination_paper_id").Scan(&rows); err != nil {
 		return nil, err
 	}
 	m := make(map[int64][]int64)
 	for _, r := range rows {
-		m[r.BatchId] = append(m[r.BatchId], r.MockLevelId)
+		m[r.BatchId] = append(m[r.BatchId], r.MockExaminationPaperId)
 	}
 	return m, nil
 }
 
-func (s *sExam) toBatchAdminItem(b examentity.ExamBatch, levelIDs []int64, memberCount int) bo.ExamBatchAdminItem {
+func (s *sExam) toBatchAdminItem(b examentity.ExamBatch, paperIDs []int64, memberCount int) bo.ExamBatchAdminItem {
 	return bo.ExamBatchAdminItem{
-		Id:                     b.Id,
-		MockExaminationPaperId: b.MockExaminationPaperId,
-		Title:                  b.Title,
-		ExamStartAt:            b.ExamStartAt,
-		ExamEndAt:              b.ExamEndAt,
-		MockLevelIds:           levelIDs,
-		MemberCount:            memberCount,
-		CreateTime:             b.CreateTime,
+		Id:                      b.Id,
+		MockExaminationPaperIds: paperIDs,
+		Title:                   b.Title,
+		ExamStartAt:             b.ExamStartAt,
+		ExamEndAt:               b.ExamEndAt,
+		MemberCount:             memberCount,
+		CreateTime:              b.CreateTime,
 	}
 }
 
@@ -172,7 +166,20 @@ func (s *sExam) ExamBatchList(ctx context.Context, mockPaperID int64, page, size
 	}
 	q := dao.ExamBatch.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted)
 	if mockPaperID > 0 {
-		q = q.Where("mock_examination_paper_id", mockPaperID)
+		var ebpRows []struct {
+			BatchId int64 `orm:"batch_id"`
+		}
+		if err := dao.ExamBatchMockPaper.Ctx(ctx).Fields("batch_id").Where("mock_examination_paper_id", mockPaperID).Scan(&ebpRows); err != nil {
+			return nil, 0, err
+		}
+		if len(ebpRows) == 0 {
+			return []bo.ExamBatchAdminItem{}, 0, nil
+		}
+		batchIDs := make([]int64, len(ebpRows))
+		for i := range ebpRows {
+			batchIDs[i] = ebpRows[i].BatchId
+		}
+		q = q.WhereIn("id", batchIDs)
 	}
 	total, err = q.Count()
 	if err != nil {
@@ -186,7 +193,7 @@ func (s *sExam) ExamBatchList(ctx context.Context, mockPaperID int64, page, size
 	for i := range batches {
 		ids[i] = batches[i].Id
 	}
-	levelMap, err := s.mockLevelsByBatchIDs(ctx, ids)
+	paperMap, err := s.mockPapersByBatchIDs(ctx, ids)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -196,22 +203,22 @@ func (s *sExam) ExamBatchList(ctx context.Context, mockPaperID int64, page, size
 	}
 	list = make([]bo.ExamBatchAdminItem, 0, len(batches))
 	for _, b := range batches {
-		lids := levelMap[b.Id]
-		if lids == nil {
-			lids = []int64{}
+		pids := paperMap[b.Id]
+		if pids == nil {
+			pids = []int64{}
 		}
-		list = append(list, s.toBatchAdminItem(b, lids, cntMap[b.Id]))
+		list = append(list, s.toBatchAdminItem(b, pids, cntMap[b.Id]))
 	}
 	return list, total, nil
 }
 
-// ExamBatchDetail 批次详情（含等级 id 列表与学员数）。
+// ExamBatchDetail 批次详情（含 Mock 卷 id 列表与学员数）。
 func (s *sExam) ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdminItem, error) {
 	b, err := s.examBatchByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	lids, err := s.loadMockLevelIDsForBatch(ctx, id)
+	pids, err := s.loadMockPaperIDsForBatch(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -219,13 +226,17 @@ func (s *sExam) ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdm
 	if err != nil {
 		return nil, err
 	}
-	item := s.toBatchAdminItem(b, lids, cntMap[id])
+	item := s.toBatchAdminItem(b, pids, cntMap[id])
 	return &item, nil
 }
 
-// ExamBatchCreate 创建批次并写入多选 mock_levels。
-func (s *sExam) ExamBatchCreate(ctx context.Context, mockPaperID int64, title, examStartAt, examEndAt string, mockLevelIds []int64, creator string) (int64, error) {
-	if _, err := exampaper.ByMockID(ctx, mockPaperID); err != nil {
+// ExamBatchCreate 创建批次并写入多选 Mock 卷（须已导入 exam_paper）。
+func (s *sExam) ExamBatchCreate(ctx context.Context, title, examStartAt, examEndAt string, mockPaperIDs []int64, creator string) (int64, error) {
+	paperIDs := dedupPositiveInt64(mockPaperIDs)
+	if len(paperIDs) == 0 {
+		return 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+	}
+	if err := s.ensureMockPapersImported(ctx, paperIDs); err != nil {
 		return 0, err
 	}
 	st, err := parseBatchTime(examStartAt)
@@ -239,39 +250,32 @@ func (s *sExam) ExamBatchCreate(ctx context.Context, mockPaperID int64, title, e
 	if !en.After(st) {
 		return 0, gerror.NewCode(consts.CodeExamBatchTimeInvalid, "")
 	}
-	levelIDs := dedupPositiveInt64(mockLevelIds)
-	if err := s.ensureMockLevelsExist(ctx, levelIDs); err != nil {
-		return 0, err
-	}
 	var newID int64
 	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		row := examentity.ExamBatch{
-			MockExaminationPaperId: mockPaperID,
-			Title:                  strings.TrimSpace(title),
-			ExamStartAt:            st,
-			ExamEndAt:              en,
-			Creator:                creator,
-			Updater:                creator,
-			CreateTime:             gtime.Now(),
-			UpdateTime:             gtime.Now(),
-			DeleteFlag:             consts.DeleteFlagNotDeleted,
+			Title:       strings.TrimSpace(title),
+			ExamStartAt: st,
+			ExamEndAt:   en,
+			Creator:     creator,
+			Updater:     creator,
+			CreateTime:  gtime.Now(),
+			UpdateTime:  gtime.Now(),
+			DeleteFlag:  consts.DeleteFlagNotDeleted,
 		}
 		pid, err := tx.Model(dao.ExamBatch.Table()).Ctx(ctx).InsertAndGetId(row)
 		if err != nil {
 			return err
 		}
 		newID = pid
-		if len(levelIDs) > 0 {
-			batch := make([]gdb.Map, 0, len(levelIDs))
-			for _, lid := range levelIDs {
-				batch = append(batch, gdb.Map{
-					dao.ExamBatchMockLevel.Columns().BatchId:     newID,
-					dao.ExamBatchMockLevel.Columns().MockLevelId: lid,
-				})
-			}
-			if _, err := tx.Model(dao.ExamBatchMockLevel.Table()).Ctx(ctx).Data(batch).Insert(); err != nil {
-				return err
-			}
+		batch := make([]gdb.Map, 0, len(paperIDs))
+		for _, mid := range paperIDs {
+			batch = append(batch, gdb.Map{
+				dao.ExamBatchMockPaper.Columns().BatchId:                newID,
+				dao.ExamBatchMockPaper.Columns().MockExaminationPaperId: mid,
+			})
+		}
+		if _, err := tx.Model(dao.ExamBatchMockPaper.Table()).Ctx(ctx).Data(batch).Insert(); err != nil {
+			return err
 		}
 		return nil
 	})
@@ -281,8 +285,17 @@ func (s *sExam) ExamBatchCreate(ctx context.Context, mockPaperID int64, title, e
 	return newID, nil
 }
 
-// ExamBatchUpdate 更新批次时间与等级多选（全量替换等级关联）。
-func (s *sExam) ExamBatchUpdate(ctx context.Context, id int64, title, examStartAt, examEndAt string, mockLevelIds []int64, updater string) error {
+func (s *sExam) batchHasMembersOutsidePaperSet(ctx context.Context, batchID int64, paperIDs []int64) (bool, error) {
+	if len(paperIDs) == 0 {
+		n, err := dao.ExamBatchMember.Ctx(ctx).Where("batch_id", batchID).Count()
+		return n > 0, err
+	}
+	n, err := dao.ExamBatchMember.Ctx(ctx).Where("batch_id", batchID).WhereNotIn("mock_examination_paper_id", paperIDs).Count()
+	return n > 0, err
+}
+
+// ExamBatchUpdate 更新批次时间与 Mock 卷多选（全量替换卷关联）；若移除的卷上仍有成员绑定则失败。
+func (s *sExam) ExamBatchUpdate(ctx context.Context, id int64, title, examStartAt, examEndAt string, mockPaperIDs []int64, updater string) error {
 	if _, err := s.examBatchByID(ctx, id); err != nil {
 		return err
 	}
@@ -297,9 +310,19 @@ func (s *sExam) ExamBatchUpdate(ctx context.Context, id int64, title, examStartA
 	if !en.After(st) {
 		return gerror.NewCode(consts.CodeExamBatchTimeInvalid, "")
 	}
-	levelIDs := dedupPositiveInt64(mockLevelIds)
-	if err := s.ensureMockLevelsExist(ctx, levelIDs); err != nil {
+	paperIDs := dedupPositiveInt64(mockPaperIDs)
+	if len(paperIDs) == 0 {
+		return gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
+	}
+	if err := s.ensureMockPapersImported(ctx, paperIDs); err != nil {
 		return err
+	}
+	hasOrphan, err := s.batchHasMembersOutsidePaperSet(ctx, id, paperIDs)
+	if err != nil {
+		return err
+	}
+	if hasOrphan {
+		return gerror.NewCode(consts.CodeExamBatchPaperHasMembers, "")
 	}
 	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		if _, err := tx.Model(dao.ExamBatch.Table()).Ctx(ctx).Where("id", id).Data(g.Map{
@@ -311,26 +334,24 @@ func (s *sExam) ExamBatchUpdate(ctx context.Context, id int64, title, examStartA
 		}).Update(); err != nil {
 			return err
 		}
-		if _, err := tx.Model(dao.ExamBatchMockLevel.Table()).Ctx(ctx).Where("batch_id", id).Delete(); err != nil {
+		if _, err := tx.Model(dao.ExamBatchMockPaper.Table()).Ctx(ctx).Where("batch_id", id).Delete(); err != nil {
 			return err
 		}
-		if len(levelIDs) > 0 {
-			batch := make([]gdb.Map, 0, len(levelIDs))
-			for _, lid := range levelIDs {
-				batch = append(batch, gdb.Map{
-					dao.ExamBatchMockLevel.Columns().BatchId:     id,
-					dao.ExamBatchMockLevel.Columns().MockLevelId: lid,
-				})
-			}
-			if _, err := tx.Model(dao.ExamBatchMockLevel.Table()).Ctx(ctx).Data(batch).Insert(); err != nil {
-				return err
-			}
+		batch := make([]gdb.Map, 0, len(paperIDs))
+		for _, mid := range paperIDs {
+			batch = append(batch, gdb.Map{
+				dao.ExamBatchMockPaper.Columns().BatchId:                id,
+				dao.ExamBatchMockPaper.Columns().MockExaminationPaperId: mid,
+			})
+		}
+		if _, err := tx.Model(dao.ExamBatchMockPaper.Table()).Ctx(ctx).Data(batch).Insert(); err != nil {
+			return err
 		}
 		return nil
 	})
 }
 
-// ExamBatchDelete 逻辑删除批次（不删学员关联与等级行，便于审计；列表已过滤）。
+// ExamBatchDelete 逻辑删除批次（不删学员关联与卷行，便于审计；列表已过滤）。
 func (s *sExam) ExamBatchDelete(ctx context.Context, id int64) error {
 	if _, err := s.examBatchByID(ctx, id); err != nil {
 		return err
@@ -342,12 +363,12 @@ func (s *sExam) ExamBatchDelete(ctx context.Context, id int64) error {
 	return err
 }
 
-// ExamBatchMembersImport 导入学员（指定批次内等级）；已存在 (batch,member,level) 则跳过。
-func (s *sExam) ExamBatchMembersImport(ctx context.Context, batchID int64, mockLevelID int64, memberIDs []int64, creator string) (inserted int, err error) {
+// ExamBatchMembersImport 导入学员（指定批次内 Mock 卷）；已存在 (batch,member,paper) 则跳过。
+func (s *sExam) ExamBatchMembersImport(ctx context.Context, batchID int64, mockPaperID int64, memberIDs []int64, creator string) (inserted int, err error) {
 	if _, err := s.examBatchByID(ctx, batchID); err != nil {
 		return 0, err
 	}
-	if err := s.ensureMockLevelInBatch(ctx, batchID, mockLevelID); err != nil {
+	if err := s.ensureMockPaperInBatch(ctx, batchID, mockPaperID); err != nil {
 		return 0, err
 	}
 	ids := dedupPositiveInt64(memberIDs)
@@ -360,7 +381,7 @@ func (s *sExam) ExamBatchMembersImport(ctx context.Context, batchID int64, mockL
 	var existing []struct {
 		MemberId int64 `orm:"member_id"`
 	}
-	if err := dao.ExamBatchMember.Ctx(ctx).Fields("member_id").Where("batch_id", batchID).Where("mock_level_id", mockLevelID).WhereIn("member_id", ids).Scan(&existing); err != nil {
+	if err := dao.ExamBatchMember.Ctx(ctx).Fields("member_id").Where("batch_id", batchID).Where("mock_examination_paper_id", mockPaperID).WhereIn("member_id", ids).Scan(&existing); err != nil {
 		return 0, err
 	}
 	have := make(map[int64]struct{}, len(existing))
@@ -381,11 +402,11 @@ func (s *sExam) ExamBatchMembersImport(ctx context.Context, batchID int64, mockL
 	rows := make([]gdb.Map, 0, len(toAdd))
 	for _, mid := range toAdd {
 		rows = append(rows, gdb.Map{
-			dao.ExamBatchMember.Columns().BatchId:     batchID,
-			dao.ExamBatchMember.Columns().MemberId:    mid,
-			dao.ExamBatchMember.Columns().MockLevelId: mockLevelID,
-			dao.ExamBatchMember.Columns().Creator:     creator,
-			dao.ExamBatchMember.Columns().CreateTime:  now,
+			dao.ExamBatchMember.Columns().BatchId:                batchID,
+			dao.ExamBatchMember.Columns().MemberId:               mid,
+			dao.ExamBatchMember.Columns().MockExaminationPaperId: mockPaperID,
+			dao.ExamBatchMember.Columns().Creator:                creator,
+			dao.ExamBatchMember.Columns().CreateTime:             now,
 		})
 	}
 	_, err = dao.ExamBatchMember.Ctx(ctx).Data(rows).Insert()
@@ -421,12 +442,12 @@ func (s *sExam) ExamBatchMemberList(ctx context.Context, batchID int64, page, si
 	memberIDs := make([]int64, len(links))
 	type linkKey struct {
 		mid int64
-		lid int64
+		pid int64
 	}
 	linkTime := make(map[linkKey]*gtime.Time, len(links))
 	for i, l := range links {
 		memberIDs[i] = l.MemberId
-		linkTime[linkKey{l.MemberId, l.MockLevelId}] = l.CreateTime
+		linkTime[linkKey{l.MemberId, l.MockExaminationPaperId}] = l.CreateTime
 	}
 	var users []sysentity.SysMember
 	if err = dao.SysMember.Ctx(ctx).WhereIn("id", memberIDs).Scan(&users); err != nil {
@@ -440,29 +461,29 @@ func (s *sExam) ExamBatchMemberList(ctx context.Context, batchID int64, page, si
 	for _, l := range links {
 		u := um[l.MemberId]
 		list = append(list, bo.ExamBatchMemberAdminRow{
-			MemberId:    l.MemberId,
-			MockLevelId: l.MockLevelId,
-			Username:    u.Username,
-			Nickname:    u.Nickname,
-			ImportTime:  linkTime[linkKey{l.MemberId, l.MockLevelId}],
+			MemberId:               l.MemberId,
+			MockExaminationPaperId: l.MockExaminationPaperId,
+			Username:               u.Username,
+			Nickname:               u.Nickname,
+			ImportTime:             linkTime[linkKey{l.MemberId, l.MockExaminationPaperId}],
 		})
 	}
 	return list, total, nil
 }
 
-// ExamBatchMembersRemove 从批次移除学员（指定 mock_level_id）。
-func (s *sExam) ExamBatchMembersRemove(ctx context.Context, batchID int64, mockLevelID int64, memberIDs []int64) (removed int, err error) {
+// ExamBatchMembersRemove 从批次移除学员（指定 mock_examination_paper_id）。
+func (s *sExam) ExamBatchMembersRemove(ctx context.Context, batchID int64, mockPaperID int64, memberIDs []int64) (removed int, err error) {
 	if _, err := s.examBatchByID(ctx, batchID); err != nil {
 		return 0, err
 	}
-	if mockLevelID <= 0 {
+	if mockPaperID <= 0 {
 		return 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 	}
 	ids := dedupPositiveInt64(memberIDs)
 	if len(ids) == 0 {
 		return 0, gerror.NewCode(consts.CodeInvalidParams, "err.invalid_params")
 	}
-	r, err := dao.ExamBatchMember.Ctx(ctx).Where("batch_id", batchID).Where("mock_level_id", mockLevelID).WhereIn("member_id", ids).Delete()
+	r, err := dao.ExamBatchMember.Ctx(ctx).Where("batch_id", batchID).Where("mock_examination_paper_id", mockPaperID).WhereIn("member_id", ids).Delete()
 	if err != nil {
 		return 0, err
 	}
@@ -473,19 +494,19 @@ func (s *sExam) ExamBatchMembersRemove(ctx context.Context, batchID int64, mockL
 	return int(n), nil
 }
 
-// ExamBatchMemberDetail 获取批次信息
-func (s *sExam) ExamBatchMemberDetail(ctx context.Context, batchID int64, userID int64) (*examentity.ExamBatchMember, error) {
-	var result *examentity.ExamBatchMember
-
-	// Scan 会自动处理 One() 的逻辑并映射到结构体
+// ExamBatchMemberDetail 指定批次、学员、Mock 卷的成员绑定行。
+func (s *sExam) ExamBatchMemberDetail(ctx context.Context, batchID int64, userID int64, mockPaperID int64) (*examentity.ExamBatchMember, error) {
+	var row examentity.ExamBatchMember
 	err := dao.ExamBatchMember.Ctx(ctx).
-		Where(g.Map{
-			"batch_id":  batchID,
-			"member_id": userID,
-		}).Scan(&result) // 注意这里传的是指针地址
-
+		Where("batch_id", batchID).
+		Where("member_id", userID).
+		Where("mock_examination_paper_id", mockPaperID).
+		Scan(&row)
 	if err != nil {
 		return nil, err
 	}
-	return result, nil
+	if row.BatchId == 0 {
+		return nil, gerror.NewCode(consts.CodeExamBatchMemberNotFound, "")
+	}
+	return &row, nil
 }
