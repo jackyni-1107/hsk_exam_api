@@ -193,41 +193,45 @@ func hasPermission(perms []string, required string) bool {
 }
 
 // RBACFromPath 根据路径和方法推断所需权限
-// 例如：GET /api/admin/user/list -> user:list, POST /api/admin/user -> user:create
+// 例如：GET /api/admin/user/list 或 GET /admin/user/list（无 /api 前缀时） -> user:list
 func RBACFromPath(r *ghttp.Request) {
 	perm := inferPermission(r.URL.Path, r.Method)
 	RBAC(perm)(r)
 }
 
 func inferPermission(path, method string) string {
-	// /api/admin/user/list -> user:list, /api/admin/menu/tree -> menu:list
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) < 3 {
+	path = strings.Trim(path, "/")
+	parts := strings.Split(path, "/")
+	if len(parts) > 0 && parts[0] == "api" {
+		parts = parts[1:]
+	}
+	// admin/<resource>/...
+	if len(parts) < 2 || parts[0] != "admin" {
 		return ""
 	}
-	resource := parts[2]
+	resource := parts[1]
 	// 当前用户自身接口（菜单树等）：仅需已登录，不按菜单 permission 推断
 	if resource == "me" {
 		return ""
 	}
-	// /api/admin/exam/paper/import -> exam:import（与列表 exam:list 区分）
-	if resource == "exam" && len(parts) >= 4 && parts[3] == "paper" && len(parts) >= 5 && parts[4] == "import" {
+	// admin/exam/paper/import -> exam:import（与列表 exam:list 区分）
+	if resource == "exam" && len(parts) >= 4 && parts[2] == "paper" && parts[3] == "import" {
 		return "exam:import"
 	}
-	// /api/admin/exam/attempt/list 与 /api/admin/exam/attempt/{id} -> exam:result:list
-	if resource == "exam" && len(parts) >= 4 && parts[3] == "attempt" && method == "GET" {
+	// admin/exam/attempt/list 与 admin/exam/attempt/{id} -> exam:result:list
+	if resource == "exam" && len(parts) >= 3 && parts[2] == "attempt" && method == "GET" {
 		return "exam:result:list"
 	}
-	// /api/admin/exam/attempt/{id}/subjective-scores -> exam:result:grade
-	if resource == "exam" && len(parts) >= 6 && parts[3] == "attempt" && parts[5] == "subjective-scores" && method == "PUT" {
+	// admin/exam/attempt/{id}/subjective-scores -> exam:result:grade
+	if resource == "exam" && len(parts) >= 5 && parts[2] == "attempt" && parts[4] == "subjective-scores" && method == "PUT" {
 		return "exam:result:grade"
 	}
-	// 特殊路径：/api/admin/task/run -> task:run, /api/admin/task/log -> task:log
-	if resource == "task" && len(parts) >= 4 {
-		if parts[3] == "run" {
+	// admin/task/run -> task:run, admin/task/log -> task:log
+	if resource == "task" && len(parts) >= 3 {
+		if parts[2] == "run" {
 			return "task:run"
 		}
-		if parts[3] == "log" {
+		if parts[2] == "log" {
 			return "task:log"
 		}
 	}
@@ -235,7 +239,7 @@ func inferPermission(path, method string) string {
 	case "GET":
 		return resource + ":list"
 	case "POST":
-		if resource == "user" && len(parts) >= 5 && parts[4] == "kick-sessions" {
+		if resource == "user" && len(parts) >= 4 && parts[3] == "kick-sessions" {
 			return "user:update"
 		}
 		return resource + ":create"

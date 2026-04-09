@@ -1,10 +1,13 @@
 package openapi
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/net/goai"
+
+	appcfg "exam/internal/config"
 )
 
 const (
@@ -42,13 +45,17 @@ func writeOpenAPIJSON(r *ghttp.Request, doc *goai.OpenApiV3) {
 }
 
 // registerSplitOpenAPIHandlers 注册管理端 / 客户端两份 OpenAPI JSON（依赖 GoFrame 在 Run 阶段生成的完整规范）。
-func registerSplitOpenAPIHandlers(s *ghttp.Server) {
+func registerSplitOpenAPIHandlers(s *ghttp.Server, apiPrefix string) {
+	adminP := appcfg.JoinHTTPPath(apiPrefix, "admin")
+	clientP := appcfg.JoinHTTPPath(apiPrefix, "client")
 	s.BindHandler(pathOpenAPIAdmin, func(r *ghttp.Request) {
-		doc := filterOpenAPIByPathPrefix(s.GetOpenApi(), "/api/admin", "（管理端）", "仅包含 `/api/admin` 前缀的接口。")
+		desc := fmt.Sprintf("仅包含 `%s` 前缀的接口。", adminP)
+		doc := filterOpenAPIByPathPrefix(s.GetOpenApi(), adminP, "（管理端）", desc)
 		writeOpenAPIJSON(r, doc)
 	})
 	s.BindHandler(pathOpenAPIClient, func(r *ghttp.Request) {
-		doc := filterOpenAPIByPathPrefix(s.GetOpenApi(), "/api/client", "（客户端）", "仅包含 `/api/client` 前缀的接口。")
+		desc := fmt.Sprintf("仅包含 `%s` 前缀的接口。", clientP)
+		doc := filterOpenAPIByPathPrefix(s.GetOpenApi(), clientP, "（客户端）", desc)
 		writeOpenAPIJSON(r, doc)
 	})
 }

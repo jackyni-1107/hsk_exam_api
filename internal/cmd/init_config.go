@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"strings"
 
 	appcfg "exam/internal/config"
 	"exam/internal/model/bo"
@@ -41,4 +42,15 @@ func initConfig(ctx context.Context) {
 	}
 	appcfg.Config.Exam = examCfg
 
+	initApiPrefix(ctx)
+}
+
+// initApiPrefix 读取 server.apiPrefix；未配置时默认 "/api" 与历史行为一致；显式配置为空字符串表示无前缀。
+func initApiPrefix(ctx context.Context) {
+	v, err := g.Cfg().Get(ctx, "server.apiPrefix")
+	if err != nil || v.IsNil() {
+		appcfg.Config.ApiPrefix = "/api"
+		return
+	}
+	appcfg.Config.ApiPrefix = strings.TrimSuffix(strings.TrimSpace(v.String()), "/")
 }

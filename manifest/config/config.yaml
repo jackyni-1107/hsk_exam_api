@@ -1,6 +1,8 @@
 # https://goframe.org/docs/web/server-config-file-template
 server:
   address: ":8002"
+  # 路由前缀：开发直连前端时常用 /api；测试/生产若 nginx 已去掉 /api 再反代，此处设为 ""（须写键名，空字符串表示无前缀）
+  apiPrefix: "/api"
   # 完整 OpenAPI JSON（全部接口）；管理端 / 客户端拆分见 GET /openapi/admin.json、/openapi/client.json
   openapiPath: "/api.json"
   swaggerPath: "/swagger"

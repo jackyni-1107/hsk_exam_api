@@ -7,6 +7,7 @@ import (
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/os/gcmd"
 
+	appcfg "exam/internal/config"
 	"exam/internal/consts"
 	adminAuditLog "exam/internal/controller/admin/audit_log"
 	adminAuth "exam/internal/controller/admin/auth"
@@ -42,28 +43,33 @@ var (
 			InitAll(ctx)
 
 			s := g.Server()
+			apiP := appcfg.Config.ApiPrefix
+			clientAPI := appcfg.JoinHTTPPath(apiP, "client")
+			adminAPI := appcfg.JoinHTTPPath(apiP, "admin")
+			clientExamMedia := appcfg.JoinHTTPPath(apiP, "client/exam/media")
+
 			s.Group("/", func(group *ghttp.RouterGroup) {
 				group.GET("/health", health.Liveness)
 				group.GET("/ready", health.Readiness)
 			})
 			// 客户端认证：login / captcha / logout 不经过 Auth，无需 Token。
-			s.Group("/api/client", func(group *ghttp.RouterGroup) {
+			s.Group(clientAPI, func(group *ghttp.RouterGroup) {
 				group.Middleware(middleware.Trace, middleware.Response, middleware.HandlerResponseI18n)
 				group.Bind(clientAuth.NewV1())
 			})
-			s.Group("/api/client", func(group *ghttp.RouterGroup) {
+			s.Group(clientAPI, func(group *ghttp.RouterGroup) {
 				group.Middleware(middleware.Trace, middleware.Response, middleware.HandlerResponseI18n, middleware.Auth(consts.UserTypeClient))
 				group.Bind(clientMe.NewV1(), clientExam.NewV1())
 			})
-			s.Group("/api/client/exam/media", func(group *ghttp.RouterGroup) {
+			s.Group(clientExamMedia, func(group *ghttp.RouterGroup) {
 				group.Middleware(middleware.Trace, middleware.Response)
 				group.GET("/hls/{ticket}.m3u8", clientExam.ServeHlsM3U8)
 			})
-			s.Group("/api/admin", func(group *ghttp.RouterGroup) {
+			s.Group(adminAPI, func(group *ghttp.RouterGroup) {
 				group.Middleware(middleware.Trace, middleware.Response, middleware.HandlerResponseI18n)
 				group.Bind(adminAuth.NewV1())
 			})
-			s.Group("/api/admin", func(group *ghttp.RouterGroup) {
+			s.Group(adminAPI, func(group *ghttp.RouterGroup) {
 				group.Middleware(
 					middleware.Trace,
 					middleware.Response,
@@ -90,7 +96,7 @@ var (
 					adminMock.NewV1(),
 				)
 			})
-			openapi.RegisterSplitEndpoints(s)
+			openapi.RegisterSplitEndpoints(s, apiP)
 			task.StartScheduler(ctx)
 			s.Run()
 			return nil
