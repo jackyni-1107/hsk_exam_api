@@ -2,9 +2,16 @@ package exam
 
 import (
 	"context"
+	"encoding/json"
+	"sort"
+	"strings"
 
 	v1 "exam/api/admin/exam/v1"
+	"exam/internal/consts"
+	mockdao "exam/internal/dao/mock"
 	"exam/internal/model/bo"
+	examentity "exam/internal/model/entity/exam"
+	mockentity "exam/internal/model/entity/mock"
 	examsvc "exam/internal/service/exam"
 	"exam/internal/util"
 )
@@ -47,6 +54,26 @@ func (c *ControllerV1) AttemptDetail(ctx context.Context, req *v1.AttemptDetailR
 		return nil, err
 	}
 	a := d.Attempt
+	mockPaperName := ""
+	if d.Paper.MockExaminationPaperId > 0 {
+		var mockPaper mockentity.MockExaminationPaper
+		_ = mockdao.MockExaminationPaper.Ctx(ctx).
+			Where(mockdao.MockExaminationPaper.Columns().Id, d.Paper.MockExaminationPaperId).
+			Where(mockdao.MockExaminationPaper.Columns().DeleteFlag, consts.DeleteFlagNotDeleted).
+			Scan(&mockPaper)
+		mockPaperName = mockPaper.Name
+	}
+	levelDisplay := strings.TrimSpace(d.Paper.Level)
+	if a.MockLevelId > 0 {
+		var lv mockentity.MockLevels
+		_ = mockdao.MockLevels.Ctx(ctx).
+			Where(mockdao.MockLevels.Columns().Id, a.MockLevelId).
+			Where(mockdao.MockLevels.Columns().DeleteFlag, consts.DeleteFlagNotDeleted).
+			Scan(&lv)
+		if strings.TrimSpace(lv.LevelName) != "" {
+			levelDisplay = strings.TrimSpace(lv.LevelName)
+		}
+	}
 	out := &v1.AttemptDetailRes{
 		Attempt: v1.AttemptDetailAttempt{
 			Id:                 a.Id,
@@ -71,7 +98,8 @@ func (c *ControllerV1) AttemptDetail(ctx context.Context, req *v1.AttemptDetailR
 		},
 		Paper: v1.AttemptDetailPaper{
 			Id:      d.Paper.MockExaminationPaperId,
-			Level:   d.Paper.Level,
+			Name:    mockPaperName,
+			Level:   levelDisplay,
 			PaperId: d.Paper.PaperId,
 			Title:   d.Paper.Title,
 		},
@@ -84,6 +112,13 @@ func (c *ControllerV1) AttemptDetail(ctx context.Context, req *v1.AttemptDetailR
 			v := row.Answer.AwardedScore
 			awarded = &v
 		}
+		var sectionID int64
+		var sectionTitle string
+		if row.Section != nil {
+			sectionID = row.Section.Id
+			sectionTitle = row.Section.TopicTitle
+		}
+		opts := mapAttemptDetailOptions(row.Options)
 		out.Answers = append(out.Answers, v1.AttemptDetailAnswer{
 			QuestionId:       row.Answer.ExamQuestionId,
 			QuestionNo:       q.QuestionNo,
@@ -94,9 +129,77 @@ func (c *ControllerV1) AttemptDetail(ctx context.Context, req *v1.AttemptDetailR
 			AnswerJson:       row.Answer.AnswerJson,
 			AwardedScore:     awarded,
 			ObjectiveCorrect: row.ObjectiveCorrect,
+			SectionId:        sectionID,
+			SectionTitle:     sectionTitle,
+			AnalysisText:     pickAnalysisText(q.AnalysisJson),
+			Options:          opts,
 		})
 	}
 	return out, nil
+}
+
+func mapAttemptDetailOptions(src []examentity.ExamOption) []v1.AttemptDetailOption {
+	if len(src) == 0 {
+		return nil
+	}
+	cp := append([]examentity.ExamOption(nil), src...)
+	sort.Slice(cp, func(i, j int) bool {
+		if cp[i].SortOrder != cp[j].SortOrder {
+			return cp[i].SortOrder < cp[j].SortOrder
+		}
+		return cp[i].Id < cp[j].Id
+	})
+	out := make([]v1.AttemptDetailOption, 0, len(cp))
+	for _, o := range cp {
+		out = append(out, v1.AttemptDetailOption{
+			Id:         o.Id,
+			Flag:       o.Flag,
+			SortOrder:  o.SortOrder,
+			IsCorrect:  o.IsCorrect,
+			OptionType: o.OptionType,
+			Content:    o.Content,
+		})
+	}
+	return out
+}
+
+func pickAnalysisText(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(raw), &m); err != nil {
+		return raw
+	}
+	for _, k := range []string{"zh", "zh-CN", "cn", "en"} {
+		if s := stringifyAnalysisValue(m[k]); s != "" {
+			return s
+		}
+	}
+	for _, v := range m {
+		if s := stringifyAnalysisValue(v); s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+func stringifyAnalysisValue(v interface{}) string {
+	switch x := v.(type) {
+	case string:
+		return strings.TrimSpace(x)
+	case []interface{}:
+		var parts []string
+		for _, it := range x {
+			if s := stringifyAnalysisValue(it); s != "" {
+				parts = append(parts, s)
+			}
+		}
+		return strings.Join(parts, " ")
+	default:
+		return ""
+	}
 }
 
 func (c *ControllerV1) AttemptSubjectiveScores(ctx context.Context, req *v1.AttemptSubjectiveScoresReq) (res *v1.AttemptSubjectiveScoresRes, err error) {

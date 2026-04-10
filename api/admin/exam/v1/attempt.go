@@ -86,9 +86,10 @@ type AttemptDetailUser struct {
 
 type AttemptDetailPaper struct {
 	Id      int64  `json:"id" dc:"mock_examination_paper.id"`
+	Name    string `json:"name" dc:"mock_examination_paper.name"`
 	Level   string `json:"level"`
 	PaperId string `json:"paper_id"`
-	Title   string `json:"title"`
+	Title   string `json:"title" dc:"exam_paper.title"`
 }
 
 type AttemptDetailAnswer struct {
@@ -103,6 +104,7 @@ type AttemptDetailAnswer struct {
 	ObjectiveCorrect *bool                 `json:"objective_correct" dc:"客观非例题时是否选对，主观题/例题为 null"`
 	SectionId        int64                 `json:"section_id" dc:"所属大题 ID"`
 	SectionTitle     string                `json:"section_title" dc:"所属大题标题"`
+	AnalysisText     string                `json:"analysis_text" dc:"解析文案（从 analysis_json 抽取）"`
 	Options          []AttemptDetailOption `json:"options" dc:"题目选项列表（含是否正确标记）"`
 }
 

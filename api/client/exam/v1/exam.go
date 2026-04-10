@@ -90,10 +90,10 @@ type AttemptGetRes struct {
 	ExaminationPaperId int64   `json:"examination_paper_id" dc:"mock_examination_paper.id"`
 	Status             int     `json:"status"`
 	DurationSeconds    int     `json:"duration_seconds"`
-	StartedAt          *string `json:"started_at"`
-	DeadlineAt         *string `json:"deadline_at"`
-	SubmittedAt        *string `json:"submitted_at"`
-	EndedAt            *string `json:"ended_at"`
+	StartedAt          string  `json:"started_at"`
+	DeadlineAt         string  `json:"deadline_at"`
+	SubmittedAt        string  `json:"submitted_at"`
+	EndedAt            string  `json:"ended_at"`
 	ObjectiveScore     float64 `json:"objective_score"`
 	SubjectiveScore    float64 `json:"subjective_score"`
 	TotalScore         float64 `json:"total_score"`

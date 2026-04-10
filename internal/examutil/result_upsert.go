@@ -1,3 +1,8 @@
+// Package examutil 含考试域通用逻辑。
+//
+// 时间字段约定：exam_attempt 为 started_at / submitted_at / ended_at（及 deadline_at）的唯一权威来源；
+// exam_result 中对应列为查询优化用的冗余快照，仅允许通过 UpsertFromAttemptTx 在更新 attempt 的同一事务内写入，
+// 禁止其它路径直接改 exam_result 的时间列。展示层在已 JOIN attempt 时应优先读 a.*（见 attempt_admin 列表 SQL）。
 package examutil
 
 import (

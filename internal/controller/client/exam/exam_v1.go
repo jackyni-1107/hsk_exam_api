@@ -127,10 +127,10 @@ func (c *ControllerV1) AttemptGet(ctx context.Context, req *v1.AttemptGetReq) (r
 		ServerTime:         v.ServerTime,
 		DeadlineReached:    v.DeadlineReached,
 	}
-	out.StartedAt = util.ToRFC3339UTCPtr(a.StartedAt)
-	out.DeadlineAt = util.ToRFC3339UTCPtr(a.DeadlineAt)
-	out.SubmittedAt = util.ToRFC3339UTCPtr(a.SubmittedAt)
-	out.EndedAt = util.ToRFC3339UTCPtr(a.EndedAt)
+	out.StartedAt = util.ToRFC3339UTC(a.StartedAt)
+	out.DeadlineAt = util.ToRFC3339UTC(a.DeadlineAt)
+	out.SubmittedAt = util.ToRFC3339UTC(a.SubmittedAt)
+	out.EndedAt = util.ToRFC3339UTC(a.EndedAt)
 	return out, nil
 }
 

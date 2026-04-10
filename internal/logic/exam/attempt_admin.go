@@ -54,8 +54,16 @@ func (s *sExam) AttemptAdminList(ctx context.Context, page, size int, level stri
 INNER JOIN exam_attempt a ON a.id = r.attempt_id AND a.delete_flag = ?
 LEFT JOIN sys_member u ON u.id = r.member_id AND u.delete_flag = ?
 LEFT JOIN exam_paper p ON p.id = r.exam_paper_id AND p.delete_flag = ?
+LEFT JOIN mock_examination_paper m ON m.id = p.mock_examination_paper_id AND m.delete_flag = ?
+LEFT JOIN mock_levels ml ON ml.id = r.mock_level_id AND ml.delete_flag = ?
 WHERE ` + w
-	joinArgs := []interface{}{consts.DeleteFlagNotDeleted, consts.DeleteFlagNotDeleted, consts.DeleteFlagNotDeleted}
+	joinArgs := []interface{}{
+		consts.DeleteFlagNotDeleted,
+		consts.DeleteFlagNotDeleted,
+		consts.DeleteFlagNotDeleted,
+		consts.DeleteFlagNotDeleted,
+		consts.DeleteFlagNotDeleted,
+	}
 
 	countSQL := "SELECT COUNT(1) AS total" + from
 	countArgs := append(append([]interface{}{}, joinArgs...), args...)
@@ -73,9 +81,11 @@ WHERE ` + w
 	listSQL := `SELECT r.attempt_id AS id, r.member_id, IFNULL(p.mock_examination_paper_id,0) AS examination_paper_id,
 IFNULL(r.exam_batch_id,0) AS exam_batch_id, IFNULL(r.mock_level_id,0) AS mock_level_id, r.status,
 r.objective_score, r.subjective_score, r.total_score, r.has_subjective,
-r.started_at, r.submitted_at, r.ended_at, r.create_time,
+a.started_at, a.submitted_at, a.ended_at, a.create_time,
 IFNULL(u.username,'') AS username, IFNULL(u.nickname,'') AS nickname,
-IFNULL(p.title,'') AS paper_title, IFNULL(p.level,'') AS paper_level, IFNULL(p.paper_id,'') AS remote_paper_id` +
+	IFNULL(TRIM(IFNULL(m.name,'')), '') AS paper_title,
+	COALESCE(NULLIF(TRIM(IFNULL(ml.level_name,'')), ''), IFNULL(p.level,'')) AS paper_level,
+	IFNULL(p.paper_id,'') AS remote_paper_id` +
 		from + ` ORDER BY r.attempt_id DESC LIMIT ? OFFSET ?`
 	listArgs := append(append([]interface{}{}, joinArgs...), args...)
 	listArgs = append(listArgs, size, offset)
