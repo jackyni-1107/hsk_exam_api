@@ -11,48 +11,48 @@ type PaperForExamReq struct {
 
 type PaperForExamRes struct {
 	Id                   int64                  `json:"id" dc:"mock_examination_paper.id"`
-	Level                string                 `json:"level"`
-	PaperId              string                 `json:"paper_id"`
-	Title                string                 `json:"title"`
-	SourceBaseUrl        string                 `json:"source_base_url"`
-	ListeningAudioPrefix string                 `json:"listening_audio_prefix"`
-	DurationSeconds      int                    `json:"duration_seconds"`
-	Prepare              PaperForExamPrepare    `json:"prepare"`
-	Items                []PaperForExamItemInit `json:"items"`
+	Level                string                 `json:"level" dc:"试卷级别"`
+	PaperId              string                 `json:"paper_id" dc:"远程试卷ID"`
+	Title                string                 `json:"title" dc:"试卷标题"`
+	SourceBaseUrl        string                 `json:"source_base_url" dc:"资源基础URL"`
+	ListeningAudioPrefix string                 `json:"listening_audio_prefix" dc:"听力音频前缀"`
+	DurationSeconds      int                    `json:"duration_seconds" dc:"考试时长(秒)"`
+	Prepare              PaperForExamPrepare    `json:"prepare" dc:"准备阶段信息"`
+	Items                []PaperForExamItemInit `json:"items" dc:"大题初始化列表"`
 }
 
 type PaperSectionForExamReq struct {
 	g.Meta    `path:"/exam/papers/{paperId}/sections/{sectionId}" method:"get" tags:"客户端-考试" summary:"按大题拉取 topic JSON 结构（脱敏，与资源文件字段一致）"`
 	PaperId   int64 `json:"paperId" in:"path" v:"required|min:1" dc:"mock_examination_paper.id"`
-	SectionId int64 `json:"sectionId" in:"path" v:"required|min:1"`
+	SectionId int64 `json:"sectionId" in:"path" v:"required|min:1" dc:"大题ID"`
 }
 
 type PaperForExamPrepare struct {
-	Instruction string `json:"instruction"`
-	AudioFile   string `json:"audio_file"`
-	Title       string `json:"title"`
+	Instruction string `json:"instruction" dc:"准备阶段说明"`
+	AudioFile   string `json:"audio_file" dc:"准备阶段音频文件"`
+	Title       string `json:"title" dc:"准备阶段标题"`
 }
 
 // PaperForExamItemInit 初始化用 item 概要（block 无 questions），字段命名与 index.json 对齐。
 type PaperForExamItemInit struct {
-	Id            int64                   `json:"id"`
-	SortOrder     int                     `json:"sort_order"`
-	TopicTitle    string                  `json:"topic_title"`
-	TopicSubtitle string                  `json:"topic_subtitle"`
-	TopicType     string                  `json:"topic_type"`
-	PartCode      int                     `json:"part_code"`
-	SegmentCode   string                  `json:"segment_code"`
-	TopicItems    string                  `json:"topic_items"`
-	TopicJson     string                  `json:"topic_json"`
-	Blocks        []PaperForExamBlockInit `json:"blocks"`
+	Id            int64                   `json:"id" dc:"大题ID"`
+	SortOrder     int                     `json:"sort_order" dc:"排序"`
+	TopicTitle    string                  `json:"topic_title" dc:"大题标题"`
+	TopicSubtitle string                  `json:"topic_subtitle" dc:"大题副标题"`
+	TopicType     string                  `json:"topic_type" dc:"题型"`
+	PartCode      int                     `json:"part_code" dc:"部分编号"`
+	SegmentCode   string                  `json:"segment_code" dc:"段落编号"`
+	TopicItems    string                  `json:"topic_items" dc:"题目文件名"`
+	TopicJson     string                  `json:"topic_json" dc:"大题JSON"`
+	Blocks        []PaperForExamBlockInit `json:"blocks" dc:"题块初始化列表"`
 }
 
 type PaperForExamBlockInit struct {
-	Id                      int64  `json:"id"`
-	BlockOrder              int    `json:"block_order"`
-	GroupIndex              int    `json:"group_index"`
-	QuestionDescriptionJson string `json:"question_description_json"`
-	QuestionCount           int    `json:"question_count"`
+	Id                      int64  `json:"id" dc:"题块ID"`
+	BlockOrder              int    `json:"block_order" dc:"题块排序"`
+	GroupIndex              int    `json:"group_index" dc:"组索引"`
+	QuestionDescriptionJson string `json:"question_description_json" dc:"题块描述(JSON)"`
+	QuestionCount           int    `json:"question_count" dc:"题目数量"`
 }
 
 // --- 会话 ---
@@ -63,7 +63,7 @@ type PaperForExamBlockInit struct {
 //}
 
 type AttemptCreateRes struct {
-	AttemptId int64 `json:"attempt_id"`
+	AttemptId int64 `json:"attempt_id" dc:"答题会话ID"`
 }
 
 // AttemptCreateByBatchReq 按考试批次与报名等级创建答题会话（未开始）。
@@ -74,7 +74,7 @@ type AttemptCreateByBatchReq struct {
 
 type AttemptStartReq struct {
 	g.Meta          `path:"/exam/attempts/{id}/start" method:"post" tags:"客户端-考试" summary:"开考"`
-	Id              int64 `json:"id" in:"path" v:"required|min:1"`
+	Id              int64 `json:"id" in:"path" v:"required|min:1" dc:"答题会话ID"`
 	DurationSeconds int   `json:"duration_seconds" dc:"可选，覆盖默认时长，服务端会按 max 夹紧"`
 }
 
@@ -82,34 +82,34 @@ type AttemptStartRes struct{}
 
 type AttemptGetReq struct {
 	g.Meta `path:"/exam/attempts/{id}" method:"get" tags:"客户端-考试" summary:"答题会话详情"`
-	Id     int64 `json:"id" in:"path" v:"required|min:1"`
+	Id     int64 `json:"id" in:"path" v:"required|min:1" dc:"答题会话ID"`
 }
 
 type AttemptGetRes struct {
-	Id                 int64   `json:"id"`
+	Id                 int64   `json:"id" dc:"会话ID"`
 	ExaminationPaperId int64   `json:"examination_paper_id" dc:"mock_examination_paper.id"`
-	Status             int     `json:"status"`
-	DurationSeconds    int     `json:"duration_seconds"`
-	StartedAt          string  `json:"started_at"`
-	DeadlineAt         string  `json:"deadline_at"`
-	SubmittedAt        string  `json:"submitted_at"`
-	EndedAt            string  `json:"ended_at"`
-	ObjectiveScore     float64 `json:"objective_score"`
-	SubjectiveScore    float64 `json:"subjective_score"`
-	TotalScore         float64 `json:"total_score"`
-	HasSubjective      int     `json:"has_subjective"`
-	ServerTime         string  `json:"server_time"`
-	DeadlineReached    bool    `json:"deadline_reached"`
+	Status             int     `json:"status" dc:"会话状态"`
+	DurationSeconds    int     `json:"duration_seconds" dc:"考试时长(秒)"`
+	StartedAt          string  `json:"started_at" dc:"开考时间"`
+	DeadlineAt         string  `json:"deadline_at" dc:"截止时间"`
+	SubmittedAt        string  `json:"submitted_at" dc:"交卷时间"`
+	EndedAt            string  `json:"ended_at" dc:"结束时间"`
+	ObjectiveScore     float64 `json:"objective_score" dc:"客观题得分"`
+	SubjectiveScore    float64 `json:"subjective_score" dc:"主观题得分"`
+	TotalScore         float64 `json:"total_score" dc:"总分"`
+	HasSubjective      int     `json:"has_subjective" dc:"是否含主观题：0否 1是"`
+	ServerTime         string  `json:"server_time" dc:"服务端当前时间"`
+	DeadlineReached    bool    `json:"deadline_reached" dc:"是否已到截止时间"`
 }
 
 type AttemptSaveAnswersReq struct {
 	g.Meta `path:"/exam/attempts/{id}/answers" method:"put" tags:"客户端-考试" summary:"保存答案（批量）"`
-	Id     int64               `json:"id" in:"path" v:"required|min:1"`
-	Items  []AttemptAnswerItem `json:"items"`
+	Id     int64               `json:"id" in:"path" v:"required|min:1" dc:"答题会话ID"`
+	Items  []AttemptAnswerItem `json:"items" dc:"答案列表"`
 }
 
 type AttemptAnswerItem struct {
-	QuestionId int64 `json:"question_id" v:"required"`
+	QuestionId int64 `json:"question_id" v:"required" dc:"题目ID"`
 	Answer     any   `json:"answer" dc:"客观题传选项ID；写作题传文本"`
 }
 
@@ -117,7 +117,7 @@ type AttemptSaveAnswersRes struct{}
 
 type AttemptSubmitReq struct {
 	g.Meta `path:"/exam/attempts/{id}/submit" method:"post" tags:"客户端-考试" summary:"交卷"`
-	Id     int64 `json:"id" in:"path" v:"required|min:1"`
+	Id     int64 `json:"id" in:"path" v:"required|min:1" dc:"答题会话ID"`
 }
 
 type AttemptSubmitRes struct{}
@@ -126,11 +126,11 @@ type AttemptSubmitRes struct{}
 type AttemptRandomAnswersReq struct {
 	g.Meta    `path:"/exam/papers/{paperId}/attempts/{attemptId}/random-answers" method:"post" tags:"客户端-考试-测试" summary:"随机填答（仅测试环境）"`
 	PaperId   int64 `json:"paperId" in:"path" v:"required|min:1" dc:"mock_examination_paper.id"`
-	AttemptId int64 `json:"attemptId" in:"path" v:"required|min:1"`
+	AttemptId int64 `json:"attemptId" in:"path" v:"required|min:1" dc:"答题会话ID"`
 }
 
 type AttemptSaveAnswersBody struct {
-	Items []AttemptAnswerItem `json:"items"`
+	Items []AttemptAnswerItem `json:"items" dc:"答案列表"`
 }
 
 type AttemptRandomAnswersRes struct {

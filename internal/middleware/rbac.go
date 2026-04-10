@@ -16,11 +16,6 @@ import (
 	"exam/internal/service/audit"
 )
 
-const (
-	permCachePrefix = "user:perms:"
-	permCacheTTL    = 300 // 5分钟
-)
-
 // RBAC 权限校验中间件：校验用户是否拥有指定权限
 // permission 为空时跳过校验；非空时要求用户拥有该权限（system_menu.permission）
 func RBAC(permission string) ghttp.HandlerFunc {
@@ -57,7 +52,7 @@ func RBAC(permission string) ghttp.HandlerFunc {
 		}
 
 		if !hasPermission(perms, permission) {
-			audit.Audit().RecordSecurityEvent(r.GetCtx(), "permission_denied", ctxData.UserId, r.GetClientIp(), r.Header.Get("User-Agent"), "permission denied: "+permission, GetTraceId(r.GetCtx()))
+			audit.Audit().RecordSecurityEvent(r.GetCtx(), consts.SecurityEventPermissionDenied, ctxData.UserId, r.GetClientIp(), r.Header.Get("User-Agent"), "permission denied: "+permission, GetTraceId(r.GetCtx()))
 			r.SetError(gerror.NewCode(consts.CodePermissionDenied))
 			r.ExitAll()
 			return
@@ -69,7 +64,7 @@ func RBAC(permission string) ghttp.HandlerFunc {
 
 func getUserPermissions(ctx context.Context, userId int64) ([]string, error) {
 	// 尝试从 Redis 缓存获取
-	cacheKey := permCachePrefix + gconv.String(userId)
+	cacheKey := consts.PermCacheKeyPrefix + gconv.String(userId)
 	val, err := g.Redis().Get(ctx, cacheKey)
 	if err == nil && !val.IsEmpty() {
 		var perms []string
@@ -124,7 +119,7 @@ func getUserPermissions(ctx context.Context, userId int64) ([]string, error) {
 	// 写入缓存
 	if len(perms) > 0 {
 		if data, err := json.Marshal(perms); err == nil {
-			_ = g.Redis().SetEX(ctx, cacheKey, string(data), permCacheTTL)
+			_ = g.Redis().SetEX(ctx, cacheKey, string(data), consts.PermCacheTTLSeconds)
 		}
 	}
 

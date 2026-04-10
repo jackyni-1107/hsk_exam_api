@@ -4,12 +4,8 @@ import (
 	"context"
 
 	v1 "exam/api/admin/user/v1"
-	"exam/internal/consts"
-	"exam/internal/dao"
 	"exam/internal/middleware"
-	sysdo "exam/internal/model/do/sys"
-
-	"github.com/gogf/gf/v2/errors/gerror"
+	usersvc "exam/internal/service/user"
 )
 
 func (c *ControllerV1) UserRoleAssign(ctx context.Context, req *v1.UserRoleAssignReq) (res *v1.UserRoleAssignRes, err error) {
@@ -17,18 +13,9 @@ func (c *ControllerV1) UserRoleAssign(ctx context.Context, req *v1.UserRoleAssig
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	_, err = dao.SystemUserRole.Ctx(ctx).Where("user_id", req.Id).Delete()
+	err = usersvc.User().UserRoleAssign(ctx, req.Id, req.RoleIds, creator)
 	if err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
-	}
-	for _, rid := range req.RoleIds {
-		_, err = dao.SystemUserRole.Ctx(ctx).Insert(sysdo.SysUserRole{
-			UserId: req.Id, RoleId: rid, Creator: creator, Updater: creator,
-			DeleteFlag: consts.DeleteFlagNotDeleted,
-		})
-		if err != nil {
-			return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
-		}
+		return nil, err
 	}
 	return &v1.UserRoleAssignRes{}, nil
 }

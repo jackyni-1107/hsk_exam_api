@@ -11,11 +11,11 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/examutil"
 	"exam/internal/model/bo"
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
 	sysentity "exam/internal/model/entity/sys"
+	"exam/internal/utility/examutil"
 )
 
 // AttemptAdminList 分页查询答题会话（联表学员、试卷）。

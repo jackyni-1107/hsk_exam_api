@@ -18,9 +18,9 @@ type tokenPayload struct {
 
 func userTypeTag(ut int) string {
 	if ut == consts.UserTypeClient {
-		return "client"
+		return consts.UserTypeTagClient
 	}
-	return "admin"
+	return consts.UserTypeTagAdmin
 }
 
 // Auth 校验 Bearer Token 并注入 CtxData。

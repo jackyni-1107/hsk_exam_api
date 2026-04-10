@@ -8,11 +8,9 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/util/guid"
 
+	"exam/internal/consts"
 	"exam/internal/model/bo"
 )
-
-const captchaKeyPrefix = "captcha:"
-const captchaTTLSeconds = 300
 
 // CreateCaptcha 生成验证码并存 Redis
 func (s *sSecurity) CreateCaptcha(ctx context.Context) (*bo.CaptchaChallenge, error) {
@@ -20,8 +18,8 @@ func (s *sSecurity) CreateCaptcha(ctx context.Context) (*bo.CaptchaChallenge, er
 	b := rand.Intn(20) + 1
 	answer := a + b
 	id := guid.S()
-	key := captchaKeyPrefix + id
-	if err := g.Redis().SetEX(ctx, key, fmt.Sprintf("%d", answer), captchaTTLSeconds); err != nil {
+	key := consts.CaptchaKeyPrefix + id
+	if err := g.Redis().SetEX(ctx, key, fmt.Sprintf("%d", answer), consts.CaptchaTTLSeconds); err != nil {
 		return nil, err
 	}
 	return &bo.CaptchaChallenge{
@@ -35,7 +33,7 @@ func (s *sSecurity) VerifyCaptcha(ctx context.Context, captchaId, answer string)
 	if captchaId == "" || answer == "" {
 		return false
 	}
-	key := captchaKeyPrefix + captchaId
+	key := consts.CaptchaKeyPrefix + captchaId
 	val, err := g.Redis().Get(ctx, key)
 	if err != nil || val.IsEmpty() {
 		return false

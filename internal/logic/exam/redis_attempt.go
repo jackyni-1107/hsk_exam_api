@@ -10,20 +10,18 @@ import (
 	"exam/internal/consts"
 )
 
-const submitLockTTL = 45
-
 func submitLockKey(attemptID int64) string {
-	return fmt.Sprintf("exam:attempt:%d:submit_lock", attemptID)
+	return fmt.Sprintf(consts.ExamSubmitLockKeyFmt, attemptID)
 }
 
 func saveRateKey(attemptID int64) string {
-	return fmt.Sprintf("exam:attempt:%d:save_rate", attemptID)
+	return fmt.Sprintf(consts.ExamSaveRateKeyFmt, attemptID)
 }
 
 // TryAcquireSubmitLock 交卷/超时自动交卷互斥，避免重复计分。
 func TryAcquireSubmitLock(ctx context.Context, attemptID int64) (bool, error) {
 	key := submitLockKey(attemptID)
-	v, err := g.Redis().Do(ctx, "SET", key, "1", "NX", "EX", submitLockTTL)
+	v, err := g.Redis().Do(ctx, "SET", key, "1", "NX", "EX", consts.ExamSubmitLockTTL)
 	if err != nil {
 		return false, err
 	}

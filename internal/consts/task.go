@@ -25,3 +25,12 @@ const (
 	TriggerTypeDelay  = 2
 	TriggerTypeManual = 3
 )
+
+// ---------- Task Redis 键（hskexam:task:业务名:唯一标识） ----------
+
+const (
+	TaskClusterExecLockKeyFmt     = "hskexam:task:cluster_exec:%d"
+	TaskClusterExecLockTTLSeconds = 300
+	TaskSemKeyFmt                 = "hskexam:task:sem:%d"
+	TaskSemExpireSeconds          = 3600
+)

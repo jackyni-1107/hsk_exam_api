@@ -13,7 +13,8 @@ import (
 	examentity "exam/internal/model/entity/exam"
 	mockentity "exam/internal/model/entity/mock"
 	examsvc "exam/internal/service/exam"
-	"exam/internal/util"
+	mocksvc "exam/internal/service/mock"
+	"exam/internal/utility"
 )
 
 func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) (res *v1.AttemptListRes, err error) {
@@ -39,10 +40,10 @@ func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) 
 			SubjectiveScore:    r.SubjectiveScore,
 			TotalScore:         r.TotalScore,
 			HasSubjective:      r.HasSubjective,
-			StartedAt:          util.ToRFC3339UTC(r.StartedAt),
-			SubmittedAt:        util.ToRFC3339UTC(r.SubmittedAt),
-			EndedAt:            util.ToRFC3339UTC(r.EndedAt),
-			CreateTime:         util.ToRFC3339UTC(r.CreateTime),
+			StartedAt:          utility.ToRFC3339UTC(r.StartedAt),
+			SubmittedAt:        utility.ToRFC3339UTC(r.SubmittedAt),
+			EndedAt:            utility.ToRFC3339UTC(r.EndedAt),
+			CreateTime:         utility.ToRFC3339UTC(r.CreateTime),
 		})
 	}
 	return &v1.AttemptListRes{List: list, Total: total}, nil
@@ -54,17 +55,18 @@ func (c *ControllerV1) AttemptDetail(ctx context.Context, req *v1.AttemptDetailR
 		return nil, err
 	}
 	a := d.Attempt
+
 	mockPaperName := ""
 	if d.Paper.MockExaminationPaperId > 0 {
-		var mockPaper mockentity.MockExaminationPaper
-		_ = mockdao.MockExaminationPaper.Ctx(ctx).
-			Where(mockdao.MockExaminationPaper.Columns().Id, d.Paper.MockExaminationPaperId).
-			Where(mockdao.MockExaminationPaper.Columns().DeleteFlag, consts.DeleteFlagNotDeleted).
-			Scan(&mockPaper)
-		mockPaperName = mockPaper.Name
+		paperDetail, _ := mocksvc.Mock().ExaminationPaperDetail(ctx, d.Paper.MockExaminationPaperId)
+		if paperDetail != nil {
+			mockPaperName = paperDetail.Name
+		}
 	}
+
 	levelDisplay := strings.TrimSpace(d.Paper.Level)
 	if a.MockLevelId > 0 {
+		// MockLevels lookup kept via DAO: no service method for single level by ID yet
 		var lv mockentity.MockLevels
 		_ = mockdao.MockLevels.Ctx(ctx).
 			Where(mockdao.MockLevels.Columns().Id, a.MockLevelId).
@@ -74,6 +76,7 @@ func (c *ControllerV1) AttemptDetail(ctx context.Context, req *v1.AttemptDetailR
 			levelDisplay = strings.TrimSpace(lv.LevelName)
 		}
 	}
+
 	out := &v1.AttemptDetailRes{
 		Attempt: v1.AttemptDetailAttempt{
 			Id:                 a.Id,
@@ -85,11 +88,11 @@ func (c *ControllerV1) AttemptDetail(ctx context.Context, req *v1.AttemptDetailR
 			SubjectiveScore:    a.SubjectiveScore,
 			TotalScore:         a.TotalScore,
 			HasSubjective:      a.HasSubjective,
-			StartedAt:          util.ToRFC3339UTC(a.StartedAt),
-			DeadlineAt:         util.ToRFC3339UTC(a.DeadlineAt),
-			SubmittedAt:        util.ToRFC3339UTC(a.SubmittedAt),
-			EndedAt:            util.ToRFC3339UTC(a.EndedAt),
-			CreateTime:         util.ToRFC3339UTC(a.CreateTime),
+			StartedAt:          utility.ToRFC3339UTC(a.StartedAt),
+			DeadlineAt:         utility.ToRFC3339UTC(a.DeadlineAt),
+			SubmittedAt:        utility.ToRFC3339UTC(a.SubmittedAt),
+			EndedAt:            utility.ToRFC3339UTC(a.EndedAt),
+			CreateTime:         utility.ToRFC3339UTC(a.CreateTime),
 		},
 		User: v1.AttemptDetailUser{
 			Id:       d.User.Id,

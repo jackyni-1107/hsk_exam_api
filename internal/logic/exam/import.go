@@ -9,10 +9,10 @@ import (
 
 	"exam/internal/consts"
 	examdao "exam/internal/dao/exam"
-	"exam/internal/exampaper"
 	exambo "exam/internal/model/bo/exam"
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
+	"exam/internal/utility/exampaper"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/encoding/gjson"

@@ -13,7 +13,7 @@ import (
 	exambo "exam/internal/model/bo/exam"
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
-	"exam/internal/util"
+	"exam/internal/utility"
 )
 
 // PaperDetail 返回试卷及嵌套大题、题块、小题、选项（只读查看）。
@@ -239,6 +239,6 @@ func examPaperEntityToBOHead(p examentity.ExamPaper) exambo.PaperHeadView {
 		AudioHlsSegmentDuration: p.AudioHlsSegmentDuration,
 		IndexJson:               p.IndexJson,
 	}
-	v.CreateTime = util.ToRFC3339UTC(p.CreateTime)
+	v.CreateTime = utility.ToRFC3339UTC(p.CreateTime)
 	return v
 }

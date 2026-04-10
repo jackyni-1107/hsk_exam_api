@@ -5,21 +5,14 @@ import (
 	"sort"
 
 	v1 "exam/api/admin/menu/v1"
-	"exam/internal/consts"
-	"exam/internal/dao"
 	sysentity "exam/internal/model/entity/sys"
-
-	"github.com/gogf/gf/v2/errors/gerror"
+	menusvc "exam/internal/service/menu"
 )
 
 func (c *ControllerV1) MenuTree(ctx context.Context, req *v1.MenuTreeReq) (res *v1.MenuTreeRes, err error) {
-	var all []sysentity.SysMenu
-	err = dao.SystemMenu.Ctx(ctx).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		OrderAsc("sort").OrderAsc("id").
-		Scan(&all)
+	all, err := menusvc.Menu().MenuTree(ctx)
 	if err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
+		return nil, err
 	}
 	return &v1.MenuTreeRes{List: buildAdminMenuTree(all, 0)}, nil
 }

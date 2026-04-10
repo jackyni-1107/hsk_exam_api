@@ -2,57 +2,15 @@ package notification
 
 import (
 	"context"
-	"encoding/json"
 
 	v1 "exam/api/admin/notification/v1"
-	"exam/internal/consts"
-	"exam/internal/dao"
-	sysdo "exam/internal/model/do/sys"
-	sysentity "exam/internal/model/entity/sys"
-	notifpkg "exam/internal/notification"
-
-	"github.com/gogf/gf/v2/errors/gerror"
+	notisvc "exam/internal/service/sysnotification"
 )
 
 func (c *ControllerV1) Send(ctx context.Context, req *v1.NotificationSendReq) (res *v1.NotificationSendRes, err error) {
-	var tpl sysentity.SysNotificationTemplate
-	err = dao.SysNotificationTemplate.Ctx(ctx).
-		Where("code", req.TemplateCode).
-		Where("channel", req.Channel).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&tpl)
-	if err != nil || tpl.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeTemplateNotFound)
-	}
-	vars := map[string]string{}
-	if req.Variables != "" {
-		_ = json.Unmarshal([]byte(req.Variables), &vars)
-	}
-	body := notifpkg.RenderTemplate(tpl.Content, vars)
-	status := 1
-	errMsg := ""
-	switch req.Channel {
-	case "email":
-		err = notifpkg.EmailSender{}.Send(ctx, req.Recipient, body)
-	case "sms":
-		err = notifpkg.SMSSender{}.Send(ctx, req.Recipient, body)
-	default:
-		return nil, gerror.NewCode(consts.CodeUnsupportedChannel)
-	}
+	ok, err := notisvc.Sysnotification().Send(ctx, req.TemplateCode, req.Channel, req.Recipient, req.Variables)
 	if err != nil {
-		status = 2
-		errMsg = err.Error()
+		return nil, err
 	}
-	_, _ = dao.SysNotificationLog.Ctx(ctx).Insert(sysdo.SysNotificationLog{
-		TemplateCode: req.TemplateCode,
-		Channel:      req.Channel,
-		Recipient:    req.Recipient,
-		Content:      body,
-		Status:       status,
-		ErrorMsg:     errMsg,
-	})
-	if status != 1 {
-		return &v1.NotificationSendRes{Ok: false}, nil
-	}
-	return &v1.NotificationSendRes{Ok: true}, nil
+	return &v1.NotificationSendRes{Ok: ok}, nil
 }

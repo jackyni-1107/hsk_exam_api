@@ -13,25 +13,20 @@ import (
 	"exam/internal/consts"
 	"exam/internal/dao"
 	examentity "exam/internal/model/entity/exam"
-	"exam/internal/util"
-)
-
-const (
-	paperForExamCacheTTLSeconds = 3600
-	paperForExamMaxStringBytes  = 256 * 1024
+	"exam/internal/utility"
 )
 
 func paperForExamInitRedisKey(examPaperId int64) string {
-	return fmt.Sprintf("exam:paper:init:%d", examPaperId)
+	return fmt.Sprintf(consts.ExamPaperInitCacheKeyFmt, examPaperId)
 }
 
 // paperForExamLegacyRedisKey 历史整卷考前缓存（大 value），失效时一并删除以免长期占用 Redis。
 func paperForExamLegacyRedisKey(examPaperId int64) string {
-	return fmt.Sprintf("exam:paper:%d", examPaperId)
+	return fmt.Sprintf(consts.ExamPaperLegacyCacheKeyFmt, examPaperId)
 }
 
 func paperForExamSectionRedisKey(examPaperId, sectionId int64) string {
-	return fmt.Sprintf("exam:paper:section:%d:%d", examPaperId, sectionId)
+	return fmt.Sprintf(consts.ExamPaperSectionCacheKeyFmt, examPaperId, sectionId)
 }
 
 var paperForExamInitSF singleflight.Group
@@ -62,7 +57,7 @@ func InvalidatePaperSectionForExamCache(ctx context.Context, examPaperId, sectio
 }
 
 func invalidatePaperSectionExamCachesByPaper(ctx context.Context, examPaperId int64) {
-	pattern := fmt.Sprintf("exam:paper:section:%d:*", examPaperId)
+	pattern := fmt.Sprintf(consts.ExamPaperSectionCachePattern, examPaperId)
 	v, err := g.Redis().Do(ctx, "KEYS", pattern)
 	if err != nil {
 		g.Log().Warningf(ctx, "paper for-exam redis keys %s: %v", pattern, err)
@@ -114,7 +109,7 @@ func PaperDetailForExamInit(ctx context.Context, examPaperId int64) (*PaperDetai
 			g.Log().Warningf(ctx, "paper for-exam init json marshal for redis: %v", mErr)
 			return tree, nil
 		}
-		if err := g.Redis().SetEX(ctx, rkey, string(b), paperForExamCacheTTLSeconds); err != nil {
+		if err := g.Redis().SetEX(ctx, rkey, string(b), consts.PaperForExamCacheTTLSeconds); err != nil {
 			g.Log().Warningf(ctx, "paper for-exam init redis setex %s: %v", rkey, err)
 		}
 		return tree, nil
@@ -161,7 +156,7 @@ func PaperSectionDetailForExam(ctx context.Context, examPaperId, sectionId int64
 			g.Log().Warningf(ctx, "paper for-exam section json marshal for redis: %v", mErr)
 			return secView, nil
 		}
-		if err := g.Redis().SetEX(ctx, rkey, string(b), paperForExamCacheTTLSeconds); err != nil {
+		if err := g.Redis().SetEX(ctx, rkey, string(b), consts.PaperForExamCacheTTLSeconds); err != nil {
 			g.Log().Warningf(ctx, "paper for-exam section redis setex %s: %v", rkey, err)
 		}
 		return secView, nil
@@ -173,7 +168,7 @@ func PaperSectionDetailForExam(ctx context.Context, examPaperId, sectionId int64
 }
 
 func trimForExamLarge(s string) string {
-	if len(s) > paperForExamMaxStringBytes {
+	if len(s) > consts.PaperForExamMaxStringBytes {
 		return ""
 	}
 	return s
@@ -451,7 +446,7 @@ func paperHeadForExam(p examentity.ExamPaper) PaperHeadForExamView {
 		//IndexJson:          trimForExamLarge(p.IndexJson),
 		DurationSeconds: p.DurationSeconds,
 	}
-	v.CreateTime = util.ToRFC3339UTC(p.CreateTime)
+	v.CreateTime = utility.ToRFC3339UTC(p.CreateTime)
 	return v
 }
 

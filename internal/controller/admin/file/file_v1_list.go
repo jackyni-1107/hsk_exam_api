@@ -4,35 +4,14 @@ import (
 	"context"
 
 	v1 "exam/api/admin/file/v1"
-	"exam/internal/consts"
-	"exam/internal/dao"
-	sysdo "exam/internal/model/do/sys"
-	sysentity "exam/internal/model/entity/sys"
-	"exam/internal/storage"
-	"exam/internal/util"
-
-	"github.com/gogf/gf/v2/errors/gerror"
+	sysfilesvc "exam/internal/service/sysfile"
+	"exam/internal/utility"
 )
 
 func (c *ControllerV1) List(ctx context.Context, req *v1.FileListReq) (res *v1.FileListRes, err error) {
-	if req.Page <= 0 {
-		req.Page = 1
-	}
-	if req.Size <= 0 {
-		req.Size = 10
-	}
-	model := dao.SysFileStorage.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted)
-	if req.Filename != "" {
-		model = model.WhereLike("filename", "%"+req.Filename+"%")
-	}
-	total, err := model.Count()
+	list, total, err := sysfilesvc.Sysfile().FileList(ctx, req.Page, req.Size, req.Filename)
 	if err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
-	}
-	var list []sysentity.SysFileStorage
-	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&list)
-	if err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
+		return nil, err
 	}
 	items := make([]*v1.FileItem, 0, len(list))
 	for _, e := range list {
@@ -41,7 +20,7 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.FileListReq) (res *v1.F
 			MimeType: e.MimeType, IsPrivate: e.IsPrivate,
 		}
 		if e.CreateTime != nil {
-			item.CreateTime = util.ToRFC3339UTC(e.CreateTime)
+			item.CreateTime = utility.ToRFC3339UTC(e.CreateTime)
 		}
 		items = append(items, item)
 	}
@@ -49,13 +28,9 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.FileListReq) (res *v1.F
 }
 
 func (c *ControllerV1) Delete(ctx context.Context, req *v1.FileDeleteReq) (res *v1.FileDeleteRes, err error) {
-	var f sysentity.SysFileStorage
-	err = dao.SysFileStorage.Ctx(ctx).Where("id", req.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&f)
-	if err != nil || f.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeFileNotFound)
+	err = sysfilesvc.Sysfile().FileDelete(ctx, req.Id)
+	if err != nil {
+		return nil, err
 	}
-	adapter := storage.NewAdapter()
-	_ = adapter.Delete(ctx, f.Bucket, f.Path)
-	_, _ = dao.SysFileStorage.Ctx(ctx).Where("id", req.Id).Data(sysdo.SysFileStorage{DeleteFlag: consts.DeleteFlagDeleted}).Update()
 	return &v1.FileDeleteRes{}, nil
 }

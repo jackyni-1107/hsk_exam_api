@@ -9,10 +9,8 @@ import (
 	"exam/internal/consts"
 )
 
-const sessionListPrefix = "sess:user:"
-
 func sessionListKey(userType int, userId int64) string {
-	return sessionListPrefix + userTypeTag(userType) + ":" + fmt.Sprintf("%d", userId)
+	return consts.SessionListKeyPrefix + userTypeTag(userType) + ":" + fmt.Sprintf("%d", userId)
 }
 
 // RegisterSession 登记新 Token，超出并发数时剔除最旧会话

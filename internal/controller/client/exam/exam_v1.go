@@ -8,7 +8,7 @@ import (
 	"exam/internal/middleware"
 	"exam/internal/model/bo"
 	"exam/internal/service/exam"
-	"exam/internal/util"
+	"exam/internal/utility"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -127,10 +127,10 @@ func (c *ControllerV1) AttemptGet(ctx context.Context, req *v1.AttemptGetReq) (r
 		ServerTime:         v.ServerTime,
 		DeadlineReached:    v.DeadlineReached,
 	}
-	out.StartedAt = util.ToRFC3339UTC(a.StartedAt)
-	out.DeadlineAt = util.ToRFC3339UTC(a.DeadlineAt)
-	out.SubmittedAt = util.ToRFC3339UTC(a.SubmittedAt)
-	out.EndedAt = util.ToRFC3339UTC(a.EndedAt)
+	out.StartedAt = utility.ToRFC3339UTC(a.StartedAt)
+	out.DeadlineAt = utility.ToRFC3339UTC(a.DeadlineAt)
+	out.SubmittedAt = utility.ToRFC3339UTC(a.SubmittedAt)
+	out.EndedAt = utility.ToRFC3339UTC(a.EndedAt)
 	return out, nil
 }
 

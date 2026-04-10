@@ -7,20 +7,15 @@ import (
 
 	"github.com/gogf/gf/v2/frame/g"
 
+	"exam/internal/consts"
 	"exam/internal/service/audit"
 )
 
-const (
-	loginRLPrefix   = "login:rl:"
-	loginFailPrefix = "login:fail:"
-	loginLockPrefix = "login:lock:"
-)
-
 func userTypeTag(ut int) string {
-	if ut == 2 {
-		return "client"
+	if ut == consts.UserTypeClient {
+		return consts.UserTypeTagClient
 	}
-	return "admin"
+	return consts.UserTypeTagAdmin
 }
 
 // NormalizeLoginName 登录名规范化（用于 Redis 键）
@@ -34,7 +29,7 @@ func (s *sSecurity) CheckIPLoginRateLimit(ctx context.Context, ip string) (block
 	if cfg.RateLimitPerMinute <= 0 || ip == "" {
 		return false
 	}
-	key := loginRLPrefix + ip
+	key := consts.LoginRateLimitKeyPrefix + ip
 	n, err := g.Redis().Incr(ctx, key)
 	if err != nil {
 		return false
@@ -51,7 +46,7 @@ func (s *sSecurity) IsAccountLocked(ctx context.Context, userType int, username 
 	if name == "" {
 		return false
 	}
-	key := loginLockPrefix + userTypeTag(userType) + ":" + name
+	key := consts.LoginLockKeyPrefix + userTypeTag(userType) + ":" + name
 	n, err := g.Redis().Get(ctx, key)
 	if err != nil || n.IsEmpty() {
 		return false
@@ -69,7 +64,7 @@ func (s *sSecurity) ShouldRequireCaptcha(ctx context.Context, userType int, user
 	if name == "" {
 		return false
 	}
-	key := loginFailPrefix + userTypeTag(userType) + ":" + name
+	key := consts.LoginFailCountKeyPrefix + userTypeTag(userType) + ":" + name
 	val, err := g.Redis().Get(ctx, key)
 	if err != nil || val.IsEmpty() {
 		return false
@@ -84,7 +79,7 @@ func (s *sSecurity) RecordLoginFailure(ctx context.Context, userType int, userna
 	if name == "" {
 		return
 	}
-	failKey := loginFailPrefix + userTypeTag(userType) + ":" + name
+	failKey := consts.LoginFailCountKeyPrefix + userTypeTag(userType) + ":" + name
 	n, err := g.Redis().Incr(ctx, failKey)
 	if err != nil {
 		return
@@ -94,11 +89,11 @@ func (s *sSecurity) RecordLoginFailure(ctx context.Context, userType int, userna
 	}
 
 	if cfg.MaxFailuresBeforeLock > 0 && int(n) >= cfg.MaxFailuresBeforeLock {
-		lockKey := loginLockPrefix + userTypeTag(userType) + ":" + name
+		lockKey := consts.LoginLockKeyPrefix + userTypeTag(userType) + ":" + name
 		if cfg.LockDurationSeconds > 0 {
 			_ = g.Redis().SetEX(ctx, lockKey, "1", int64(cfg.LockDurationSeconds))
 		}
-		audit.Audit().RecordSecurityEvent(ctx, "brute_force", 0, ip, userAgent,
+		audit.Audit().RecordSecurityEvent(ctx, consts.SecurityEventBruteForce, 0, ip, userAgent,
 			fmt.Sprintf("account locked after %d failed logins: %s", n, name), traceId)
 	}
 }
@@ -109,7 +104,7 @@ func (s *sSecurity) ClearLoginFailure(ctx context.Context, userType int, usernam
 	if name == "" {
 		return
 	}
-	failKey := loginFailPrefix + userTypeTag(userType) + ":" + name
+	failKey := consts.LoginFailCountKeyPrefix + userTypeTag(userType) + ":" + name
 	_, _ = g.Redis().Del(ctx, failKey)
 }
 
@@ -119,8 +114,8 @@ func (s *sSecurity) UnlockAccount(ctx context.Context, userType int, username st
 	if name == "" {
 		return
 	}
-	lockKey := loginLockPrefix + userTypeTag(userType) + ":" + name
+	lockKey := consts.LoginLockKeyPrefix + userTypeTag(userType) + ":" + name
 	_, _ = g.Redis().Del(ctx, lockKey)
-	failKey := loginFailPrefix + userTypeTag(userType) + ":" + name
+	failKey := consts.LoginFailCountKeyPrefix + userTypeTag(userType) + ":" + name
 	_, _ = g.Redis().Del(ctx, failKey)
 }

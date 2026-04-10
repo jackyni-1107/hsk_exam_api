@@ -17,7 +17,7 @@ func (s *sSecurity) ValidatePasswordNotInHistory(ctx context.Context, userType i
 	if cfg.HistoryCount <= 0 || userId <= 0 {
 		return nil
 	}
-	rows, err := g.DB().Ctx(ctx).Model("sys_password_history").
+	rows, err := g.DB().Ctx(ctx).Model(consts.TableSysPasswordHistory).
 		Where("user_type", userType).
 		Where("user_id", userId).
 		OrderDesc("id").
@@ -41,7 +41,7 @@ func (s *sSecurity) SavePasswordHistory(ctx context.Context, userType int, userI
 	if cfg.HistoryCount <= 0 || oldHash == "" {
 		return nil
 	}
-	_, err := g.DB().Ctx(ctx).Model("sys_password_history").Insert(g.Map{
+	_, err := g.DB().Ctx(ctx).Model(consts.TableSysPasswordHistory).Insert(g.Map{
 		"user_type":     userType,
 		"user_id":       userId,
 		"password_hash": oldHash,
@@ -51,7 +51,7 @@ func (s *sSecurity) SavePasswordHistory(ctx context.Context, userType int, userI
 		return err
 	}
 	for i := 0; i < 100; i++ {
-		n, err := g.DB().Ctx(ctx).Model("sys_password_history").
+		n, err := g.DB().Ctx(ctx).Model(consts.TableSysPasswordHistory).
 			Where("user_type", userType).
 			Where("user_id", userId).
 			Count()
@@ -59,7 +59,7 @@ func (s *sSecurity) SavePasswordHistory(ctx context.Context, userType int, userI
 			break
 		}
 		r, err := g.DB().Exec(ctx,
-			`DELETE FROM sys_password_history WHERE user_type=? AND user_id=? ORDER BY id ASC LIMIT 1`,
+			`DELETE FROM `+consts.TableSysPasswordHistory+` WHERE user_type=? AND user_id=? ORDER BY id ASC LIMIT 1`,
 			userType, userId,
 		)
 		if err != nil {

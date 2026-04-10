@@ -12,10 +12,9 @@ import (
 
 	v1 "exam/api/admin/auth/v1"
 	"exam/internal/consts"
-	"exam/internal/dao"
 	"exam/internal/middleware"
-	sysentity "exam/internal/model/entity/sys"
 	secsvc "exam/internal/service/security"
+	usersvc "exam/internal/service/user"
 	"exam/internal/utility"
 )
 
@@ -38,12 +37,8 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 		return nil, gerror.NewCode(consts.CodeAccountLocked)
 	}
 
-	var u sysentity.SysUser
-	_ = dao.SystemUser.Ctx(ctx).
-		Wheref("LOWER(username) = ?", name).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&u)
-	if u.Id == 0 || !utility.CheckPassword(u.Password, req.Password) {
+	u, _ := usersvc.User().FindByUsername(ctx, name)
+	if u == nil || !utility.CheckPassword(u.Password, req.Password) {
 		secsvc.Security().RecordLoginFailure(ctx, consts.UserTypeAdmin, name, ip, r.Header.Get("User-Agent"), middleware.GetTraceId(ctx))
 		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
 	}
@@ -56,12 +51,12 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 	token := guid.S()
 	ttl := secsvc.Security().TokenTTLSeconds(ctx)
 	if ttl <= 0 {
-		ttl = 86400
+		ttl = consts.DefaultTokenTTLFallbackSeconds
 	}
 	payload, _ := json.Marshal(map[string]interface{}{
 		"user_id": u.Id, "username": u.Username,
 	})
-	key := consts.TokenRedisKeyPrefix + "admin:" + token
+	key := consts.TokenRedisKeyPrefix + consts.UserTypeTagAdmin + ":" + token
 	if err := g.Redis().SetEX(ctx, key, string(payload), ttl); err != nil {
 		return nil, gerror.Wrap(err, "redis")
 	}

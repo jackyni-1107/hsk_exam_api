@@ -1,22 +1,22 @@
-package task
+package tasks
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/gogf/gf/v2/frame/g"
+
+	"exam/internal/consts"
 )
 
-const clusterExecLockTTLSeconds = 300
-
 func clusterExecLockKey(taskID int64) string {
-	return fmt.Sprintf("task:cluster_exec:%d", taskID)
+	return fmt.Sprintf(consts.TaskClusterExecLockKeyFmt, taskID)
 }
 
 // TryClusterExecLock 集群内任务互斥执行锁（单节点 Redis）。
 func TryClusterExecLock(ctx context.Context, taskID int64) (bool, error) {
 	key := clusterExecLockKey(taskID)
-	v, err := g.Redis().Do(ctx, "SET", key, "1", "NX", "EX", clusterExecLockTTLSeconds)
+	v, err := g.Redis().Do(ctx, "SET", key, "1", "NX", "EX", consts.TaskClusterExecLockTTLSeconds)
 	if err != nil {
 		return false, err
 	}

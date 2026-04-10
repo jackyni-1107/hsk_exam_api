@@ -6,9 +6,9 @@ import (
 
 	v1 "exam/api/admin/me/v1"
 	"exam/internal/consts"
-	"exam/internal/dao"
 	"exam/internal/middleware"
 	sysentity "exam/internal/model/entity/sys"
+	menusvc "exam/internal/service/menu"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -18,31 +18,37 @@ func (c *ControllerV1) Menus(ctx context.Context, req *v1.MenusReq) (res *v1.Men
 	if d == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
-	var all []sysentity.SysMenu
-	err = dao.SystemMenu.Ctx(ctx).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Where("status", consts.StatusNormal).
-		OrderAsc("sort").OrderAsc("id").
-		Scan(&all)
+
+	all, err := menusvc.Menu().MenuTree(ctx)
 	if err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
+		return nil, err
 	}
-	byID := make(map[int64]sysentity.SysMenu, len(all))
+
+	active := make([]sysentity.SysMenu, 0, len(all))
 	for _, m := range all {
+		if m.Status == consts.StatusNormal {
+			active = append(active, m)
+		}
+	}
+
+	byID := make(map[int64]sysentity.SysMenu, len(active))
+	for _, m := range active {
 		byID[m.Id] = m
 	}
+
 	var allowed map[int64]struct{}
 	if d.UserId == consts.SuperAdminUserId {
-		allowed = make(map[int64]struct{}, len(all))
-		for _, m := range all {
+		allowed = make(map[int64]struct{}, len(active))
+		for _, m := range active {
 			allowed[m.Id] = struct{}{}
 		}
 	} else {
-		allowed, err = menuIdsForUser(ctx, d.UserId)
+		allowed, err = menusvc.Menu().MenuIdsForUser(ctx, d.UserId)
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	visible := make(map[int64]struct{})
 	for id := range allowed {
 		for id != 0 {
@@ -57,36 +63,15 @@ func (c *ControllerV1) Menus(ctx context.Context, req *v1.MenusReq) (res *v1.Men
 			id = m.ParentId
 		}
 	}
+
 	filtered := make([]sysentity.SysMenu, 0, len(visible))
-	for _, m := range all {
+	for _, m := range active {
 		if _, ok := visible[m.Id]; ok {
 			filtered = append(filtered, m)
 		}
 	}
-	return &v1.MenusRes{List: buildMenuTreeV1(filtered, 0)}, nil
-}
 
-func menuIdsForUser(ctx context.Context, userId int64) (map[int64]struct{}, error) {
-	var userRoles []sysentity.SysUserRole
-	if err := dao.SystemUserRole.Ctx(ctx).Where("user_id", userId).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&userRoles); err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
-	}
-	if len(userRoles) == 0 {
-		return map[int64]struct{}{}, nil
-	}
-	roleIds := make([]int64, 0, len(userRoles))
-	for _, ur := range userRoles {
-		roleIds = append(roleIds, ur.RoleId)
-	}
-	var roleMenus []sysentity.SysRoleMenu
-	if err := dao.SystemRoleMenu.Ctx(ctx).WhereIn("role_id", roleIds).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&roleMenus); err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
-	}
-	out := make(map[int64]struct{}, len(roleMenus))
-	for _, rm := range roleMenus {
-		out[rm.MenuId] = struct{}{}
-	}
-	return out, nil
+	return &v1.MenusRes{List: buildMenuTreeV1(filtered, 0)}, nil
 }
 
 func buildMenuTreeV1(list []sysentity.SysMenu, parentId int64) []*v1.MenuTreeNode {

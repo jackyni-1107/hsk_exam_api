@@ -4,36 +4,14 @@ import (
 	"context"
 
 	v1 "exam/api/admin/notification/v1"
-	"exam/internal/consts"
-	"exam/internal/dao"
-	sysentity "exam/internal/model/entity/sys"
-	"exam/internal/util"
-
-	"github.com/gogf/gf/v2/errors/gerror"
+	notisvc "exam/internal/service/sysnotification"
+	"exam/internal/utility"
 )
 
 func (c *ControllerV1) LogList(ctx context.Context, req *v1.LogListReq) (res *v1.LogListRes, err error) {
-	if req.Page <= 0 {
-		req.Page = 1
-	}
-	if req.Size <= 0 {
-		req.Size = 10
-	}
-	model := dao.SysNotificationLog.Ctx(ctx)
-	if req.Channel != "" {
-		model = model.Where("channel", req.Channel)
-	}
-	if req.Recipient != "" {
-		model = model.WhereLike("recipient", "%"+req.Recipient+"%")
-	}
-	total, err := model.Count()
+	list, total, err := notisvc.Sysnotification().LogList(ctx, req.Page, req.Size, req.Channel, req.Recipient)
 	if err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
-	}
-	var list []sysentity.SysNotificationLog
-	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&list)
-	if err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
+		return nil, err
 	}
 	items := make([]*v1.LogItem, 0, len(list))
 	for _, e := range list {
@@ -42,7 +20,7 @@ func (c *ControllerV1) LogList(ctx context.Context, req *v1.LogListReq) (res *v1
 			Recipient: e.Recipient, Status: e.Status, ErrorMsg: e.ErrorMsg,
 		}
 		if e.CreateTime != nil {
-			item.CreateTime = util.ToRFC3339UTC(e.CreateTime)
+			item.CreateTime = utility.ToRFC3339UTC(e.CreateTime)
 		}
 		items = append(items, item)
 	}

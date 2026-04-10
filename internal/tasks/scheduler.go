@@ -1,4 +1,4 @@
-package task
+package tasks
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"exam/internal/consts"
 	sysdao "exam/internal/dao/sys"
 	sysentity "exam/internal/model/entity/sys"
-	"exam/internal/task/handler"
+	"exam/internal/tasks/handler"
 )
 
 var (

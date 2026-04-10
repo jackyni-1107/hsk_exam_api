@@ -30,8 +30,8 @@ import (
 	clientMe "exam/internal/controller/client/me"
 	"exam/internal/controller/health"
 	"exam/internal/middleware"
-	"exam/internal/openapi"
-	"exam/internal/task"
+	"exam/internal/tasks"
+	"exam/internal/utility/openapi"
 )
 
 var (
@@ -97,7 +97,7 @@ var (
 				)
 			})
 			openapi.RegisterSplitEndpoints(s, apiP)
-			task.StartScheduler(ctx)
+			tasks.StartScheduler(ctx)
 			s.Run()
 			return nil
 		},

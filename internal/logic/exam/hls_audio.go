@@ -18,10 +18,8 @@ import (
 	"exam/internal/consts"
 	"exam/internal/dao"
 	examentity "exam/internal/model/entity/exam"
-	"exam/internal/storage"
+	"exam/internal/utility/storage"
 )
-
-const redisHlsPlayKeyPrefix = "hls:play:"
 
 type hlsPlayTicketPayload struct {
 	UserID         int64 `json:"user_id"`
@@ -184,7 +182,7 @@ func (s *sExam) IssueAudioHlsPlay(ctx context.Context, userID, attemptID, questi
 		return "", "", err
 	}
 	ttl := s.hlsTicketTTL()
-	key := redisHlsPlayKeyPrefix + ticket
+	key := consts.HlsPlayKeyPrefix + ticket
 	if err := g.Redis().SetEX(ctx, key, string(b), int64(ttl.Seconds())); err != nil {
 		return "", "", err
 	}
@@ -223,7 +221,7 @@ func (s *sExam) IssuePaperHlsPlay(ctx context.Context, userID, paperID int64) (p
 		return "", "", err
 	}
 	ttl := s.hlsTicketTTL()
-	key := redisHlsPlayKeyPrefix + ticket
+	key := consts.HlsPlayKeyPrefix + ticket
 	if err := g.Redis().SetEX(ctx, key, string(b), int64(ttl.Seconds())); err != nil {
 		return "", "", err
 	}
@@ -238,7 +236,7 @@ func (s *sExam) BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte
 	if ticket == "" {
 		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid)
 	}
-	key := redisHlsPlayKeyPrefix + ticket
+	key := consts.HlsPlayKeyPrefix + ticket
 	val, err := g.Redis().Get(ctx, key)
 	if err != nil || val.IsEmpty() {
 		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid)

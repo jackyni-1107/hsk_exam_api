@@ -11,11 +11,11 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/exampaper"
-	"exam/internal/examutil"
 	"exam/internal/model/bo"
 	exambo "exam/internal/model/bo/exam"
 	examentity "exam/internal/model/entity/exam"
+	"exam/internal/utility/exampaper"
+	"exam/internal/utility/examutil"
 )
 
 func (s *sExam) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (map[string]interface{}, error) {

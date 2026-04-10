@@ -7,7 +7,7 @@ import (
 	"exam/internal/middleware"
 	"exam/internal/model/bo"
 	"exam/internal/service/exam"
-	"exam/internal/util"
+	"exam/internal/utility"
 )
 
 func batchListItemPtr(b *bo.ExamBatchAdminItem) *v1.BatchListItem {
@@ -15,8 +15,8 @@ func batchListItemPtr(b *bo.ExamBatchAdminItem) *v1.BatchListItem {
 	if ids == nil {
 		ids = []int64{}
 	}
-	formattedStartAt := util.ToRFC3339UTC(b.ExamStartAt)
-	formattedEndAt := util.ToRFC3339UTC(b.ExamEndAt)
+	formattedStartAt := utility.ToRFC3339UTC(b.ExamStartAt)
+	formattedEndAt := utility.ToRFC3339UTC(b.ExamEndAt)
 	return &v1.BatchListItem{
 		Id:                      b.Id,
 		MockExaminationPaperIds: ids,
@@ -24,7 +24,7 @@ func batchListItemPtr(b *bo.ExamBatchAdminItem) *v1.BatchListItem {
 		ExamStartAt:             formattedStartAt,
 		ExamEndAt:               formattedEndAt,
 		MemberCount:             b.MemberCount,
-		CreateTime:              util.ToRFC3339UTC(b.CreateTime),
+		CreateTime:              utility.ToRFC3339UTC(b.CreateTime),
 	}
 }
 
@@ -114,7 +114,7 @@ func (c *ControllerV1) BatchMemberList(ctx context.Context, req *v1.BatchMemberL
 			MockExaminationPaperId: r.MockExaminationPaperId,
 			Username:               r.Username,
 			Nickname:               r.Nickname,
-			ImportTime:             util.ToRFC3339UTC(r.ImportTime),
+			ImportTime:             utility.ToRFC3339UTC(r.ImportTime),
 		})
 	}
 	return &v1.BatchMemberListRes{List: list, Total: total}, nil

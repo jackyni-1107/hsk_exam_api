@@ -12,9 +12,8 @@ import (
 
 	v1 "exam/api/client/auth/v1"
 	"exam/internal/consts"
-	"exam/internal/dao"
 	"exam/internal/middleware"
-	sysentity "exam/internal/model/entity/sys"
+	membersvc "exam/internal/service/member"
 	secsvc "exam/internal/service/security"
 	"exam/internal/utility"
 )
@@ -43,13 +42,8 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 		return nil, gerror.NewCode(consts.CodeAccountLocked)
 	}
 
-	var u sysentity.SysMember
-	// 与风控键一致：规范化后查询；LOWER 避免库中用户名大小写与输入不一致
-	_ = dao.SysMember.Ctx(ctx).
-		Wheref("username = ?", name).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&u)
-	if u.Id == 0 || !utility.CheckPassword(u.Password, req.Password) {
+	u, _ := membersvc.Member().FindByUsername(ctx, name)
+	if u == nil || !utility.CheckPassword(u.Password, req.Password) {
 		secsvc.Security().RecordLoginFailure(ctx, consts.UserTypeClient, name, ip, r.Header.Get("User-Agent"), middleware.GetTraceId(ctx))
 		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
 	}
@@ -61,12 +55,12 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 	token := guid.S()
 	ttl := secsvc.Security().TokenTTLSeconds(ctx)
 	if ttl <= 0 {
-		ttl = 86400
+		ttl = consts.DefaultTokenTTLFallbackSeconds
 	}
 	payload, _ := json.Marshal(map[string]interface{}{
 		"user_id": u.Id, "username": u.Username,
 	})
-	key := consts.TokenRedisKeyPrefix + "client:" + token
+	key := consts.TokenRedisKeyPrefix + consts.UserTypeTagClient + ":" + token
 	if err := g.Redis().SetEX(ctx, key, string(payload), ttl); err != nil {
 		return nil, gerror.Wrap(err, "redis")
 	}

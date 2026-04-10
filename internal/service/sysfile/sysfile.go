@@ -1,0 +1,38 @@
+// ================================================================================
+// Code generated and maintained by GoFrame CLI tool. DO NOT EDIT.
+// You can delete these comments if you wish manually maintain this interface file.
+// ================================================================================
+
+package sysfile
+
+import (
+	"context"
+	sysentity "exam/internal/model/entity/sys"
+)
+
+type (
+	ISysfile interface {
+		FileList(ctx context.Context, page, size int, filename string) ([]sysentity.SysFileStorage, int, error)
+		FileDelete(ctx context.Context, id int64) error
+		StorageConfigList(ctx context.Context) ([]sysentity.SysFileStorageConfig, error)
+		StorageConfigCreate(ctx context.Context, storageType, name, configJson, creator string, cleanupBeforeDays int) (int64, error)
+		StorageConfigUpdate(ctx context.Context, id int64, name, configJson, updater string, cleanupBeforeDays int) error
+		StorageConfigDelete(ctx context.Context, id int64, updater string) error
+		StorageConfigSetActive(ctx context.Context, id int64, updater string) error
+	}
+)
+
+var (
+	localSysfile ISysfile
+)
+
+func Sysfile() ISysfile {
+	if localSysfile == nil {
+		panic("implement not found for interface ISysfile, forgot register?")
+	}
+	return localSysfile
+}
+
+func RegisterSysfile(i ISysfile) {
+	localSysfile = i
+}

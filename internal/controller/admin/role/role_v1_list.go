@@ -3,41 +3,15 @@ package role
 import (
 	"context"
 
-	"github.com/gogf/gf/v2/errors/gerror"
-
 	v1 "exam/api/admin/role/v1"
-	"exam/internal/consts"
-	"exam/internal/dao"
-	sysentity "exam/internal/model/entity/sys"
-	"exam/internal/util"
+	rolesvc "exam/internal/service/role"
+	"exam/internal/utility"
 )
 
 func (c *ControllerV1) RoleList(ctx context.Context, req *v1.RoleListReq) (res *v1.RoleListRes, err error) {
-	if req.Page <= 0 {
-		req.Page = 1
-	}
-	if req.Size <= 0 {
-		req.Size = 10
-	}
-
-	model := dao.SystemRole.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted)
-	if req.Name != "" {
-		model = model.WhereLike("name", "%"+req.Name+"%")
-	}
-	// status: -1=全部 0=正常 1=停用，仅当明确指定时过滤
-	if req.Status == consts.StatusNormal || req.Status == consts.StatusDisabled {
-		model = model.Where("status", req.Status)
-	}
-
-	total, err := model.Count()
+	roles, total, err := rolesvc.Role().RoleList(ctx, req.Page, req.Size, req.Name, req.Status)
 	if err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
-	}
-
-	var roles []sysentity.SysRole
-	err = model.Page(req.Page, req.Size).OrderDesc("id").Scan(&roles)
-	if err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
+		return nil, err
 	}
 
 	list := make([]*v1.RoleItem, 0, len(roles))
@@ -52,13 +26,10 @@ func (c *ControllerV1) RoleList(ctx context.Context, req *v1.RoleListReq) (res *
 			Remark: r.Remark,
 		}
 		if r.CreateTime != nil {
-			item.CreateTime = util.ToRFC3339UTC(r.CreateTime)
+			item.CreateTime = utility.ToRFC3339UTC(r.CreateTime)
 		}
-		var roleMenus []sysentity.SysRoleMenu
-		_ = dao.SystemRoleMenu.Ctx(ctx).Where("role_id", r.Id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&roleMenus)
-		for _, rm := range roleMenus {
-			item.MenuIds = append(item.MenuIds, rm.MenuId)
-		}
+		menuIds, _ := rolesvc.Role().RoleMenuIds(ctx, r.Id)
+		item.MenuIds = menuIds
 		list = append(list, item)
 	}
 

@@ -10,13 +10,13 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/exampaper"
-	"exam/internal/examutil"
 	"exam/internal/model/bo"
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
 	mockentity "exam/internal/model/entity/mock"
-	"exam/internal/util"
+	"exam/internal/utility"
+	"exam/internal/utility/exampaper"
+	"exam/internal/utility/examutil"
 )
 
 // CreateAttempt 已废弃：请使用 CreateAttemptForBatch（POST /exam/batches/{batchId}/attempts）。
@@ -165,7 +165,7 @@ func GetAttempt(ctx context.Context, userID int64, attemptID int64) (*bo.Attempt
 	deadlineReached := att.Status == consts.ExamAttemptInProgress && att.DeadlineAt != nil && att.DeadlineAt.Before(now)
 	return &bo.AttemptView{
 		Attempt:         att,
-		ServerTime:      util.ToRFC3339UTCShift(now),
+		ServerTime:      utility.ToRFC3339UTCShift(now),
 		DeadlineReached: deadlineReached,
 	}, nil
 }

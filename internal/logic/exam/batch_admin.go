@@ -11,10 +11,10 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/exampaper"
 	"exam/internal/model/bo"
 	examentity "exam/internal/model/entity/exam"
 	sysentity "exam/internal/model/entity/sys"
+	"exam/internal/utility/exampaper"
 )
 
 func dedupPositiveInt64(ids []int64) []int64 {

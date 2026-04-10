@@ -17,7 +17,7 @@ func (c *ControllerV1) Logout(ctx context.Context, req *v1.LogoutReq) (res *v1.L
 	if r != nil {
 		tok := bearerToken(r)
 		if tok != "" {
-			key := consts.TokenRedisKeyPrefix + "admin:" + tok
+			key := consts.TokenRedisKeyPrefix + consts.UserTypeTagAdmin + ":" + tok
 			_, _ = g.Redis().Del(ctx, key)
 		}
 		if d := middleware.GetCtxData(ctx); d != nil && tok != "" {

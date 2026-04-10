@@ -4,6 +4,7 @@ import (
 	"context"
 
 	appcfg "exam/internal/config"
+	"exam/internal/consts"
 	"exam/internal/model/bo"
 )
 
@@ -27,7 +28,7 @@ func (s *sSecurity) LoadMFACfg(ctx context.Context) bo.MFACfg {
 func (s *sSecurity) TokenTTLSeconds(ctx context.Context) int64 {
 	c := s.LoadSessionCfg(ctx)
 	if c.TokenTTLSeconds <= 0 {
-		return 86400
+		return consts.DefaultTokenTTLFallbackSeconds
 	}
 	return c.TokenTTLSeconds
 }

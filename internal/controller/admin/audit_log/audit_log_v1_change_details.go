@@ -3,20 +3,15 @@ package audit_log
 import (
 	"context"
 
-	"github.com/gogf/gf/v2/errors/gerror"
-
 	v1 "exam/api/admin/audit_log/v1"
-	"exam/internal/consts"
-	sysdao "exam/internal/dao/sys"
-	sysentity "exam/internal/model/entity/sys"
-	"exam/internal/util"
+	syslogsvc "exam/internal/service/syslog"
+	"exam/internal/utility"
 )
 
 func (c *ControllerV1) AuditLogChangeDetails(ctx context.Context, req *v1.AuditLogChangeDetailsReq) (res *v1.AuditLogChangeDetailsRes, err error) {
-	var details []sysentity.SysAuditChangeDetail
-	err = sysdao.SysAuditChangeDetail.Ctx(ctx).Where("operation_log_id", req.Id).OrderAsc("id").Scan(&details)
+	details, err := syslogsvc.SysLog().AuditLogChangeDetails(ctx, req.Id)
 	if err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
+		return nil, err
 	}
 	list := make([]*v1.AuditChangeDetailItem, 0, len(details))
 	for _, d := range details {
@@ -28,7 +23,7 @@ func (c *ControllerV1) AuditLogChangeDetails(ctx context.Context, req *v1.AuditL
 			BeforeValue: d.BeforeValue,
 			AfterValue:  d.AfterValue,
 		}
-		item.CreateTime = util.ToRFC3339UTC(d.CreateTime)
+		item.CreateTime = utility.ToRFC3339UTC(d.CreateTime)
 		list = append(list, item)
 	}
 	return &v1.AuditLogChangeDetailsRes{List: list}, nil

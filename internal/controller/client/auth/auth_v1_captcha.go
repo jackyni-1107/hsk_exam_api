@@ -4,8 +4,8 @@ import (
 	"context"
 
 	v1 "exam/api/client/auth/v1"
-	"exam/internal/pkg/captchaimg"
 	secsvc "exam/internal/service/security"
+	"exam/internal/utility/captchaimg"
 )
 
 func (c *ControllerV1) Captcha(ctx context.Context, req *v1.CaptchaReq) (res *v1.CaptchaRes, err error) {

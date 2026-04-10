@@ -10,23 +10,23 @@ type PaperListReq struct {
 }
 
 type PaperListRes struct {
-	List  []*PaperListItem `json:"list"`
-	Total int              `json:"total"`
+	List  []*PaperListItem `json:"list" dc:"列表"`
+	Total int              `json:"total" dc:"总数"`
 }
 
 type PaperListItem struct {
 	Id                      int64   `json:"id" dc:"mock_examination_paper.id"`
-	Level                   string  `json:"level"`
-	PaperId                 string  `json:"paper_id"`
-	Title                   string  `json:"title"`
-	SourceBaseUrl           string  `json:"source_base_url"`
-	AudioHlsPrefix          string  `json:"audio_hls_prefix"`
-	AudioHlsSegmentCount    int     `json:"audio_hls_segment_count"`
-	AudioHlsSegmentPattern  string  `json:"audio_hls_segment_pattern"`
-	AudioHlsKeyObject       string  `json:"audio_hls_key_object"`
-	AudioHlsIvHex           string  `json:"audio_hls_iv_hex"`
-	AudioHlsSegmentDuration float64 `json:"audio_hls_segment_duration"`
-	CreateTime              string  `json:"create_time"`
+	Level                   string  `json:"level" dc:"试卷级别"`
+	PaperId                 string  `json:"paper_id" dc:"远程试卷ID"`
+	Title                   string  `json:"title" dc:"试卷标题"`
+	SourceBaseUrl           string  `json:"source_base_url" dc:"资源基础URL"`
+	AudioHlsPrefix          string  `json:"audio_hls_prefix" dc:"听力 HLS 目录前缀"`
+	AudioHlsSegmentCount    int     `json:"audio_hls_segment_count" dc:"HLS 分片总数"`
+	AudioHlsSegmentPattern  string  `json:"audio_hls_segment_pattern" dc:"HLS 分片文件名模式"`
+	AudioHlsKeyObject       string  `json:"audio_hls_key_object" dc:"HLS 密钥对象路径"`
+	AudioHlsIvHex           string  `json:"audio_hls_iv_hex" dc:"AES-128 IV 十六进制"`
+	AudioHlsSegmentDuration float64 `json:"audio_hls_segment_duration" dc:"HLS 分片时长(秒)"`
+	CreateTime              string  `json:"create_time" dc:"创建时间"`
 }
 
 type PaperImportReq struct {
@@ -48,8 +48,8 @@ type PaperImportRes struct {
 	ExaminationPaperId         int64 `json:"examination_paper_id" dc:"mock_examination_paper.id"`
 	Conflict                   bool  `json:"conflict" dc:"true 表示未导入，因已存在且 conflict_mode=fail"`
 	ExistingExaminationPaperId int64 `json:"existing_examination_paper_id" dc:"冲突时已存在的 mock 卷 id"`
-	SectionCount               int   `json:"section_count"`
-	QuestionCount              int   `json:"question_count"`
+	SectionCount               int   `json:"section_count" dc:"大题数"`
+	QuestionCount              int   `json:"question_count" dc:"试题数"`
 }
 
 type PaperUpdateReq struct {
@@ -72,71 +72,71 @@ type PaperDetailReq struct {
 }
 
 type PaperDetailRes struct {
-	Paper    PaperDetailPaper     `json:"paper"`
-	Sections []PaperDetailSection `json:"sections"`
+	Paper    PaperDetailPaper     `json:"paper" dc:"试卷信息"`
+	Sections []PaperDetailSection `json:"sections" dc:"大题列表"`
 }
 
 type PaperDetailPaper struct {
 	Id                      int64   `json:"id" dc:"mock_examination_paper.id"`
-	Level                   string  `json:"level"`
-	PaperId                 string  `json:"paper_id"`
-	Title                   string  `json:"title"`
-	PrepareTitle            string  `json:"prepare_title"`
-	PrepareInstruction      string  `json:"prepare_instruction"`
-	PrepareAudioFile        string  `json:"prepare_audio_file"`
-	SourceBaseUrl           string  `json:"source_base_url"`
-	AudioHlsPrefix          string  `json:"audio_hls_prefix"`
-	AudioHlsSegmentCount    int     `json:"audio_hls_segment_count"`
-	AudioHlsSegmentPattern  string  `json:"audio_hls_segment_pattern"`
-	AudioHlsKeyObject       string  `json:"audio_hls_key_object"`
-	AudioHlsIvHex           string  `json:"audio_hls_iv_hex"`
-	AudioHlsSegmentDuration float64 `json:"audio_hls_segment_duration"`
-	IndexJson               string  `json:"index_json"`
-	CreateTime              string  `json:"create_time"`
+	Level                   string  `json:"level" dc:"试卷级别"`
+	PaperId                 string  `json:"paper_id" dc:"远程试卷ID"`
+	Title                   string  `json:"title" dc:"试卷标题"`
+	PrepareTitle            string  `json:"prepare_title" dc:"准备阶段标题"`
+	PrepareInstruction      string  `json:"prepare_instruction" dc:"准备阶段说明"`
+	PrepareAudioFile        string  `json:"prepare_audio_file" dc:"准备阶段音频文件"`
+	SourceBaseUrl           string  `json:"source_base_url" dc:"资源基础URL"`
+	AudioHlsPrefix          string  `json:"audio_hls_prefix" dc:"听力 HLS 目录前缀"`
+	AudioHlsSegmentCount    int     `json:"audio_hls_segment_count" dc:"HLS 分片总数"`
+	AudioHlsSegmentPattern  string  `json:"audio_hls_segment_pattern" dc:"HLS 分片文件名模式"`
+	AudioHlsKeyObject       string  `json:"audio_hls_key_object" dc:"HLS 密钥对象路径"`
+	AudioHlsIvHex           string  `json:"audio_hls_iv_hex" dc:"AES-128 IV 十六进制"`
+	AudioHlsSegmentDuration float64 `json:"audio_hls_segment_duration" dc:"HLS 分片时长(秒)"`
+	IndexJson               string  `json:"index_json" dc:"原始 index.json 内容"`
+	CreateTime              string  `json:"create_time" dc:"创建时间"`
 }
 
 type PaperDetailSection struct {
-	Id             int64              `json:"id"`
-	SortOrder      int                `json:"sort_order"`
-	TopicTitle     string             `json:"topic_title"`
-	TopicSubtitle  string             `json:"topic_subtitle"`
-	TopicType      string             `json:"topic_type"`
-	PartCode       int                `json:"part_code"`
-	SegmentCode    string             `json:"segment_code"`
-	TopicItemsFile string             `json:"topic_items_file"`
-	TopicJson      string             `json:"topic_json"`
-	Blocks         []PaperDetailBlock `json:"blocks"`
+	Id             int64              `json:"id" dc:"大题ID"`
+	SortOrder      int                `json:"sort_order" dc:"排序"`
+	TopicTitle     string             `json:"topic_title" dc:"大题标题"`
+	TopicSubtitle  string             `json:"topic_subtitle" dc:"大题副标题"`
+	TopicType      string             `json:"topic_type" dc:"题型"`
+	PartCode       int                `json:"part_code" dc:"部分编号"`
+	SegmentCode    string             `json:"segment_code" dc:"段落编号"`
+	TopicItemsFile string             `json:"topic_items_file" dc:"题目文件名"`
+	TopicJson      string             `json:"topic_json" dc:"大题JSON"`
+	Blocks         []PaperDetailBlock `json:"blocks" dc:"题块列表"`
 }
 
 type PaperDetailBlock struct {
-	Id                      int64                 `json:"id"`
-	BlockOrder              int                   `json:"block_order"`
-	GroupIndex              int                   `json:"group_index"`
-	QuestionDescriptionJson string                `json:"question_description_json"`
-	Questions               []PaperDetailQuestion `json:"questions"`
+	Id                      int64                 `json:"id" dc:"题块ID"`
+	BlockOrder              int                   `json:"block_order" dc:"题块排序"`
+	GroupIndex              int                   `json:"group_index" dc:"组索引"`
+	QuestionDescriptionJson string                `json:"question_description_json" dc:"题块描述(JSON)"`
+	Questions               []PaperDetailQuestion `json:"questions" dc:"试题列表"`
 }
 
 type PaperDetailQuestion struct {
-	Id                      int64               `json:"id"`
-	SortInBlock             int                 `json:"sort_in_block"`
-	QuestionNo              int                 `json:"question_no"`
-	Score                   float64             `json:"score"`
-	IsExample               int                 `json:"is_example"`
-	ContentType             string              `json:"content_type"`
-	AudioFile               string              `json:"audio_file"`
-	StemText                string              `json:"stem_text"`
-	ScreenTextJson          string              `json:"screen_text_json"`
-	AnalysisJson            string              `json:"analysis_json"`
-	QuestionDescriptionJson string              `json:"question_description_json"`
-	RawJson                 string              `json:"raw_json"`
-	Options                 []PaperDetailOption `json:"options"`
+	Id                      int64               `json:"id" dc:"试题ID"`
+	SortInBlock             int                 `json:"sort_in_block" dc:"块内排序"`
+	QuestionNo              int                 `json:"question_no" dc:"题号"`
+	Score                   float64             `json:"score" dc:"分值"`
+	IsExample               int                 `json:"is_example" dc:"是否例题：0否 1是"`
+	ContentType             string              `json:"content_type" dc:"内容类型"`
+	AudioFile               string              `json:"audio_file" dc:"音频文件"`
+	StemText                string              `json:"stem_text" dc:"题干文本"`
+	ScreenTextJson          string              `json:"screen_text_json" dc:"屏幕文本(JSON)"`
+	AnalysisJson            string              `json:"analysis_json" dc:"解析(JSON)"`
+	QuestionDescriptionJson string              `json:"question_description_json" dc:"题目描述(JSON)"`
+	RawJson                 string              `json:"raw_json" dc:"原始JSON"`
+	Options                 []PaperDetailOption `json:"options" dc:"选项列表"`
 }
 
 type PaperDetailOption struct {
-	Id         int64  `json:"id"`
-	Flag       string `json:"flag"`
-	SortOrder  int    `json:"sort_order"`
-	IsCorrect  int    `json:"is_correct"`
-	OptionType string `json:"option_type"`
-	Content    string `json:"content"`
+	Id         int64  `json:"id" dc:"选项ID"`
+	Flag       string `json:"flag" dc:"选项标识"`
+	SortOrder  int    `json:"sort_order" dc:"排序"`
+	IsCorrect  int    `json:"is_correct" dc:"是否正确：0否 1是"`
+	OptionType string `json:"option_type" dc:"选项类型"`
+	Content    string `json:"content" dc:"选项内容"`
 }

@@ -18,9 +18,9 @@ type LoginRes struct {
 }
 
 type LoginUser struct {
-	Id       int64    `json:"id"`
-	Username string   `json:"username"`
-	Nickname string   `json:"nickname"`
-	Avatar   string   `json:"avatar"`
-	Roles    []string `json:"roles,omitempty"`
+	Id       int64    `json:"id" dc:"用户ID"`
+	Username string   `json:"username" dc:"用户名"`
+	Nickname string   `json:"nickname" dc:"昵称"`
+	Avatar   string   `json:"avatar" dc:"头像"`
+	Roles    []string `json:"roles,omitempty" dc:"角色列表"`
 }

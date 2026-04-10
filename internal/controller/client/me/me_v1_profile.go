@@ -7,10 +7,9 @@ import (
 
 	v1 "exam/api/client/me/v1"
 	"exam/internal/consts"
-	"exam/internal/dao"
 	"exam/internal/middleware"
-	sysentity "exam/internal/model/entity/sys"
-	"exam/internal/util"
+	membersvc "exam/internal/service/member"
+	"exam/internal/utility"
 )
 
 func (c *ControllerV1) Profile(ctx context.Context, req *v1.ProfileReq) (res *v1.ProfileRes, err error) {
@@ -18,12 +17,11 @@ func (c *ControllerV1) Profile(ctx context.Context, req *v1.ProfileReq) (res *v1
 	if d == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
-	var u sysentity.SysMember
-	err = dao.SysMember.Ctx(ctx).
-		Where("id", d.UserId).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&u)
-	if err != nil || u.Id == 0 {
+	u, err := membersvc.Member().MemberProfile(ctx, d.UserId)
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
 		return nil, gerror.NewCode(consts.CodeUserNotFound)
 	}
 	return &v1.ProfileRes{
@@ -35,9 +33,9 @@ func (c *ControllerV1) Profile(ctx context.Context, req *v1.ProfileReq) (res *v1
 		Mobile:             u.Mobile,
 		Status:             u.Status,
 		MustChangePassword: u.MustChangePassword,
-		PasswordChangedAt:  util.ToRFC3339UTC(u.PasswordChangedAt),
+		PasswordChangedAt:  utility.ToRFC3339UTC(u.PasswordChangedAt),
 		LoginIp:            u.LoginIp,
-		LoginTime:          util.ToRFC3339UTC(u.LoginTime),
-		CreateTime:         util.ToRFC3339UTC(u.CreateTime),
+		LoginTime:          utility.ToRFC3339UTC(u.LoginTime),
+		CreateTime:         utility.ToRFC3339UTC(u.CreateTime),
 	}, nil
 }

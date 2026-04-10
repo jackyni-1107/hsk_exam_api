@@ -4,21 +4,13 @@ import (
 	"context"
 
 	v1 "exam/api/admin/mock/v1"
-	"exam/internal/consts"
-	"exam/internal/dao"
-	mockentity "exam/internal/model/entity/mock"
-
-	"github.com/gogf/gf/v2/errors/gerror"
+	mocksvc "exam/internal/service/mock"
 )
 
 func (c *ControllerV1) MockLevelsList(ctx context.Context, req *v1.MockLevelsListReq) (res *v1.MockLevelsListRes, err error) {
-	var list []mockentity.MockLevels
-	err = dao.MockLevels.Ctx(ctx).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		OrderAsc("id").
-		Scan(&list)
+	list, err := mocksvc.Mock().MockLevelsList(ctx)
 	if err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
+		return nil, err
 	}
 	items := make([]*v1.MockLevelItem, 0, len(list))
 	for _, e := range list {

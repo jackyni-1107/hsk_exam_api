@@ -1,4 +1,4 @@
-package task
+package tasks
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 	sysdao "exam/internal/dao/sys"
 	sysdo "exam/internal/model/do/sys"
 	sysentity "exam/internal/model/entity/sys"
-	"exam/internal/notification"
-	"exam/internal/task/handler"
+	"exam/internal/tasks/handler"
+	"exam/internal/utility/notification"
 )
 
 // ExecRequest 单次任务执行入参。

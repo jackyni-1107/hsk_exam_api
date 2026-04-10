@@ -7,10 +7,10 @@ import (
 	"github.com/gogf/gf/v2/util/gconv"
 
 	v1 "exam/api/admin/exam/v1"
-	"exam/internal/exampaper"
 	"exam/internal/middleware"
 	"exam/internal/service/exam"
-	"exam/internal/util"
+	"exam/internal/utility"
+	"exam/internal/utility/exampaper"
 )
 
 func (c *ControllerV1) PaperList(ctx context.Context, req *v1.PaperListReq) (res *v1.PaperListRes, err error) {
@@ -33,7 +33,7 @@ func (c *ControllerV1) PaperList(ctx context.Context, req *v1.PaperListReq) (res
 			AudioHlsIvHex:           p.AudioHlsIvHex,
 			AudioHlsSegmentDuration: p.AudioHlsSegmentDuration,
 		}
-		item.CreateTime = util.ToRFC3339UTC(p.CreateTime)
+		item.CreateTime = utility.ToRFC3339UTC(p.CreateTime)
 		out = append(out, item)
 	}
 	return &v1.PaperListRes{List: out, Total: total}, nil

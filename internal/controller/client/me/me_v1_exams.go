@@ -9,7 +9,7 @@ import (
 	"exam/internal/consts"
 	"exam/internal/middleware"
 	examsvc "exam/internal/service/exam"
-	"exam/internal/util"
+	"exam/internal/utility"
 )
 
 func (c *ControllerV1) MyExams(ctx context.Context, req *v1.ExamsReq) (res *v1.ExamsRes, err error) {
@@ -33,8 +33,8 @@ func (c *ControllerV1) MyExams(ctx context.Context, req *v1.ExamsReq) (res *v1.E
 			MockExaminationPaperId:  r.MockExaminationPaperId,
 			MockExaminationPaperIds: pids,
 			PaperTitle:              r.PaperTitle,
-			ExamStartAt:             util.ToRFC3339UTC(r.ExamStartAt),
-			ExamEndAt:               util.ToRFC3339UTC(r.ExamEndAt),
+			ExamStartAt:             utility.ToRFC3339UTC(r.ExamStartAt),
+			ExamEndAt:               utility.ToRFC3339UTC(r.ExamEndAt),
 			WindowStatus:            r.WindowStatus,
 		})
 	}
