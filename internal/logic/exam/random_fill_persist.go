@@ -101,8 +101,8 @@ func RandomFillAnswersForTest(ctx context.Context, userID, paperID, attemptID in
 		for i, o := range opts {
 			ids[i] = o.Id
 		}
-		picked := randomPickOptionIDs(ids)
-		b, err := json.Marshal(randomAnswerPayload{SelectedOptionIDs: picked})
+		picked := ids[rand.IntN(len(ids))]
+		b, err := json.Marshal(randomAnswerPayload{SelectedOptionIDs: []int64{picked}})
 		if err != nil {
 			return 0, err
 		}
@@ -116,16 +116,6 @@ func RandomFillAnswersForTest(ctx context.Context, userID, paperID, attemptID in
 		return 0, err
 	}
 	return len(items), nil
-}
-
-func randomPickOptionIDs(optionIDs []int64) []int64 {
-	if len(optionIDs) == 0 {
-		return nil
-	}
-	x := append([]int64(nil), optionIDs...)
-	rand.Shuffle(len(x), func(i, j int) { x[i], x[j] = x[j], x[i] })
-	n := 1 + rand.IntN(len(x))
-	return x[:n]
 }
 
 func randomSubjectiveText() string {

@@ -31,8 +31,8 @@ type QuestionScoreMeta struct {
 	CorrectOptIDs []int64
 }
 
-// RandomAnswerDraftItem 随机填答案草稿（不入库）。
+// RandomAnswerDraftItem 随机填答案草稿（不入库）。Answer 与 PUT …/answers 的 items[].answer 一致：客观题为选项 id（数字），主观题为文本字符串。
 type RandomAnswerDraftItem struct {
 	QuestionID int64
-	Answer     string
+	Answer     any
 }

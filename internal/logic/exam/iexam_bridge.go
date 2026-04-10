@@ -196,11 +196,10 @@ func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mock
 		}
 		opts := optsByQ[q.Id]
 		if q.IsSubjective != 0 {
-			b, err := json.Marshal(randomAnswerPayload{Text: fmt.Sprintf("test-rand-%d-%016x", gtime.Now().TimestampMilli(), rand.Uint64())})
-			if err != nil {
-				return nil, err
-			}
-			out = append(out, bo.RandomAnswerDraftItem{QuestionID: q.Id, Answer: string(b)})
+			out = append(out, bo.RandomAnswerDraftItem{
+				QuestionID: q.Id,
+				Answer:     fmt.Sprintf("test-rand-%d-%016x", gtime.Now().TimestampMilli(), rand.Uint64()),
+			})
 			continue
 		}
 		if len(opts) == 0 {
@@ -210,24 +209,10 @@ func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mock
 		for i, o := range opts {
 			ids[i] = o.Id
 		}
-		picked := randomPickOptionIDsForFill(ids)
-		b, err := json.Marshal(randomAnswerPayload{SelectedOptionIDs: picked})
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, bo.RandomAnswerDraftItem{QuestionID: q.Id, Answer: string(b)})
+		picked := ids[rand.IntN(len(ids))]
+		out = append(out, bo.RandomAnswerDraftItem{QuestionID: q.Id, Answer: picked})
 	}
 	return out, nil
-}
-
-func randomPickOptionIDsForFill(optionIDs []int64) []int64 {
-	if len(optionIDs) == 0 {
-		return nil
-	}
-	x := append([]int64(nil), optionIDs...)
-	rand.Shuffle(len(x), func(i, j int) { x[i], x[j] = x[j], x[i] })
-	n := 1 + rand.IntN(len(x))
-	return x[:n]
 }
 
 func paperDetailForExamInitTreeToBO(t *PaperDetailForExamInitTree) exambo.PaperDetailForExamInitTree {

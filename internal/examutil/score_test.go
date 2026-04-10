@@ -71,4 +71,8 @@ func TestParseAnswerPayload(t *testing.T) {
 	if len(p.SelectedOptionIDs) != 2 || p.Text != "x" {
 		t.Fatalf("%+v", p)
 	}
+	p2 := ParseAnswerPayload(`{"option_id":42}`)
+	if len(p2.SelectedOptionIDs) != 1 || p2.SelectedOptionIDs[0] != 42 {
+		t.Fatalf("%+v", p2)
+	}
 }
