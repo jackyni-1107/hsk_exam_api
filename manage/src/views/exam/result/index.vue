@@ -73,12 +73,8 @@
             <span class="list-total-score">{{ row.total_score?.toFixed?.(2) ?? row.total_score }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="交卷时间" width="172" show-overflow-tooltip>
-          <template #default="{ row }">{{ formatListDateTime(row.submitted_at) }}</template>
-        </el-table-column>
-        <el-table-column label="结束时间" width="172" show-overflow-tooltip>
-          <template #default="{ row }">{{ formatListDateTime(row.ended_at) }}</template>
-        </el-table-column>
+        <el-table-column prop="submitted_at" label="交卷时间" width="172" show-overflow-tooltip :formatter="formatUtcForDisplay" />
+        <el-table-column prop="submitted_at" label="开始时间" width="172" show-overflow-tooltip :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="88" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openDetail(row)">详情</el-button>
@@ -177,10 +173,10 @@
           <el-card shadow="never" class="mid-card">
             <div class="mid-title">时间</div>
             <ul class="time-list">
-              <li><span class="t-label">开考</span>{{ formatAttemptTime(detail.attempt.started_at) }}</li>
-              <li><span class="t-label">截止</span>{{ formatAttemptTime(detail.attempt.deadline_at) }}</li>
-              <li><span class="t-label">交卷</span>{{ formatAttemptTime(detail.attempt.submitted_at) }}</li>
-              <li><span class="t-label">结束</span>{{ formatAttemptTime(detail.attempt.ended_at) }}</li>
+              <li><span class="t-label">开考</span>{{ formatUtcText(detail.attempt.started_at) }}</li>
+              <li><span class="t-label">截止</span>{{ formatUtcText(detail.attempt.deadline_at) }}</li>
+              <li><span class="t-label">交卷</span>{{ formatUtcText(detail.attempt.submitted_at) }}</li>
+              <li><span class="t-label">结束</span>{{ formatUtcText(detail.attempt.ended_at) }}</li>
             </ul>
           </el-card>
         </div>
@@ -357,6 +353,7 @@ import { computed, reactive, ref, onMounted, onUnmounted, watch, nextTick } from
 import type { Component } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Check, Close, Minus, Trophy, Medal, ChatDotRound, ArrowRight } from '@element-plus/icons-vue'
+import { formatUtcForDisplay, formatUtcText } from '@/utils/datetime'
 import {
   getAttemptList,
   getAttemptDetail,
@@ -696,24 +693,6 @@ function optionContentLabel(o: AttemptDetailOption) {
 function formatScore(n: number) {
   if (Number.isNaN(n)) return '—'
   return n.toFixed(2)
-}
-
-/** 列表/详情：接口为 RFC3339 UTC，按用户本机时区展示 */
-function formatListDateTime(s: string) {
-  if (!s) return '—'
-  const d = new Date(s)
-  if (Number.isNaN(d.getTime())) return s
-  return d.toLocaleString(undefined, {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function formatAttemptTime(s: string) {
-  return formatListDateTime(s)
 }
 
 function statusText(s: number) {
