@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/gogf/gf/v2/container/gvar"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"golang.org/x/sync/singleflight"
@@ -58,17 +59,28 @@ func InvalidatePaperSectionForExamCache(ctx context.Context, examPaperId, sectio
 
 func invalidatePaperSectionExamCachesByPaper(ctx context.Context, examPaperId int64) {
 	pattern := fmt.Sprintf(consts.ExamPaperSectionCachePattern, examPaperId)
-	v, err := g.Redis().Do(ctx, "KEYS", pattern)
-	if err != nil {
-		g.Log().Warningf(ctx, "paper for-exam redis keys %s: %v", pattern, err)
-		return
-	}
-	keys := v.Strings()
-	if len(keys) == 0 {
-		return
-	}
-	if _, err := g.Redis().Del(ctx, keys...); err != nil {
-		g.Log().Warningf(ctx, "paper for-exam redis del section keys pattern %s: %v", pattern, err)
+	var cursor int64
+	for {
+		v, err := g.Redis().Do(ctx, "SCAN", cursor, "MATCH", pattern, "COUNT", 100)
+		if err != nil {
+			g.Log().Warningf(ctx, "paper for-exam redis scan %s cursor=%d: %v", pattern, cursor, err)
+			return
+		}
+		arr := v.Interfaces()
+		if len(arr) < 2 {
+			return
+		}
+		nextCursor := gvar.New(arr[0]).Int64()
+		keys := gvar.New(arr[1]).Strings()
+		if len(keys) > 0 {
+			if _, err := g.Redis().Del(ctx, keys...); err != nil {
+				g.Log().Warningf(ctx, "paper for-exam redis del section keys pattern %s: %v", pattern, err)
+			}
+		}
+		cursor = nextCursor
+		if cursor == 0 {
+			break
+		}
 	}
 }
 

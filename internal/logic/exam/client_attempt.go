@@ -37,6 +37,36 @@ func batchExamWindowOpen(now *gtime.Time, start, end *gtime.Time) bool {
 	return true
 }
 
+func loadAttemptByUser(ctx context.Context, attemptID, userID int64) (examentity.ExamAttempt, error) {
+	var att examentity.ExamAttempt
+	if err := dao.ExamAttempt.Ctx(ctx).
+		Where("id", attemptID).
+		Where("member_id", userID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&att); err != nil {
+		return att, err
+	}
+	if att.Id == 0 {
+		return att, gerror.NewCode(consts.CodeExamAttemptNotFound)
+	}
+	return att, nil
+}
+
+func assertAttemptInProgressByUser(ctx context.Context, attemptID, userID int64) (*examentity.ExamAttempt, error) {
+	att, err := loadAttemptByUser(ctx, attemptID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if att.Status != consts.ExamAttemptInProgress {
+		return nil, gerror.NewCode(consts.CodeExamAlreadySubmitted)
+	}
+	now := gtime.Now()
+	if att.DeadlineAt != nil && att.DeadlineAt.Before(now) {
+		return nil, gerror.NewCode(consts.CodeExamTimeExpired)
+	}
+	return &att, nil
+}
+
 // CreateAttemptForBatch 按批次与 Mock 卷创建会话（未开始）；每用户每批次每卷仅允许一条未删除记录。
 func CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64) (int64, error) {
 	var batch examentity.ExamBatch
@@ -94,8 +124,8 @@ func CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64) (in
 		MockLevelId:            levelID,
 		Status:                 consts.ExamAttemptNotStarted,
 		DurationSeconds:        0,
-		Creator:                "client",
-		Updater:                "client",
+		Creator:                updaterClient,
+		Updater:                updaterClient,
 		DeleteFlag:             consts.DeleteFlagNotDeleted,
 		CreateTime:             gtime.Now(),
 		UpdateTime:             gtime.Now(),
@@ -140,7 +170,7 @@ func StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDura
 		DurationSeconds: dur,
 		StartedAt:       now,
 		DeadlineAt:      deadline,
-		Updater:         "client",
+		Updater:         updaterClient,
 		UpdateTime:      gtime.Now(),
 	})
 	return err
@@ -149,17 +179,9 @@ func StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDura
 // GetAttempt 查询会话；若已超时仍进行中则自动交卷并计分。
 func GetAttempt(ctx context.Context, userID int64, attemptID int64) (*bo.AttemptView, error) {
 	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
-	var att examentity.ExamAttempt
-	err := dao.ExamAttempt.Ctx(ctx).
-		Where("id", attemptID).
-		Where("member_id", userID).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&att)
+	att, err := loadAttemptByUser(ctx, attemptID, userID)
 	if err != nil {
 		return nil, err
-	}
-	if att.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
 	now := gtime.Now()
 	deadlineReached := att.Status == consts.ExamAttemptInProgress && att.DeadlineAt != nil && att.DeadlineAt.Before(now)
@@ -178,24 +200,9 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.
 	}
 	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
 
-	var att examentity.ExamAttempt
-	err := dao.ExamAttempt.Ctx(ctx).
-		Where("id", attemptID).
-		Where("member_id", userID).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&att)
+	att, err := assertAttemptInProgressByUser(ctx, attemptID, userID)
 	if err != nil {
 		return err
-	}
-	if att.Id == 0 {
-		return gerror.NewCode(consts.CodeExamAttemptNotFound)
-	}
-	if att.Status != consts.ExamAttemptInProgress {
-		return gerror.NewCode(consts.CodeExamAlreadySubmitted)
-	}
-	now := gtime.Now()
-	if att.DeadlineAt != nil && att.DeadlineAt.Before(now) {
-		return gerror.NewCode(consts.CodeExamTimeExpired)
 	}
 	if len(items) == 0 {
 		return nil
@@ -230,8 +237,8 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.
 					ExamQuestionId: it.QuestionID,
 					AnswerJson:     it.AnswerJSON,
 					Version:        0,
-					Creator:        "client",
-					Updater:        "client",
+					Creator:        updaterClient,
+					Updater:        updaterClient,
 					DeleteFlag:     consts.DeleteFlagNotDeleted,
 					CreateTime:     gtime.Now(),
 					UpdateTime:     gtime.Now(),
@@ -247,7 +254,7 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.
 			_, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Where("id", row.Id).Update(examdo.ExamAttemptAnswer{
 				AnswerJson: it.AnswerJSON,
 				Version:    row.Version + 1,
-				Updater:    "client",
+				Updater:    updaterClient,
 				UpdateTime: gtime.Now(),
 			})
 			if err != nil {
@@ -261,17 +268,9 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.
 // SubmitAttempt 主动交卷：仅标记为已交卷（待算分）。客观分与 exam_result 由 sys_task（ExamScoreFinalizeHandler）统一算分写入。
 func SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error {
 	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
-	var att examentity.ExamAttempt
-	err := dao.ExamAttempt.Ctx(ctx).
-		Where("id", attemptID).
-		Where("member_id", userID).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&att)
+	att, err := loadAttemptByUser(ctx, attemptID, userID)
 	if err != nil {
 		return err
-	}
-	if att.Id == 0 {
-		return gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
 	if att.Status == consts.ExamAttemptEnded {
 		return nil
@@ -282,19 +281,14 @@ func SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error {
 	if att.Status != consts.ExamAttemptInProgress {
 		return gerror.NewCode(consts.CodeExamAlreadySubmitted)
 	}
-	return markSubmitted(ctx, attemptID, false, "client")
+	return markSubmitted(ctx, attemptID, false, updaterClient)
 }
 
 // maybeAutoSubmitIfOverdue 考试时间到达且仍为进行中时自动标记已交卷（待算分）。算分仅由定时任务执行。
 func maybeAutoSubmitIfOverdue(ctx context.Context, userID int64, attemptID int64) error {
-	var att examentity.ExamAttempt
-	err := dao.ExamAttempt.Ctx(ctx).
-		Where("id", attemptID).
-		Where("member_id", userID).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&att)
-	if err != nil || att.Id == 0 {
-		return err
+	att, err := loadAttemptByUser(ctx, attemptID, userID)
+	if err != nil {
+		return nil
 	}
 	if att.Status != consts.ExamAttemptInProgress || att.DeadlineAt == nil {
 		return nil
@@ -303,12 +297,12 @@ func maybeAutoSubmitIfOverdue(ctx context.Context, userID int64, attemptID int64
 	if !att.DeadlineAt.Before(now) {
 		return nil
 	}
-	return markSubmitted(ctx, attemptID, true, "client")
+	return markSubmitted(ctx, attemptID, true, updaterClient)
 }
 
 // MarkSubmittedIfOverdue 供定时任务：超时未操作会话标记为已交卷（待算分，不校验用户）。算分由 ExamScoreFinalizeHandler 执行。
 func MarkSubmittedIfOverdue(ctx context.Context, attemptID int64) error {
-	return markSubmitted(ctx, attemptID, true, "task")
+	return markSubmitted(ctx, attemptID, true, updaterTask)
 }
 
 // FinalizeAttempt 对已交卷（待算分）会话计算客观分并置为已结束，写入 exam_result。仅应由 ExamScoreFinalizeHandler（sys_task）调用。
@@ -396,7 +390,7 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 			SubjectiveScore: 0,
 			TotalScore:      objScore,
 			HasSubjective:   hasFlag,
-			Updater:         "task",
+			Updater:         updaterTask,
 			UpdateTime:      gtime.Now(),
 		})
 		if err != nil {
@@ -414,25 +408,34 @@ func loadQuestionScoreMetaTx(ctx context.Context, tx gdb.TX, paperID int64) ([]b
 		Scan(&qs); err != nil {
 		return nil, err
 	}
+	if len(qs) == 0 {
+		return nil, nil
+	}
+	qIDs := make([]interface{}, len(qs))
+	for i, q := range qs {
+		qIDs[i] = q.Id
+	}
+	var correctOpts []examentity.ExamOption
+	if err := tx.Model(dao.ExamOption.Table()).Ctx(ctx).
+		WhereIn("question_id", qIDs).
+		Where("is_correct", 1).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		OrderAsc("sort_order").
+		Scan(&correctOpts); err != nil {
+		return nil, err
+	}
+	correctByQ := make(map[int64][]int64, len(qs))
+	for _, o := range correctOpts {
+		correctByQ[o.QuestionId] = append(correctByQ[o.QuestionId], o.Id)
+	}
 	out := make([]bo.QuestionScoreMeta, 0, len(qs))
 	for _, q := range qs {
-		var opts []examentity.ExamOption
-		_ = tx.Model(dao.ExamOption.Table()).Ctx(ctx).
-			Where("question_id", q.Id).
-			Where("is_correct", 1).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			OrderAsc("sort_order").
-			Scan(&opts)
-		var correct []int64
-		for _, o := range opts {
-			correct = append(correct, o.Id)
-		}
 		out = append(out, bo.QuestionScoreMeta{
 			QuestionID:    q.Id,
 			IsExample:     q.IsExample,
 			IsSubjective:  q.IsSubjective,
 			Score:         q.Score,
-			CorrectOptIDs: correct,
+			CorrectOptIDs: correctByQ[q.Id],
 		})
 	}
 	return out, nil

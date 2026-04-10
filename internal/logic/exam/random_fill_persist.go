@@ -21,41 +21,22 @@ type randomAnswerPayload struct {
 	Text              string  `json:"text,omitempty"`
 }
 
-// RandomFillAnswersForTest 按试卷小题随机生成答案并批量保存。仅当配置 exam.enableRandomAnswerHelper=true 时可用。
+// RandomFillAndSaveAnswers 按试卷小题随机生成答案并批量保存。仅当配置 exam.enableRandomAnswerHelper=true 时可用。
 // paperID 为 mock_examination_paper.id，须与 attempt 所属卷一致；跳过例题；客观题从选项中随机选 1..N 项；主观题写入随机占位文本。
-func RandomFillAnswersForTest(ctx context.Context, userID, paperID, attemptID int64) (filled int, err error) {
+// 注意：此函数会实际写库（调用 SaveAnswers）；若只需生成草稿不写库，使用 sExam.RandomFillAnswersForTest。
+func RandomFillAndSaveAnswers(ctx context.Context, userID, paperID, attemptID int64) (filled int, err error) {
 	cfg := LoadExamCfg(ctx)
 	if !cfg.EnableRandomAnswerHelper {
 		return 0, gerror.NewCode(consts.CodeExamTestHelperDisabled)
 	}
 	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
 
-	var att examentity.ExamAttempt
-	err = dao.ExamAttempt.Ctx(ctx).
-		Where("id", attemptID).
-		Where("member_id", userID).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&att)
+	att, err := assertAttemptInProgressByUser(ctx, attemptID, userID)
 	if err != nil {
 		return 0, err
 	}
-	if att.Id == 0 {
-		return 0, gerror.NewCode(consts.CodeExamAttemptNotFound)
-	}
 	if att.MockExaminationPaperId != paperID {
 		return 0, gerror.NewCode(consts.CodeInvalidParams)
-	}
-	switch att.Status {
-	case consts.ExamAttemptNotStarted:
-		return 0, gerror.NewCode(consts.CodeExamNotStarted)
-	case consts.ExamAttemptInProgress:
-		// ok
-	default:
-		return 0, gerror.NewCode(consts.CodeExamAlreadySubmitted)
-	}
-	now := gtime.Now()
-	if att.DeadlineAt != nil && att.DeadlineAt.Before(now) {
-		return 0, gerror.NewCode(consts.CodeExamTimeExpired)
 	}
 
 	var qs []examentity.ExamQuestion

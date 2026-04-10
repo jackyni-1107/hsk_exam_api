@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"exam/internal/consts"
-	examdao "exam/internal/dao/exam"
+	"exam/internal/dao"
 	exambo "exam/internal/model/bo/exam"
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
@@ -65,13 +65,11 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*ex
 
 	mockID := p.MockExaminationPaperId
 	var exist examentity.ExamPaper
-	if err := examdao.ExamPaper.Ctx(ctx).
+	if err := dao.ExamPaper.Ctx(ctx).
 		Where("mock_examination_paper_id", mockID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&exist); err != nil {
-		if !isNoRowsErr(err) {
-			return nil, err
-		}
+		return nil, err
 	}
 	if exist.Id > 0 {
 		switch mode {
@@ -87,15 +85,13 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*ex
 			}
 			paperID = p.NewPaperID
 			var dup examentity.ExamPaper
-			if err := examdao.ExamPaper.Ctx(ctx).
+			if err := dao.ExamPaper.Ctx(ctx).
 				Where("level", level).
 				Where("paper_id", paperID).
 				Where("delete_flag", consts.DeleteFlagNotDeleted).
 				WhereNot("id", exist.Id).
 				Scan(&dup); err != nil {
-				if !isNoRowsErr(err) {
-					return nil, err
-				}
+				return nil, err
 			}
 			if dup.Id > 0 {
 				return nil, gerror.NewCode(consts.CodeExamNewPaperIdExists)
@@ -105,14 +101,12 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*ex
 		}
 	} else {
 		var pathDup examentity.ExamPaper
-		if err := examdao.ExamPaper.Ctx(ctx).
+		if err := dao.ExamPaper.Ctx(ctx).
 			Where("level", level).
 			Where("paper_id", paperID).
 			Where("delete_flag", consts.DeleteFlagNotDeleted).
 			Scan(&pathDup); err != nil {
-			if !isNoRowsErr(err) {
-				return nil, err
-			}
+			return nil, err
 		}
 		if pathDup.Id > 0 {
 			return nil, gerror.NewCode(consts.CodeExamNewPaperIdExists)
@@ -138,7 +132,7 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*ex
 			if err := softDeletePaperTreeTx(ctx, tx, overwritePaperId, p.Creator); err != nil {
 				return err
 			}
-			_, err := tx.Model(examdao.ExamPaper.Table()).Ctx(ctx).Where("id", overwritePaperId).Data(examdo.ExamPaper{
+			_, err := tx.Model(dao.ExamPaper.Table()).Ctx(ctx).Where("id", overwritePaperId).Data(examdo.ExamPaper{
 				Level:                   level,
 				PaperId:                 paperID,
 				MockExaminationPaperId:  mockID,
@@ -181,7 +175,7 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*ex
 				CreateTime:             gtime.Now(),
 				UpdateTime:             gtime.Now(),
 			}
-			inserted, err := tx.Model(examdao.ExamPaper.Table()).Ctx(ctx).InsertAndGetId(paperDO)
+			inserted, err := tx.Model(dao.ExamPaper.Table()).Ctx(ctx).InsertAndGetId(paperDO)
 			if err != nil {
 				return err
 			}
@@ -222,7 +216,7 @@ func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*ex
 				CreateTime:             gtime.Now(),
 				UpdateTime:             gtime.Now(),
 			}
-			sid, err := tx.Model(examdao.ExamSection.Table()).Ctx(ctx).InsertAndGetId(secDO)
+			sid, err := tx.Model(dao.ExamSection.Table()).Ctx(ctx).InsertAndGetId(secDO)
 			if err != nil {
 				return err
 			}
@@ -315,13 +309,6 @@ func fetchRemote(ctx context.Context, u string) (string, error) {
 	return r.ReadAllString(), nil
 }
 
-func isNoRowsErr(err error) bool {
-	if err == nil {
-		return false
-	}
-	return strings.Contains(strings.ToLower(err.Error()), "no rows in result set")
-}
-
 // deletePaperTree 独立事务删除（供管理端扩展等使用）。
 func deletePaperTree(ctx context.Context, examPaperId int64) error {
 	err := g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
@@ -337,7 +324,7 @@ func deletePaperTree(ctx context.Context, examPaperId int64) error {
 func softDeletePaperTreeTx(ctx context.Context, tx gdb.TX, examPaperId int64, updater string) error {
 	now := gtime.Now()
 	var qids []int64
-	if err := tx.Model(examdao.ExamQuestion.Table()).Ctx(ctx).
+	if err := tx.Model(dao.ExamQuestion.Table()).Ctx(ctx).
 		Where("exam_paper_id", examPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Fields("id").
@@ -345,7 +332,7 @@ func softDeletePaperTreeTx(ctx context.Context, tx gdb.TX, examPaperId int64, up
 		return err
 	}
 	if len(qids) > 0 {
-		if _, err := tx.Model(examdao.ExamOption.Table()).Ctx(ctx).
+		if _, err := tx.Model(dao.ExamOption.Table()).Ctx(ctx).
 			WhereIn("question_id", qids).
 			Where("delete_flag", consts.DeleteFlagNotDeleted).
 			Data(g.Map{
@@ -356,7 +343,7 @@ func softDeletePaperTreeTx(ctx context.Context, tx gdb.TX, examPaperId int64, up
 			return err
 		}
 	}
-	if _, err := tx.Model(examdao.ExamQuestion.Table()).Ctx(ctx).
+	if _, err := tx.Model(dao.ExamQuestion.Table()).Ctx(ctx).
 		Where("exam_paper_id", examPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Data(g.Map{
@@ -367,7 +354,7 @@ func softDeletePaperTreeTx(ctx context.Context, tx gdb.TX, examPaperId int64, up
 		return err
 	}
 	var sids []int64
-	if err := tx.Model(examdao.ExamSection.Table()).Ctx(ctx).
+	if err := tx.Model(dao.ExamSection.Table()).Ctx(ctx).
 		Where("exam_paper_id", examPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Fields("id").
@@ -375,7 +362,7 @@ func softDeletePaperTreeTx(ctx context.Context, tx gdb.TX, examPaperId int64, up
 		return err
 	}
 	if len(sids) > 0 {
-		if _, err := tx.Model(examdao.ExamQuestionBlock.Table()).Ctx(ctx).
+		if _, err := tx.Model(dao.ExamQuestionBlock.Table()).Ctx(ctx).
 			WhereIn("section_id", sids).
 			Where("delete_flag", consts.DeleteFlagNotDeleted).
 			Data(g.Map{
@@ -386,7 +373,7 @@ func softDeletePaperTreeTx(ctx context.Context, tx gdb.TX, examPaperId int64, up
 			return err
 		}
 	}
-	if _, err := tx.Model(examdao.ExamSection.Table()).Ctx(ctx).
+	if _, err := tx.Model(dao.ExamSection.Table()).Ctx(ctx).
 		Where("exam_paper_id", examPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Data(g.Map{
@@ -401,30 +388,30 @@ func softDeletePaperTreeTx(ctx context.Context, tx gdb.TX, examPaperId int64, up
 
 func deletePaperTreeTx(ctx context.Context, tx gdb.TX, examPaperId int64) error {
 	var qids []int64
-	if err := tx.Model(examdao.ExamQuestion.Table()).Ctx(ctx).Where("exam_paper_id", examPaperId).Fields("id").Scan(&qids); err != nil {
+	if err := tx.Model(dao.ExamQuestion.Table()).Ctx(ctx).Where("exam_paper_id", examPaperId).Fields("id").Scan(&qids); err != nil {
 		return err
 	}
 	if len(qids) > 0 {
-		if _, err := tx.Model(examdao.ExamOption.Table()).Ctx(ctx).WhereIn("question_id", qids).Delete(); err != nil {
+		if _, err := tx.Model(dao.ExamOption.Table()).Ctx(ctx).WhereIn("question_id", qids).Delete(); err != nil {
 			return err
 		}
 	}
-	if _, err := tx.Model(examdao.ExamQuestion.Table()).Ctx(ctx).Where("exam_paper_id", examPaperId).Delete(); err != nil {
+	if _, err := tx.Model(dao.ExamQuestion.Table()).Ctx(ctx).Where("exam_paper_id", examPaperId).Delete(); err != nil {
 		return err
 	}
 	var sids []int64
-	if err := tx.Model(examdao.ExamSection.Table()).Ctx(ctx).Where("exam_paper_id", examPaperId).Fields("id").Scan(&sids); err != nil {
+	if err := tx.Model(dao.ExamSection.Table()).Ctx(ctx).Where("exam_paper_id", examPaperId).Fields("id").Scan(&sids); err != nil {
 		return err
 	}
 	if len(sids) > 0 {
-		if _, err := tx.Model(examdao.ExamQuestionBlock.Table()).Ctx(ctx).WhereIn("section_id", sids).Delete(); err != nil {
+		if _, err := tx.Model(dao.ExamQuestionBlock.Table()).Ctx(ctx).WhereIn("section_id", sids).Delete(); err != nil {
 			return err
 		}
 	}
-	if _, err := tx.Model(examdao.ExamSection.Table()).Ctx(ctx).Where("exam_paper_id", examPaperId).Delete(); err != nil {
+	if _, err := tx.Model(dao.ExamSection.Table()).Ctx(ctx).Where("exam_paper_id", examPaperId).Delete(); err != nil {
 		return err
 	}
-	if _, err := tx.Model(examdao.ExamPaper.Table()).Ctx(ctx).Where("id", examPaperId).Delete(); err != nil {
+	if _, err := tx.Model(dao.ExamPaper.Table()).Ctx(ctx).Where("id", examPaperId).Delete(); err != nil {
 		return err
 	}
 	return nil
@@ -448,7 +435,7 @@ func insertTopicContent(ctx context.Context, tx gdb.TX, examPaperId, mockPaperID
 				CreateTime:              gtime.Now(),
 				UpdateTime:              gtime.Now(),
 			}
-			bid, err := tx.Model(examdao.ExamQuestionBlock.Table()).Ctx(ctx).InsertAndGetId(blockDO)
+			bid, err := tx.Model(dao.ExamQuestionBlock.Table()).Ctx(ctx).InsertAndGetId(blockDO)
 			if err != nil {
 				return 0, err
 			}
@@ -472,7 +459,7 @@ func insertTopicContent(ctx context.Context, tx gdb.TX, examPaperId, mockPaperID
 			CreateTime:              gtime.Now(),
 			UpdateTime:              gtime.Now(),
 		}
-		bid, err := tx.Model(examdao.ExamQuestionBlock.Table()).Ctx(ctx).InsertAndGetId(blockDO)
+		bid, err := tx.Model(dao.ExamQuestionBlock.Table()).Ctx(ctx).InsertAndGetId(blockDO)
 		if err != nil {
 			return 0, err
 		}
@@ -559,7 +546,7 @@ func insertOneQuestion(ctx context.Context, tx gdb.TX, examPaperId, mockPaperID,
 		CreateTime:              gtime.Now(),
 		UpdateTime:              gtime.Now(),
 	}
-	qid, err := tx.Model(examdao.ExamQuestion.Table()).Ctx(ctx).InsertAndGetId(qDO)
+	qid, err := tx.Model(dao.ExamQuestion.Table()).Ctx(ctx).InsertAndGetId(qDO)
 	if err != nil {
 		return 0, err
 	}
@@ -583,7 +570,7 @@ func insertOneQuestion(ctx context.Context, tx gdb.TX, examPaperId, mockPaperID,
 			CreateTime: gtime.Now(),
 			UpdateTime: gtime.Now(),
 		}
-		if _, err := tx.Model(examdao.ExamOption.Table()).Ctx(ctx).Insert(optDO); err != nil {
+		if _, err := tx.Model(dao.ExamOption.Table()).Ctx(ctx).Insert(optDO); err != nil {
 			return 0, err
 		}
 	}
@@ -598,7 +585,7 @@ func (s *sExam) PaperList(ctx context.Context, page, size int, level string) (li
 	if size <= 0 {
 		size = 10
 	}
-	m := examdao.ExamPaper.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted)
+	m := dao.ExamPaper.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted)
 	if level != "" {
 		m = m.Where("level", level)
 	}

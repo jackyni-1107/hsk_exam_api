@@ -11,7 +11,6 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/google/uuid"
 
 	"exam/internal/config"
@@ -113,26 +112,7 @@ func (s *sExam) loadPaperHLS(ctx context.Context, paperID int64) (*paperHLSConfi
 }
 
 func (s *sExam) assertAttemptInProgress(ctx context.Context, userID, attemptID int64) (*examentity.ExamAttempt, error) {
-	var att examentity.ExamAttempt
-	err := dao.ExamAttempt.Ctx(ctx).
-		Where("id", attemptID).
-		Where("member_id", userID).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&att)
-	if err != nil {
-		return nil, err
-	}
-	if att.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeExamAttemptNotFound)
-	}
-	if att.Status != consts.ExamAttemptInProgress {
-		return nil, gerror.NewCode(consts.CodeExamAlreadySubmitted)
-	}
-	now := gtime.Now()
-	if att.DeadlineAt != nil && att.DeadlineAt.Before(now) {
-		return nil, gerror.NewCode(consts.CodeExamTimeExpired)
-	}
-	return &att, nil
+	return assertAttemptInProgressByUser(ctx, attemptID, userID)
 }
 
 func (s *sExam) loadQuestionHLS(ctx context.Context, paperID, questionID int64) (*examentity.ExamQuestion, error) {

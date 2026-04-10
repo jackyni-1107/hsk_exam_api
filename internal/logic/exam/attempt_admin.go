@@ -279,8 +279,8 @@ func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID 
 					AnswerJson:     "{}",
 					AwardedScore:   &scoreVal,
 					Version:        0,
-					Creator:        "admin",
-					Updater:        "admin",
+					Creator:        updaterAdmin,
+					Updater:        updaterAdmin,
 					DeleteFlag:     consts.DeleteFlagNotDeleted,
 					CreateTime:     gtime.Now(),
 					UpdateTime:     gtime.Now(),
@@ -290,7 +290,7 @@ func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID 
 			} else {
 				if _, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Where("id", row.Id).Update(examdo.ExamAttemptAnswer{
 					AwardedScore: &scoreVal,
-					Updater:      "admin",
+					Updater:      updaterAdmin,
 					UpdateTime:   gtime.Now(),
 				}); err != nil {
 					return err
@@ -307,7 +307,7 @@ func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID 
 		if _, err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Update(examdo.ExamAttempt{
 			SubjectiveScore: sum,
 			TotalScore:      tot,
-			Updater:         "admin",
+			Updater:         updaterAdmin,
 			UpdateTime:      gtime.Now(),
 		}); err != nil {
 			return err

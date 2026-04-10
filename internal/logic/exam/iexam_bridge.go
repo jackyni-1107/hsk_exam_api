@@ -143,31 +143,18 @@ func (s *sExam) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64
 	return &out, nil
 }
 
+// RandomFillAnswersForTest 仅返回随机答案草稿列表，不写库。若需生成并保存，使用 RandomFillAndSaveAnswers。
 func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mockPaperID int64, attemptID int64) ([]bo.RandomAnswerDraftItem, error) {
 	cfg := LoadExamCfg(ctx)
 	if !cfg.EnableRandomAnswerHelper {
 		return nil, gerror.NewCode(consts.CodeExamTestHelperDisabled)
 	}
-	var att examentity.ExamAttempt
-	if err := dao.ExamAttempt.Ctx(ctx).
-		Where("id", attemptID).
-		Where("member_id", userID).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&att); err != nil {
+	att, err := assertAttemptInProgressByUser(ctx, attemptID, userID)
+	if err != nil {
 		return nil, err
-	}
-	if att.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
 	if att.MockExaminationPaperId != mockPaperID {
 		return nil, gerror.NewCode(consts.CodeInvalidParams)
-	}
-	if att.Status != consts.ExamAttemptInProgress {
-		return nil, gerror.NewCode(consts.CodeExamAlreadySubmitted)
-	}
-	now := gtime.Now()
-	if att.DeadlineAt != nil && att.DeadlineAt.Before(now) {
-		return nil, gerror.NewCode(consts.CodeExamTimeExpired)
 	}
 
 	var qs []examentity.ExamQuestion
