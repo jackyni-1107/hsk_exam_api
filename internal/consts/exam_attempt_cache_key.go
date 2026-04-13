@@ -1,7 +1,9 @@
 package consts
 
 // ExamAttemptCacheKeyPrefix 考试会话相关 Redis 键前缀（预留）
-const ExamAttemptCacheKeyPrefix = "hskexam:exam:attempt_cache:"
+const ExamAttemptKeyFmt = "hskexam:exam:attempt:%d"
+
+const ExamAttemptSyncQueueKey = "exam:sync:queue"
 
 // ---------- Exam Redis 键格式（hskexam:exam:业务名:唯一标识） ----------
 

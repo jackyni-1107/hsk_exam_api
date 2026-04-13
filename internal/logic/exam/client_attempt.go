@@ -2,11 +2,13 @@ package exam
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
+	"github.com/gogf/gf/v2/util/gconv"
 
 	"exam/internal/consts"
 	"exam/internal/dao"
@@ -192,77 +194,57 @@ func GetAttempt(ctx context.Context, userID int64, attemptID int64) (*bo.Attempt
 	}, nil
 }
 
-// SaveAnswers 批量保存答案（限流在调用方或此处）。
+// SaveAnswers 保存答案 redis -> db
 func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.SaveAnswerItem) error {
+	// 1. 基础校验 (限流、考试状态)
 	cfg := LoadExamCfg(ctx)
 	if err := RateLimitSaveAnswers(ctx, attemptID, cfg.SaveAnswersPerSecond); err != nil {
 		return err
 	}
-	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
 
-	att, err := assertAttemptInProgressByUser(ctx, attemptID, userID)
+	// 校验考试是否在进行中
+	_, err := assertAttemptInProgressByUser(ctx, attemptID, userID)
 	if err != nil {
 		return err
 	}
+
 	if len(items) == 0 {
 		return nil
 	}
-	qids := make([]interface{}, 0, len(items))
+
+	// 2. 准备 Redis 数据
+	redisKey := fmt.Sprintf(consts.ExamAttemptKeyFmt, attemptID)
+	data := make(map[string]interface{})
+	now := gtime.Now()
+
 	for _, it := range items {
-		qids = append(qids, it.QuestionID)
-	}
-	cnt, err := dao.ExamQuestion.Ctx(ctx).
-		Where("exam_paper_id", att.ExamPaperId).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		WhereIn("id", qids).
-		Count()
-	if err != nil {
-		return err
-	}
-	if cnt != len(items) {
-		return gerror.NewCode(consts.CodeInvalidParams)
+		// 封装数据。注意：此处由于是异步，乐观锁版本校验可以先放在 Redis 层面或落库层面
+		val := g.Map{
+			"q": it.QuestionID,
+			"a": it.AnswerJSON,
+			"v": it.ExpectedVersion, // 记录调用方预期的版本
+			"t": now.Timestamp(),
+		}
+		data[gconv.String(it.QuestionID)] = val
 	}
 
-	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		for _, it := range items {
-			var row examentity.ExamAttemptAnswer
-			_ = tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
-				Where("attempt_id", attemptID).
-				Where("exam_question_id", it.QuestionID).
-				Where("delete_flag", consts.DeleteFlagNotDeleted).
-				Scan(&row)
-			if row.Id == 0 {
-				_, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Insert(examdo.ExamAttemptAnswer{
-					AttemptId:      attemptID,
-					ExamQuestionId: it.QuestionID,
-					AnswerJson:     it.AnswerJSON,
-					Version:        0,
-					Creator:        updaterClient,
-					Updater:        updaterClient,
-					DeleteFlag:     consts.DeleteFlagNotDeleted,
-					CreateTime:     gtime.Now(),
-					UpdateTime:     gtime.Now(),
-				})
-				if err != nil {
-					return err
-				}
-				continue
-			}
-			if it.ExpectedVersion != nil && *it.ExpectedVersion != row.Version {
-				return gerror.NewCode(consts.CodeExamAnswerVersionConflict)
-			}
-			_, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Where("id", row.Id).Update(examdo.ExamAttemptAnswer{
-				AnswerJson: it.AnswerJSON,
-				Version:    row.Version + 1,
-				Updater:    updaterClient,
-				UpdateTime: gtime.Now(),
-			})
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+	// 3. 写入 Redis Hash
+	err = g.Redis().HMSet(ctx, redisKey, data)
+	if err != nil {
+		g.Log().Error(ctx, "Redis写入失败", err)
+		return err
+	}
+
+	// 4. 设置过期时间（例如 2 小时）
+	_, _ = g.Redis().Expire(ctx, redisKey, 7200)
+
+	// 5. 推送到队列（通知异步落库）
+	// 我们只需要把 attemptID 放进去，消费者就知道去哪个 Hash 拿数据
+	if _, err := g.Redis().LPush(ctx, consts.ExamAttemptSyncQueueKey, attemptID); err != nil {
+		g.Log().Error(ctx, "推送队列失败", err)
+	}
+
+	return nil
 }
 
 // SubmitAttempt 主动交卷：仅标记为已交卷（待算分）。客观分与 exam_result 由 sys_task（ExamScoreFinalizeHandler）统一算分写入。

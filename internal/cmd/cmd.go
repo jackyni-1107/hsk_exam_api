@@ -41,6 +41,7 @@ var (
 		Brief: "start http server",
 		Func: func(ctx context.Context, parser *gcmd.Parser) (err error) {
 			InitAll(ctx)
+			go SyncAnswer(ctx)
 
 			s := g.Server()
 			apiP := appcfg.Config.ApiPrefix
