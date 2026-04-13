@@ -131,6 +131,7 @@ func (c *ControllerV1) AttemptGet(ctx context.Context, req *v1.AttemptGetReq) (r
 		HasSubjective:      a.HasSubjective,
 		ServerTime:         v.ServerTime,
 		DeadlineReached:    v.DeadlineReached,
+		RemainingSeconds:   v.RemainingSeconds,
 	}
 	out.StartedAt = utility.ToRFC3339UTC(a.StartedAt)
 	out.DeadlineAt = utility.ToRFC3339UTC(a.DeadlineAt)

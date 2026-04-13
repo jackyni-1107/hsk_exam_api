@@ -11,9 +11,10 @@ type SaveAnswerItem struct {
 
 // AttemptView 会话详情（接口返回）。
 type AttemptView struct {
-	Attempt         examentity.ExamAttempt
-	ServerTime      string
-	DeadlineReached bool
+	Attempt          examentity.ExamAttempt
+	ServerTime       string
+	DeadlineReached  bool
+	RemainingSeconds *int // 进行中且存在批次结束时间时：exam_batch.exam_end_at 与最近一次保存答案时间的差（秒），下限 0
 }
 
 // AnswerPayload 客户端答题 JSON。

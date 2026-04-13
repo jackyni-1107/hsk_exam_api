@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gogf/gf/v2/database/gdb"
+	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
@@ -180,18 +181,87 @@ func StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDura
 
 // GetAttempt 查询会话；若已超时仍进行中则自动交卷并计分。
 func GetAttempt(ctx context.Context, userID int64, attemptID int64) (*bo.AttemptView, error) {
-	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
+	//_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
 	att, err := loadAttemptByUser(ctx, attemptID, userID)
 	if err != nil {
 		return nil, err
 	}
 	now := gtime.Now()
 	deadlineReached := att.Status == consts.ExamAttemptInProgress && att.DeadlineAt != nil && att.DeadlineAt.Before(now)
+	rem := computeBatchExamRemainingSeconds(ctx, att)
 	return &bo.AttemptView{
-		Attempt:         att,
-		ServerTime:      utility.ToRFC3339UTCShift(now),
-		DeadlineReached: deadlineReached,
+		Attempt:          att,
+		ServerTime:       utility.ToRFC3339UTCShift(now),
+		DeadlineReached:  deadlineReached,
+		RemainingSeconds: rem,
 	}, nil
+}
+
+// computeBatchExamRemainingSeconds 以批次 exam_end_at 为结束时刻，以最近一次保存答案时间（库表与 Redis 草稿取较新，均无则退回开考时间）为参考时刻，返回剩余秒数（仅进行中且批次有效时）。
+func computeBatchExamRemainingSeconds(ctx context.Context, att examentity.ExamAttempt) *int {
+	if att.Status != consts.ExamAttemptInProgress || att.ExamBatchId <= 0 {
+		return nil
+	}
+	var batch examentity.ExamBatch
+	if err := dao.ExamBatch.Ctx(ctx).
+		Where("id", att.ExamBatchId).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&batch); err != nil || batch.Id == 0 || batch.ExamEndAt == nil {
+		return nil
+	}
+	ref := lastAnswerReferenceTime(ctx, att.Id, att.StartedAt)
+	if ref == nil {
+		return nil
+	}
+	sec := batch.ExamEndAt.Timestamp() - ref.Timestamp()
+	if sec < 0 {
+		sec = 0
+	}
+	x := int(sec)
+	return &x
+}
+
+func lastAnswerReferenceTime(ctx context.Context, attemptID int64, startedAt *gtime.Time) *gtime.Time {
+	var row examentity.ExamAttemptAnswer
+	_ = dao.ExamAttemptAnswer.Ctx(ctx).
+		Fields("update_time").
+		Where("attempt_id", attemptID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		OrderDesc("update_time").
+		Limit(1).
+		Scan(&row)
+	var best *gtime.Time
+	if row.UpdateTime != nil {
+		best = row.UpdateTime
+	}
+	if rds := maxAnswerSaveTimeFromRedis(ctx, attemptID); rds != nil {
+		if best == nil || rds.After(best) {
+			best = rds
+		}
+	}
+	if best == nil {
+		best = startedAt
+	}
+	return best
+}
+
+func maxAnswerSaveTimeFromRedis(ctx context.Context, attemptID int64) *gtime.Time {
+	redisKey := fmt.Sprintf(consts.ExamAttemptKeyFmt, attemptID)
+	res, err := g.Redis().HGetAll(ctx, redisKey)
+	if err != nil || res.IsEmpty() {
+		return nil
+	}
+	var maxTs int64
+	for _, s := range res.Map() {
+		t := gjson.New(s).Get("t").Int64()
+		if t > maxTs {
+			maxTs = t
+		}
+	}
+	if maxTs <= 0 {
+		return nil
+	}
+	return gtime.NewFromTimeStamp(maxTs)
 }
 
 // SaveAnswers 保存答案 redis -> db

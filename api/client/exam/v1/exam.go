@@ -55,13 +55,6 @@ type PaperForExamBlockInit struct {
 	QuestionCount           int    `json:"question_count" dc:"题目数量"`
 }
 
-// --- 会话 ---
-//
-//type AttemptCreateReq struct {
-//	g.Meta  `path:"/exam/papers/{paperId}/attempts" method:"post" tags:"客户端-考试" summary:"已废弃：请使用 POST /exam/batches/{batchId}/attempts"`
-//	PaperId int64 `json:"paperId" in:"path" v:"required|min:1" dc:"mock_examination_paper.id"`
-//}
-
 type AttemptCreateRes struct {
 	AttemptId int64 `json:"attempt_id" dc:"答题会话ID"`
 }
@@ -100,6 +93,7 @@ type AttemptGetRes struct {
 	HasSubjective      int     `json:"has_subjective" dc:"是否含主观题：0否 1是"`
 	ServerTime         string  `json:"server_time" dc:"服务端当前时间"`
 	DeadlineReached    bool    `json:"deadline_reached" dc:"是否已到截止时间"`
+	RemainingSeconds   *int    `json:"remaining_seconds,omitempty" dc:"考试剩余时间(秒)：批次 exam_end_at 减去最近一次保存答案时间（DB 与 Redis 取较新）；无批次结束或未进行中时不返回"`
 }
 
 type AttemptSaveAnswersReq struct {
