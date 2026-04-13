@@ -8,6 +8,7 @@ import (
 
 type IFile interface {
 	List(ctx context.Context, req *v1.FileListReq) (res *v1.FileListRes, err error)
+	Upload(ctx context.Context, req *v1.FileUploadReq) (res *v1.FileUploadRes, err error)
 	Delete(ctx context.Context, req *v1.FileDeleteReq) (res *v1.FileDeleteRes, err error)
 	StorageConfigList(ctx context.Context, req *v1.StorageConfigListReq) (res *v1.StorageConfigListRes, err error)
 	StorageConfigCreate(ctx context.Context, req *v1.StorageConfigCreateReq) (res *v1.StorageConfigCreateRes, err error)

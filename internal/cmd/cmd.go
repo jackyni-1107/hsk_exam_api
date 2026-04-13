@@ -97,6 +97,17 @@ var (
 					adminMock.NewV1(),
 				)
 			})
+			// 文件下载：流式响应，不走 HandlerResponseI18n 的 JSON 包装
+			s.Group(adminAPI, func(group *ghttp.RouterGroup) {
+				group.Middleware(
+					middleware.Trace,
+					middleware.Response,
+					middleware.Auth(consts.UserTypeAdmin),
+					middleware.RBACFromPath,
+					middleware.Audit,
+				)
+				group.GET("/file/{id}/download", adminFile.ServeDownload)
+			})
 			openapi.RegisterSplitEndpoints(s, apiP)
 			tasks.StartScheduler(ctx)
 			s.Run()

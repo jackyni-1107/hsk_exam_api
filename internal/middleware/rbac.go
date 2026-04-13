@@ -221,6 +221,10 @@ func inferPermission(path, method string) string {
 	if resource == "exam" && len(parts) >= 5 && parts[2] == "attempt" && parts[4] == "subjective-scores" && method == "PUT" {
 		return "exam:result:grade"
 	}
+	// admin/file/upload 与文件列表共用 file:list，避免单独授权 file:create
+	if resource == "file" && len(parts) >= 4 && parts[3] == "upload" && method == "POST" {
+		return "file:list"
+	}
 	// admin/task/run -> task:run, admin/task/log -> task:log
 	if resource == "task" && len(parts) >= 3 {
 		if parts[2] == "run" {

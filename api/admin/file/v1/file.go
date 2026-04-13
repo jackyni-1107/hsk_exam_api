@@ -1,6 +1,9 @@
 package v1
 
-import "github.com/gogf/gf/v2/frame/g"
+import (
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/net/ghttp"
+)
 
 type FileListReq struct {
 	g.Meta   `path:"/file/list" method:"get" tags:"文件" summary:"文件列表"`
@@ -30,6 +33,20 @@ type FileDeleteReq struct {
 }
 
 type FileDeleteRes struct{}
+
+type FileUploadReq struct {
+	g.Meta    `path:"/file/upload" method:"post" tags:"文件" summary:"上传文件"`
+	IsPrivate int               `json:"is_private" form:"is_private" d:"0" dc:"是否私有：0公开 1私有"`
+	File      *ghttp.UploadFile `json:"file" type:"file" dc:"文件（表单字段名 file）"`
+}
+
+type FileUploadRes struct {
+	Id       int64  `json:"id" dc:"文件ID"`
+	Path     string `json:"path" dc:"存储路径"`
+	Filename string `json:"filename" dc:"原始文件名"`
+	Size     int64  `json:"size" dc:"大小(字节)"`
+	MimeType string `json:"mime_type" dc:"MIME"`
+}
 
 type StorageConfigListReq struct {
 	g.Meta `path:"/file/storage-config/list" method:"get" tags:"文件存储" summary:"存储配置列表"`

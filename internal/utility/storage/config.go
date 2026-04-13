@@ -11,4 +11,6 @@ type Config struct {
 	Region                  string
 	PublicBaseURL           string
 	PresignSignatureVersion string
+	// S3ForcePathStyle 为 true 时预签名为 path-style（路径含 /bucket/）；为 false 时为 virtual-hosted（路径仅为对象 key，桶在主机名）。
+	S3ForcePathStyle bool
 }

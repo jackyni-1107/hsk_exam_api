@@ -15,7 +15,9 @@
       <p class="tip-p">
         <strong>正式环境：</strong>在 OSS / S3 / MinIO 桶（或前置 CDN）配置 CORS，允许管理端来源，并暴露
         <code>Content-Type</code>、<code>Content-Length</code> 等；GET/HEAD 需包含预检所需头。
-        若仍为 <code>403</code>，检查预签名是否过期、<code>public_base_url</code> 与签名 Host 是否一致（AWS 勿填公网 IP）、桶策略/IAM；可在网络面板查看响应体 XML 中
+        文件中心存储里可配置 <code>presign_signature_version</code>（<code>v2</code> / <code>v3</code> / <code>v4</code>，其中 v3 与 v4 同为
+        SigV4）与 <code>public_base_url</code>：服务端在生成预签名后会把链接的协议与主机替换为该域名（路径与 Query 不变）。
+        若仍为 <code>403</code>，检查预签名是否过期、公网域名是否与签名所用 Host 一致（SigV4 与 Host 绑定；AWS 勿随意换域）、桶策略/IAM；可在网络面板查看响应体 XML 中
         <code>Code</code>：<code>SignatureDoesNotMatch</code> 多为 Host/签名不一致，<code>AccessDenied</code> 多为策略或权限。
       </p>
     </el-alert>
