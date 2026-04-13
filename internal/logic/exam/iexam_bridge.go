@@ -149,7 +149,7 @@ func (s *sExam) RandomFillAnswersForTest(ctx context.Context, userID int64, mock
 	if !cfg.EnableRandomAnswerHelper {
 		return nil, gerror.NewCode(consts.CodeExamTestHelperDisabled)
 	}
-	att, err := assertAttemptInProgressByUser(ctx, attemptID, userID)
+	att, err := loadAttemptByUser(ctx, attemptID, userID)
 	if err != nil {
 		return nil, err
 	}

@@ -137,15 +137,3 @@ type AttemptRandomAnswersRes struct {
 	GeneratedCount int                    `json:"generated_count" dc:"已生成题目数"`
 	SubmitJSON     AttemptSaveAnswersBody `json:"submit_json" dc:"可直接作为 /api/client/exam/attempts/{id}/answers 的请求体"`
 }
-
-// // AudioHlsPlayIssueReq 签发 HLS 播放用短期票据（GET m3u8 无需 Bearer）。
-// type AudioHlsPlayIssueReq struct {
-// 	g.Meta     `path:"/exam/attempts/{id}/questions/{questionId}/audio/play" method:"post" tags:"客户端-考试" summary:"签发 HLS 短期播放地址"`
-// 	Id         int64 `json:"id" in:"path" v:"required|min:1" dc:"答题会话 id"`
-// 	QuestionId int64 `json:"questionId" in:"path" v:"required|min:1" dc:"小题 id"`
-// }
-
-// type AudioHlsPlayIssueRes struct {
-// 	PlayUrl   string `json:"play_url" dc:"相对路径，需拼接到 API 根；指向原始 m3u8"`
-// 	ExpiresAt string `json:"expires_at" dc:"票据过期时间 RFC3339 UTC"`
-// }
