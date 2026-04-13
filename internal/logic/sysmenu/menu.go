@@ -1,4 +1,4 @@
-package menu
+package sysmenu
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	sysentity "exam/internal/model/entity/sys"
 )
 
-func (s *sMenu) MenuTree(ctx context.Context) ([]sysentity.SysMenu, error) {
+func (s *sSysMenu) MenuTree(ctx context.Context) ([]sysentity.SysMenu, error) {
 	var list []sysentity.SysMenu
 	err := dao.SystemMenu.Ctx(ctx).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -19,7 +19,7 @@ func (s *sMenu) MenuTree(ctx context.Context) ([]sysentity.SysMenu, error) {
 	return list, err
 }
 
-func (s *sMenu) MenuCreate(ctx context.Context, name, permission, path, icon, component, componentName, creator string, typ, sort int, parentId int64, status, visible, keepAlive, alwaysShow int) (int64, error) {
+func (s *sSysMenu) MenuCreate(ctx context.Context, name, permission, path, icon, component, componentName, creator string, typ, sort int, parentId int64, status, visible, keepAlive, alwaysShow int) (int64, error) {
 	id, err := dao.SystemMenu.Ctx(ctx).InsertAndGetId(sysdo.SysMenu{
 		Name:          name,
 		Permission:    permission,
@@ -40,7 +40,7 @@ func (s *sMenu) MenuCreate(ctx context.Context, name, permission, path, icon, co
 	return id, err
 }
 
-func (s *sMenu) MenuUpdate(ctx context.Context, id int64, name, permission, path, icon, component, componentName, updater string, typ, sort int, parentId int64, status, visible, keepAlive, alwaysShow int) error {
+func (s *sSysMenu) MenuUpdate(ctx context.Context, id int64, name, permission, path, icon, component, componentName, updater string, typ, sort int, parentId int64, status, visible, keepAlive, alwaysShow int) error {
 	_, err := dao.SystemMenu.Ctx(ctx).Where("id", id).Data(sysdo.SysMenu{
 		Name:          name,
 		Permission:    permission,
@@ -60,7 +60,7 @@ func (s *sMenu) MenuUpdate(ctx context.Context, id int64, name, permission, path
 	return err
 }
 
-func (s *sMenu) MenuDelete(ctx context.Context, id int64, updater string) error {
+func (s *sSysMenu) MenuDelete(ctx context.Context, id int64, updater string) error {
 	_, err := dao.SystemMenu.Ctx(ctx).Where("id", id).Data(sysdo.SysMenu{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
@@ -68,7 +68,7 @@ func (s *sMenu) MenuDelete(ctx context.Context, id int64, updater string) error 
 	return err
 }
 
-func (s *sMenu) MenuIdsForUser(ctx context.Context, userId int64) (map[int64]struct{}, error) {
+func (s *sSysMenu) MenuIdsForUser(ctx context.Context, userId int64) (map[int64]struct{}, error) {
 	var userRoles []sysentity.SysUserRole
 	err := dao.SystemUserRole.Ctx(ctx).
 		Where("user_id", userId).
