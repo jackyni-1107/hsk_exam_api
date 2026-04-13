@@ -1,15 +1,13 @@
 package sysnotification
 
-import (
-	"exam/internal/service/sysnotification"
-)
+import "exam/internal/service/sysnotification"
 
-type sSysnotification struct{}
+type sSysNotification struct{}
 
 func init() {
-	sysnotification.RegisterSysnotification(New())
+	sysnotification.RegisterSysNotification(New())
 }
 
-func New() *sSysnotification {
-	return &sSysnotification{}
+func New() *sSysNotification {
+	return &sSysNotification{}
 }

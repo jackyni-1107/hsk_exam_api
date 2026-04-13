@@ -11,7 +11,7 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
-func (s *sSysnotification) ChannelConfigList(ctx context.Context, channel string) ([]sysentity.SysNotificationChannelConfig, error) {
+func (s *sSysNotification) ChannelConfigList(ctx context.Context, channel string) ([]sysentity.SysNotificationChannelConfig, error) {
 	m := dao.SysNotificationChannelConfig.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted)
 	if channel != "" {
 		m = m.Where("channel", channel)
@@ -24,7 +24,7 @@ func (s *sSysnotification) ChannelConfigList(ctx context.Context, channel string
 	return list, nil
 }
 
-func (s *sSysnotification) ChannelConfigCreate(ctx context.Context, channel, provider, name, configJson, creator string) (int64, error) {
+func (s *sSysNotification) ChannelConfigCreate(ctx context.Context, channel, provider, name, configJson, creator string) (int64, error) {
 	switch channel {
 	case "email":
 		if provider != "smtp" {
@@ -53,7 +53,7 @@ func (s *sSysnotification) ChannelConfigCreate(ctx context.Context, channel, pro
 	return id, nil
 }
 
-func (s *sSysnotification) ChannelConfigUpdate(ctx context.Context, id int64, name, configJson, updater string) error {
+func (s *sSysNotification) ChannelConfigUpdate(ctx context.Context, id int64, name, configJson, updater string) error {
 	data := map[string]interface{}{
 		"updater": updater,
 	}
@@ -70,7 +70,7 @@ func (s *sSysnotification) ChannelConfigUpdate(ctx context.Context, id int64, na
 	return nil
 }
 
-func (s *sSysnotification) ChannelConfigDelete(ctx context.Context, id int64, updater string) error {
+func (s *sSysNotification) ChannelConfigDelete(ctx context.Context, id int64, updater string) error {
 	var e sysentity.SysNotificationChannelConfig
 	err := dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil {
@@ -92,7 +92,7 @@ func (s *sSysnotification) ChannelConfigDelete(ctx context.Context, id int64, up
 	return nil
 }
 
-func (s *sSysnotification) ChannelConfigSetActive(ctx context.Context, id int64, updater string) error {
+func (s *sSysNotification) ChannelConfigSetActive(ctx context.Context, id int64, updater string) error {
 	var e sysentity.SysNotificationChannelConfig
 	err := dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil {

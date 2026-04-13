@@ -13,7 +13,7 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
-func (s *sSysnotification) Send(ctx context.Context, templateCode, channel, recipient, variables string) (bool, error) {
+func (s *sSysNotification) Send(ctx context.Context, templateCode, channel, recipient, variables string) (bool, error) {
 	var tpl sysentity.SysNotificationTemplate
 	err := dao.SysNotificationTemplate.Ctx(ctx).
 		Where("code", templateCode).

@@ -10,7 +10,7 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
-func (s *sSysnotification) LogList(ctx context.Context, page, size int, channel, recipient string) ([]sysentity.SysNotificationLog, int, error) {
+func (s *sSysNotification) LogList(ctx context.Context, page, size int, channel, recipient string) ([]sysentity.SysNotificationLog, int, error) {
 	if page < 1 {
 		page = 1
 	}

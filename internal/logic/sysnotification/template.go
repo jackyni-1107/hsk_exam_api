@@ -11,7 +11,7 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
-func (s *sSysnotification) TemplateList(ctx context.Context, page, size int, code, channel string) ([]sysentity.SysNotificationTemplate, int, error) {
+func (s *sSysNotification) TemplateList(ctx context.Context, page, size int, code, channel string) ([]sysentity.SysNotificationTemplate, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -37,7 +37,7 @@ func (s *sSysnotification) TemplateList(ctx context.Context, page, size int, cod
 	return list, total, nil
 }
 
-func (s *sSysnotification) TemplateCreate(ctx context.Context, code, name, channel, content, variables, creator string, status int) (int64, error) {
+func (s *sSysNotification) TemplateCreate(ctx context.Context, code, name, channel, content, variables, creator string, status int) (int64, error) {
 	cnt, err := dao.SysNotificationTemplate.Ctx(ctx).
 		Where("code", code).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -65,7 +65,7 @@ func (s *sSysnotification) TemplateCreate(ctx context.Context, code, name, chann
 	return id, nil
 }
 
-func (s *sSysnotification) TemplateUpdate(ctx context.Context, id int64, name, content, variables, updater string, status int) error {
+func (s *sSysNotification) TemplateUpdate(ctx context.Context, id int64, name, content, variables, updater string, status int) error {
 	data := map[string]interface{}{
 		"updater": updater,
 		"status":  status,
@@ -86,7 +86,7 @@ func (s *sSysnotification) TemplateUpdate(ctx context.Context, id int64, name, c
 	return nil
 }
 
-func (s *sSysnotification) TemplateDelete(ctx context.Context, id int64, updater string) error {
+func (s *sSysNotification) TemplateDelete(ctx context.Context, id int64, updater string) error {
 	_, err := dao.SysNotificationTemplate.Ctx(ctx).Where("id", id).Data(sysdo.SysNotificationTemplate{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
