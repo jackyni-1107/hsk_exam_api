@@ -17,5 +17,5 @@ import (
 	_ "exam/internal/logic/syslog"
 	_ "exam/internal/logic/sysnotification"
 	_ "exam/internal/logic/systask"
-	_ "exam/internal/logic/user"
+	_ "exam/internal/logic/sysuser"
 )

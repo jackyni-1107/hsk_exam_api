@@ -1,4 +1,4 @@
-package user
+package sysuser
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *sUser) UserList(ctx context.Context, page, size int, username string, status int) ([]sysentity.SysUser, int, error) {
+func (s *sSysUser) UserList(ctx context.Context, page, size int, username string, status int) ([]sysentity.SysUser, int, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -38,7 +38,7 @@ func (s *sUser) UserList(ctx context.Context, page, size int, username string, s
 	return list, total, nil
 }
 
-func (s *sUser) UserRoleIds(ctx context.Context, userId int64) ([]int64, error) {
+func (s *sSysUser) UserRoleIds(ctx context.Context, userId int64) ([]int64, error) {
 	var rows []sysentity.SysUserRole
 	err := dao.SystemUserRole.Ctx(ctx).
 		Where("user_id", userId).
@@ -54,7 +54,7 @@ func (s *sUser) UserRoleIds(ctx context.Context, userId int64) ([]int64, error) 
 	return ids, nil
 }
 
-func (s *sUser) UserCreate(ctx context.Context, username, password, nickname, email, mobile, creator string, status int, roleIds []int64) (int64, error) {
+func (s *sSysUser) UserCreate(ctx context.Context, username, password, nickname, email, mobile, creator string, status int, roleIds []int64) (int64, error) {
 	cnt, err := dao.SystemUser.Ctx(ctx).
 		Where("username", username).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -107,7 +107,7 @@ func (s *sUser) UserCreate(ctx context.Context, username, password, nickname, em
 	return id, nil
 }
 
-func (s *sUser) UserUpdate(ctx context.Context, id int64, password, nickname, email, mobile, updater string, status int) error {
+func (s *sSysUser) UserUpdate(ctx context.Context, id int64, password, nickname, email, mobile, updater string, status int) error {
 	data := sysdo.SysUser{
 		Nickname: nickname,
 		Email:    email,
@@ -128,7 +128,7 @@ func (s *sUser) UserUpdate(ctx context.Context, id int64, password, nickname, em
 	return err
 }
 
-func (s *sUser) UserDelete(ctx context.Context, id int64, updater string) error {
+func (s *sSysUser) UserDelete(ctx context.Context, id int64, updater string) error {
 	if id == consts.SuperAdminUserId {
 		return gerror.NewCode(consts.CodeCannotDeleteSuperAdmin)
 	}
@@ -139,7 +139,7 @@ func (s *sUser) UserDelete(ctx context.Context, id int64, updater string) error 
 	return err
 }
 
-func (s *sUser) UserRoleAssign(ctx context.Context, userId int64, roleIds []int64, creator string) error {
+func (s *sSysUser) UserRoleAssign(ctx context.Context, userId int64, roleIds []int64, creator string) error {
 	_, err := dao.SystemUserRole.Ctx(ctx).
 		Where("user_id", userId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -166,7 +166,7 @@ func (s *sUser) UserRoleAssign(ctx context.Context, userId int64, roleIds []int6
 	return err
 }
 
-func (s *sUser) FindByUsername(ctx context.Context, username string) (*sysentity.SysUser, error) {
+func (s *sSysUser) FindByUsername(ctx context.Context, username string) (*sysentity.SysUser, error) {
 	var u sysentity.SysUser
 	err := dao.SystemUser.Ctx(ctx).
 		Wheref("LOWER(username) = ?", username).
