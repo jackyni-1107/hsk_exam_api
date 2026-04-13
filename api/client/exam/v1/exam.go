@@ -10,15 +10,15 @@ type PaperForExamReq struct {
 }
 
 type PaperForExamRes struct {
-	Id                   int64                  `json:"id" dc:"mock_examination_paper.id"`
-	Level                string                 `json:"level" dc:"试卷级别"`
-	PaperId              string                 `json:"paper_id" dc:"远程试卷ID"`
-	Title                string                 `json:"title" dc:"试卷标题"`
-	SourceBaseUrl        string                 `json:"source_base_url" dc:"资源基础URL"`
-	ListeningAudioPrefix string                 `json:"listening_audio_prefix" dc:"听力音频前缀"`
-	DurationSeconds      int                    `json:"duration_seconds" dc:"考试时长(秒)"`
-	Prepare              PaperForExamPrepare    `json:"prepare" dc:"准备阶段信息"`
-	Items                []PaperForExamItemInit `json:"items" dc:"大题初始化列表"`
+	Id              int64                  `json:"id" dc:"mock_examination_paper.id"`
+	Level           string                 `json:"level" dc:"试卷级别"`
+	PaperId         string                 `json:"paper_id" dc:"远程试卷ID"`
+	Title           string                 `json:"title" dc:"试卷标题"`
+	SourceBaseUrl   string                 `json:"source_base_url" dc:"资源基础URL"`
+	AudioUrl        string                 `json:"audio_url" dc:"m3u8链接"`
+	DurationSeconds int                    `json:"duration_seconds" dc:"考试时长(秒)"`
+	Prepare         PaperForExamPrepare    `json:"prepare" dc:"准备阶段信息"`
+	Items           []PaperForExamItemInit `json:"items" dc:"大题初始化列表"`
 }
 
 type PaperSectionForExamReq struct {

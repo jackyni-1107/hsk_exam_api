@@ -92,11 +92,23 @@ func minInt3(a, b, c int) int {
 	return m
 }
 
-func (s *sExam) loadPaperHLS(ctx context.Context, paperID int64) (*paperHLSConfig, error) {
+// loadPaperHLS 按 mock_examination_paper.id 查卷（与客户端 paper.id 一致）。
+func (s *sExam) loadPaperHLS(ctx context.Context, mockExaminationPaperID int64) (*paperHLSConfig, error) {
+	c := dao.ExamPaper.Columns()
+	return s.pickExamPaperHLS(ctx, c.MockExaminationPaperId, mockExaminationPaperID)
+}
+
+// loadPaperHLSByExamPaperRowID 按 exam_paper.id 查卷（HLS 票据内存的是行主键）。
+func (s *sExam) loadPaperHLSByExamPaperRowID(ctx context.Context, examPaperID int64) (*paperHLSConfig, error) {
+	c := dao.ExamPaper.Columns()
+	return s.pickExamPaperHLS(ctx, c.Id, examPaperID)
+}
+
+func (s *sExam) pickExamPaperHLS(ctx context.Context, column string, value int64) (*paperHLSConfig, error) {
 	var cfg paperHLSConfig
 	err := dao.ExamPaper.Ctx(ctx).
 		Fields("id,audio_hls_prefix,audio_hls_segment_count,audio_hls_segment_pattern,audio_hls_key_object,audio_hls_iv_hex,audio_hls_segment_duration").
-		Where("id", paperID).
+		Where(column, value).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&cfg)
 	if err != nil {
@@ -282,7 +294,7 @@ func (s *sExam) BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte
 		lastIdx := q.AudioHlsSegmentCount - 1
 		effectiveMax = minInt3(payload.MaxSegSnap, lastIdx, lastIdx)
 	} else {
-		paperCfg, err := s.loadPaperHLS(ctx, payload.ExamPaperID)
+		paperCfg, err := s.loadPaperHLSByExamPaperRowID(ctx, payload.ExamPaperID)
 		if err != nil {
 			return nil, err
 		}

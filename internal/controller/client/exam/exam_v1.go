@@ -14,18 +14,23 @@ import (
 )
 
 func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq) (res *v1.PaperForExamRes, err error) {
+	data := middleware.GetCtxData(ctx)
+	if data == nil {
+		return nil, gerror.NewCode(consts.CodeTokenRequired)
+	}
 	d, err := exam.Exam().PaperDetailForExamInit(ctx, req.PaperId)
 	if err != nil {
 		return nil, err
 	}
+	playURL, _, err := exam.Exam().IssuePaperHlsPlay(ctx, data.UserId, d.Paper.Id)
 	res = &v1.PaperForExamRes{
-		Id:                   d.Paper.Id,
-		Level:                d.Paper.Level,
-		PaperId:              d.Paper.PaperId,
-		Title:                d.Paper.Title,
-		SourceBaseUrl:        d.Paper.SourceBaseUrl,
-		ListeningAudioPrefix: d.Paper.AudioHlsPrefix,
-		DurationSeconds:      d.Paper.DurationSeconds,
+		Id:              d.Paper.Id,
+		Level:           d.Paper.Level,
+		PaperId:         d.Paper.PaperId,
+		Title:           d.Paper.Title,
+		SourceBaseUrl:   d.Paper.SourceBaseUrl,
+		AudioUrl:        playURL,
+		DurationSeconds: d.Paper.DurationSeconds,
 		Prepare: v1.PaperForExamPrepare{
 			Instruction: d.Paper.PrepareInstruction,
 			AudioFile:   d.Paper.PrepareAudioFile,
