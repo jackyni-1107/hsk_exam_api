@@ -5,6 +5,7 @@ import (
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"fmt"
+	"time"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/frame/g"
@@ -12,79 +13,108 @@ import (
 	"github.com/gogf/gf/v2/util/gconv"
 )
 
+// SyncAnswer 启动消费者
 func SyncAnswer(ctx context.Context) {
-	g.Log().Info(ctx, "答案同步消费者已在后台启动...")
+	g.Log().Info(ctx, "答案同步消费者启动...")
+
 	queueKey := consts.ExamAttemptSyncQueueKey
+
+	// worker 数量（根据机器配置调整）
+	const workerNum = 5
+
+	for i := 0; i < workerNum; i++ {
+		go worker(ctx, queueKey, i)
+	}
+
+	// 阻塞等待退出
+	<-ctx.Done()
+	g.Log().Info(ctx, "SyncAnswer 已退出")
+}
+
+// worker 消费队列
+func worker(ctx context.Context, queueKey string, workerID int) {
+	g.Log().Infof(ctx, "worker-%d 启动", workerID)
 
 	for {
 		select {
 		case <-ctx.Done():
-			// 如果外部上下文取消（比如程序关闭），退出循环
-			g.Log().Info(ctx, "收到退出信号，停止同步消费者")
+			g.Log().Infof(ctx, "worker-%d 退出", workerID)
 			return
 		default:
-			// BLPop 建议设置较短的超时时间（例如 5 秒），以便能定期检查 ctx.Done()
+			// 阻塞获取队列数据
 			result, err := g.Redis().BLPop(ctx, 5, queueKey)
 			if err != nil {
-				// 忽略由于超时导致的错误
+				// 超时正常
+				if err == context.DeadlineExceeded {
+					continue
+				}
+				g.Log().Errorf(ctx, "worker-%d Redis error: %v", workerID, err)
+				time.Sleep(time.Second)
 				continue
 			}
+
 			if len(result) < 2 {
 				continue
 			}
 
 			attemptID := result[1].Int64()
-			// 1. 执行同步
+
+			// 执行同步
 			if err := doDatabaseSync(ctx, attemptID); err != nil {
-				g.Log().Errorf(ctx, "AttemptID %d 同步失败: %v", attemptID, err)
-				// 失败了不要删除 Redis 数据，甚至可以考虑把 attemptID 重新 LPush 回去或加入死信队列
+				g.Log().Errorf(ctx, "worker-%d AttemptID %d 同步失败: %v", workerID, attemptID, err)
+
+				// 👉 可选：失败重新入队（避免丢数据）
+				_, _ = g.Redis().LPush(ctx, queueKey, attemptID)
+
 				continue
 			}
 
-			// 2. 同步成功后，安全删除缓存
-			// 建议：如果系统并发极高，可以使用 Expire 设置 60 秒过期，防止缓存击穿
-			// 如果追求内存立即释放，直接使用 Del
+			// 同步成功 → 删除缓存
 			redisKey := fmt.Sprintf(consts.ExamAttemptKeyFmt, attemptID)
+
 			_, err = g.Redis().Expire(ctx, redisKey, 60)
 			if err != nil {
-				g.Log().Errorf(ctx, "清理 Redis 缓存失败 [%s]: %v", redisKey, err)
+				g.Log().Errorf(ctx, "worker-%d 删除缓存失败 [%s]: %v", workerID, redisKey, err)
 			} else {
-				g.Log().Infof(ctx, "AttemptID %d 同步成功并已清理缓存", attemptID)
+				g.Log().Infof(ctx, "worker-%d AttemptID %d 同步成功", workerID, attemptID)
 			}
 		}
 	}
 }
 
-// doDatabaseSync 执行具体的数据库同步逻辑
+// doDatabaseSync 执行数据库同步
 func doDatabaseSync(ctx context.Context, attemptID int64) error {
 	redisKey := fmt.Sprintf(consts.ExamAttemptKeyFmt, attemptID)
 
-	// 1. 获取所有暂存答案
+	// 1. 获取 Redis 数据
 	res, err := g.Redis().HGetAll(ctx, redisKey)
-	if err != nil || res.IsEmpty() {
+	if err != nil {
 		return err
 	}
+	// 如果 Redis 数据已被其他协程清理或已过期，直接结束
+	if res.IsEmpty() {
+		g.Log().Debugf(ctx, "AttemptID %d Redis数据为空，跳过同步", attemptID)
+		return nil
+	}
 
-	// 2. 批量解析数据
-	// 预分配切片空间，提高效率
-	items := make([]g.Map, 0, len(res.Map()))
-	for _, val := range res.Map() {
-		var item struct {
-			Q int64  `json:"q"`
-			A string `json:"a"`
-			V int    `json:"v"` // 调用方传来的预期版本
-			T int64  `json:"t"`
-		}
-		if err := gconv.Struct(val, &item); err != nil {
+	dataMap := res.Map()
+
+	// 2. 构建批量数据（避免 struct 反射，提高性能）
+	items := make([]g.Map, 0, len(dataMap))
+
+	for _, val := range dataMap {
+		itemMap := gconv.Map(val)
+		q := gconv.Int64(itemMap["q"])
+		if q == 0 {
 			continue
 		}
 
-		answeredTime := gtime.NewFromTimeStamp(item.T)
+		answeredTime := gtime.NewFromTimeStamp(gconv.Int64(itemMap["t"]))
 		items = append(items, g.Map{
 			"attempt_id":       attemptID,
-			"exam_question_id": item.Q,
-			"answer_json":      item.A,
-			"version":          item.V, // 直接使用前端/Redis传来的版本
+			"exam_question_id": q,
+			"answer_json":      itemMap["a"],
+			"version":          gconv.Int(itemMap["v"]),
 			"updater":          "system_async_worker",
 			"update_time":      answeredTime,
 			"delete_flag":      consts.DeleteFlagNotDeleted,
@@ -97,17 +127,17 @@ func doDatabaseSync(ctx context.Context, attemptID int64) error {
 		return nil
 	}
 
-	// 3. 批量 Upsert 优化
-	// 使用 OnConflict + Upsert 配合版本校验
+	// 3. 批量 Upsert（带版本控制）
 	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		_, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
+		_, err := tx.Model(dao.ExamAttemptAnswer.Table()).
+			Ctx(ctx).
 			Data(items).
-			// 每次处理 50 条数据，防止单条 SQL 过大
-			Batch(50).
-			// 关键：只有当提交的版本 >= 数据库现有版本时才更新
-			// 注意：具体的 SQL 语法可能需要根据你的 DB (MySQL/PostgreSQL) 微调
-			OnConflict("attempt_id", "exam_question_id").
-			Save()
+			Batch(100).
+			OnDuplicate(gdb.Raw(`
+			answer_json = IF(VALUES(version) >= version, VALUES(answer_json), answer_json),
+			update_time = IF(VALUES(version) >= version, VALUES(update_time), update_time),
+			version     = IF(VALUES(version) >= version, VALUES(version), version)
+		`)).Save()
 
 		return err
 	})
