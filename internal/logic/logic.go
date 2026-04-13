@@ -13,12 +13,12 @@ import (
 	_ "exam/internal/logic/menu"
 	_ "exam/internal/logic/mock"
 	_ "exam/internal/logic/paper"
-	_ "exam/internal/logic/role"
 	_ "exam/internal/logic/security"
 	_ "exam/internal/logic/sysconfig"
 	_ "exam/internal/logic/sysfile"
 	_ "exam/internal/logic/syslog"
 	_ "exam/internal/logic/sysnotification"
+	_ "exam/internal/logic/sysrole"
 	_ "exam/internal/logic/systask"
 	_ "exam/internal/logic/sysuser"
 )

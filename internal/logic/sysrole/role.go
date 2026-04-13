@@ -1,4 +1,4 @@
-package role
+package sysrole
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
-func (s *sRole) RoleList(ctx context.Context, page, size int, name string, status int) ([]sysentity.SysRole, int, error) {
+func (s *sSysRole) RoleList(ctx context.Context, page, size int, name string, status int) ([]sysentity.SysRole, int, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -37,7 +37,7 @@ func (s *sRole) RoleList(ctx context.Context, page, size int, name string, statu
 	return list, total, nil
 }
 
-func (s *sRole) RoleMenuIds(ctx context.Context, roleId int64) ([]int64, error) {
+func (s *sSysRole) RoleMenuIds(ctx context.Context, roleId int64) ([]int64, error) {
 	var rows []sysentity.SysRoleMenu
 	err := dao.SystemRoleMenu.Ctx(ctx).
 		Where("role_id", roleId).
@@ -53,7 +53,7 @@ func (s *sRole) RoleMenuIds(ctx context.Context, roleId int64) ([]int64, error) 
 	return ids, nil
 }
 
-func (s *sRole) RoleCreate(ctx context.Context, name, code, remark, creator string, status, sort, typ int) (int64, error) {
+func (s *sSysRole) RoleCreate(ctx context.Context, name, code, remark, creator string, status, sort, typ int) (int64, error) {
 	cnt, err := dao.SystemRole.Ctx(ctx).
 		Where("code", code).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -82,7 +82,7 @@ func (s *sRole) RoleCreate(ctx context.Context, name, code, remark, creator stri
 	return id, err
 }
 
-func (s *sRole) RoleUpdate(ctx context.Context, id int64, name, code, remark, updater string, status, sort, typ int) error {
+func (s *sSysRole) RoleUpdate(ctx context.Context, id int64, name, code, remark, updater string, status, sort, typ int) error {
 	data := sysdo.SysRole{
 		Name:    name,
 		Code:    code,
@@ -98,7 +98,7 @@ func (s *sRole) RoleUpdate(ctx context.Context, id int64, name, code, remark, up
 	return err
 }
 
-func (s *sRole) RoleDelete(ctx context.Context, id int64, updater string) error {
+func (s *sSysRole) RoleDelete(ctx context.Context, id int64, updater string) error {
 	_, err := dao.SystemRole.Ctx(ctx).Where("id", id).Data(sysdo.SysRole{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
@@ -106,7 +106,7 @@ func (s *sRole) RoleDelete(ctx context.Context, id int64, updater string) error 
 	return err
 }
 
-func (s *sRole) RoleMenuAssign(ctx context.Context, roleId int64, menuIds []int64, creator string) error {
+func (s *sSysRole) RoleMenuAssign(ctx context.Context, roleId int64, menuIds []int64, creator string) error {
 	_, err := dao.SystemRoleMenu.Ctx(ctx).
 		Where("role_id", roleId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
