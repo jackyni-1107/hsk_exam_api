@@ -13,7 +13,6 @@ import (
 type (
 	ISysLog interface {
 		AuditLogList(ctx context.Context, page int, size int, username string, path string, action string, logType string, traceId string, startTime string, endTime string) ([]sysentity.SysOperationAuditLog, int, error)
-		AuditLogChangeDetails(ctx context.Context, operationLogId int64) ([]sysentity.SysAuditChangeDetail, error)
 		ExceptionLogList(ctx context.Context, page int, size int, traceId string, path string, startTime string, endTime string) ([]sysentity.SysExceptionLog, int, error)
 		LoginLogList(ctx context.Context, page int, size int, username string, logType string, userType int, startTime string, endTime string) ([]sysentity.SysLoginLog, int, error)
 		SecurityEventLogList(ctx context.Context, page int, size int, eventType string, startTime string, endTime string) ([]sysentity.SysSecurityEventLog, int, error)
