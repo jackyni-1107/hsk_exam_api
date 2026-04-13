@@ -273,10 +273,10 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.
 	}
 
 	// 校验考试是否在进行中
-	_, err := assertAttemptInProgressByUser(ctx, attemptID, userID)
-	if err != nil {
-		return err
-	}
+	//_, err := assertAttemptInProgressByUser(ctx, attemptID, userID)
+	//if err != nil {
+	//	return err
+	//}
 
 	if len(items) == 0 {
 		return nil
@@ -299,7 +299,7 @@ func SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.
 	}
 
 	// 3. 写入 Redis Hash
-	err = g.Redis().HMSet(ctx, redisKey, data)
+	err := g.Redis().HMSet(ctx, redisKey, data)
 	if err != nil {
 		g.Log().Error(ctx, "Redis写入失败", err)
 		return err
