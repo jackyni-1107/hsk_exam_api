@@ -28,14 +28,14 @@ func (c *ControllerV1) MyExams(ctx context.Context, req *v1.ExamsReq) (res *v1.E
 			pids = []int64{}
 		}
 		list = append(list, v1.ExamBatchItem{
-			BatchId:                 r.BatchId,
-			Title:                   r.Title,
-			MockExaminationPaperId:  r.MockExaminationPaperId,
-			MockExaminationPaperIds: pids,
-			PaperTitle:              r.PaperTitle,
-			ExamStartAt:             utility.ToRFC3339UTC(r.ExamStartAt),
-			ExamEndAt:               utility.ToRFC3339UTC(r.ExamEndAt),
-			WindowStatus:            r.WindowStatus,
+			BatchId:                r.BatchId,
+			Title:                  r.Title,
+			MockExaminationPaperId: r.MockExaminationPaperId,
+			//MockExaminationPaperIds: pids,
+			PaperTitle:   r.PaperTitle,
+			ExamStartAt:  utility.ToRFC3339UTC(r.ExamStartAt),
+			ExamEndAt:    utility.ToRFC3339UTC(r.ExamEndAt),
+			WindowStatus: r.WindowStatus,
 		})
 	}
 	return &v1.ExamsRes{List: list}, nil

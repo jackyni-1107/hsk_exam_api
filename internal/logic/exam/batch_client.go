@@ -100,14 +100,14 @@ func (s *sExam) MyExamBatches(ctx context.Context, memberID int64) (list []bo.My
 			pids = []int64{}
 		}
 		list = append(list, bo.MyExamBatchItem{
-			BatchId:                 r.BatchId,
-			Title:                   r.Title,
-			MockExaminationPaperId:  r.MockExaminationPaperId,
-			MockExaminationPaperIds: pids,
-			PaperTitle:              r.PaperTitle,
-			ExamStartAt:             r.ExamStartAt,
-			ExamEndAt:               r.ExamEndAt,
-			WindowStatus:            winStatus,
+			BatchId:                r.BatchId,
+			Title:                  r.Title,
+			MockExaminationPaperId: r.MockExaminationPaperId,
+			//MockExaminationPaperIds: pids,
+			PaperTitle:   r.PaperTitle,
+			ExamStartAt:  r.ExamStartAt,
+			ExamEndAt:    r.ExamEndAt,
+			WindowStatus: winStatus,
 		})
 	}
 	return list, nil
