@@ -96,6 +96,15 @@ type AttemptGetRes struct {
 	RemainingSeconds   *int    `json:"remaining_seconds,omitempty" dc:"考试剩余时间(秒)：批次 exam_end_at 减去最近一次保存答案时间（DB 与 Redis 取较新）；无批次结束或未进行中时不返回"`
 }
 
+type AttemptAnswersGetReq struct {
+	g.Meta `path:"/exam/attempts/{id}/answers" method:"get" tags:"客户端-考试" summary:"查询答题详情"`
+	Id     int64 `json:"id" in:"path" v:"required|min:1" dc:"答题会话ID"`
+}
+
+type AttemptAnswersGetRes struct {
+	Items []AttemptAnswerItem `json:"items" dc:"答案列表"`
+}
+
 type AttemptSaveAnswersReq struct {
 	g.Meta `path:"/exam/attempts/{id}/answers" method:"put" tags:"客户端-考试" summary:"保存答案（批量）"`
 	Id     int64               `json:"id" in:"path" v:"required|min:1" dc:"答题会话ID"`

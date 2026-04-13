@@ -37,3 +37,9 @@ type RandomAnswerDraftItem struct {
 	QuestionID int64
 	Answer     any
 }
+
+// AttemptAnswerClientItem GET /exam/attempts/{id}/answers 单条，与保存接口 items 元素语义一致。
+type AttemptAnswerClientItem struct {
+	QuestionID int64
+	Answer     any
+}

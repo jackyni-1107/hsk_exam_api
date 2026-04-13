@@ -52,6 +52,7 @@ type (
 		CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64) (int64, error)
 		StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDurationSeconds int) error
 		GetAttempt(ctx context.Context, userID int64, attemptID int64) (*bo.AttemptView, error)
+		GetAttemptAnswers(ctx context.Context, userID int64, attemptID int64) ([]bo.AttemptAnswerClientItem, error)
 		SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.SaveAnswerItem) error
 		SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error
 		MarkSubmittedIfOverdue(ctx context.Context, attemptID int64) error

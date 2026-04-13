@@ -140,6 +140,25 @@ func (c *ControllerV1) AttemptGet(ctx context.Context, req *v1.AttemptGetReq) (r
 	return out, nil
 }
 
+func (c *ControllerV1) AttemptAnswersGet(ctx context.Context, req *v1.AttemptAnswersGetReq) (res *v1.AttemptAnswersGetRes, err error) {
+	ctxData := middleware.GetCtxData(ctx)
+	if ctxData == nil {
+		return nil, gerror.NewCode(consts.CodeTokenRequired)
+	}
+	rows, err := exam.Exam().GetAttemptAnswers(ctx, ctxData.UserId, req.Id)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]v1.AttemptAnswerItem, 0, len(rows))
+	for _, r := range rows {
+		items = append(items, v1.AttemptAnswerItem{
+			QuestionId: r.QuestionID,
+			Answer:     r.Answer,
+		})
+	}
+	return &v1.AttemptAnswersGetRes{Items: items}, nil
+}
+
 func (c *ControllerV1) AttemptSaveAnswers(ctx context.Context, req *v1.AttemptSaveAnswersReq) (res *v1.AttemptSaveAnswersRes, err error) {
 	ctxData := middleware.GetCtxData(ctx)
 	if ctxData == nil {

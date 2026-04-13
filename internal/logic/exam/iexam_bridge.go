@@ -60,6 +60,10 @@ func (s *sExam) GetAttempt(ctx context.Context, userID int64, attemptID int64) (
 	return GetAttempt(ctx, userID, attemptID)
 }
 
+func (s *sExam) GetAttemptAnswers(ctx context.Context, userID int64, attemptID int64) ([]bo.AttemptAnswerClientItem, error) {
+	return GetAttemptAnswers(ctx, userID, attemptID)
+}
+
 func (s *sExam) SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.SaveAnswerItem) error {
 	return SaveAnswers(ctx, userID, attemptID, items)
 }

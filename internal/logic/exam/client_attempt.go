@@ -3,6 +3,7 @@ package exam
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/encoding/gjson"
@@ -262,6 +263,72 @@ func maxAnswerSaveTimeFromRedis(ctx context.Context, attemptID int64) *gtime.Tim
 		return nil
 	}
 	return gtime.NewFromTimeStamp(maxTs)
+}
+
+// GetAttemptAnswers 返回当前用户该会话下的答题明细：先读库再合并 Redis 草稿（与保存路径一致），仅包含非空答案。
+func GetAttemptAnswers(ctx context.Context, userID int64, attemptID int64) ([]bo.AttemptAnswerClientItem, error) {
+	_, err := loadAttemptByUser(ctx, attemptID, userID)
+	if err != nil {
+		return nil, err
+	}
+	byQ := make(map[int64]string)
+	var rows []examentity.ExamAttemptAnswer
+	if err := dao.ExamAttemptAnswer.Ctx(ctx).
+		Where("attempt_id", attemptID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&rows); err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		if r.ExamQuestionId > 0 && r.AnswerJson != "" {
+			byQ[r.ExamQuestionId] = r.AnswerJson
+		}
+	}
+	redisKey := fmt.Sprintf(consts.ExamAttemptKeyFmt, attemptID)
+	if res, err := g.Redis().HGetAll(ctx, redisKey); err == nil && !res.IsEmpty() {
+		for _, val := range res.Map() {
+			itemMap := gconv.Map(val)
+			q := gconv.Int64(itemMap["q"])
+			if q == 0 {
+				continue
+			}
+			if a, ok := itemMap["a"]; ok {
+				byQ[q] = gconv.String(a)
+			}
+		}
+	}
+	out := make([]bo.AttemptAnswerClientItem, 0, len(byQ))
+	for qid, jsonStr := range byQ {
+		payload := examutil.ParseAnswerPayload(jsonStr)
+		ans := answerPayloadToClientAnswer(payload)
+		if ans == nil {
+			continue
+		}
+		out = append(out, bo.AttemptAnswerClientItem{QuestionID: qid, Answer: ans})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].QuestionID < out[j].QuestionID })
+	return out, nil
+}
+
+func answerPayloadToClientAnswer(p bo.AnswerPayload) any {
+	hasText := p.Text != ""
+	n := len(p.SelectedOptionIDs)
+	if hasText && n == 0 {
+		return p.Text
+	}
+	if n == 1 && !hasText {
+		return p.SelectedOptionIDs[0]
+	}
+	if n > 1 {
+		return append([]int64(nil), p.SelectedOptionIDs...)
+	}
+	if n == 1 && hasText {
+		return map[string]interface{}{
+			"selected_option_ids": append([]int64(nil), p.SelectedOptionIDs...),
+			"text":                p.Text,
+		}
+	}
+	return nil
 }
 
 // SaveAnswers 保存答案 redis -> db
