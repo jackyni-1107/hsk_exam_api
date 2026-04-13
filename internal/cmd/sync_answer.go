@@ -76,7 +76,7 @@ func doDatabaseSync(ctx context.Context, attemptID int64) error {
 			// 3. 执行 Upsert (Save) 操作
 			// 注意：这里需要数据库表满足 attempt_id + exam_question_id 的唯一索引
 			// 如果冲突，则更新 answer_json 和 update_time
-			_, err := tx.Model(dao.ExamAttemptAnswer).Ctx(ctx).
+			_, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
 				Data(g.Map{
 					"attempt_id":       attemptID,
 					"exam_question_id": item.Q,
