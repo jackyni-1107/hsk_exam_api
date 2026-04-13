@@ -12,17 +12,17 @@ import (
 
 type (
 	ISysnotification interface {
-		TemplateList(ctx context.Context, page, size int, code, channel string) ([]sysentity.SysNotificationTemplate, int, error)
-		TemplateCreate(ctx context.Context, code, name, channel, content, variables, creator string, status int) (int64, error)
-		TemplateUpdate(ctx context.Context, id int64, name, content, variables, updater string, status int) error
-		TemplateDelete(ctx context.Context, id int64, updater string) error
 		ChannelConfigList(ctx context.Context, channel string) ([]sysentity.SysNotificationChannelConfig, error)
-		ChannelConfigCreate(ctx context.Context, channel, provider, name, configJson, creator string) (int64, error)
-		ChannelConfigUpdate(ctx context.Context, id int64, name, configJson, updater string) error
+		ChannelConfigCreate(ctx context.Context, channel string, provider string, name string, configJson string, creator string) (int64, error)
+		ChannelConfigUpdate(ctx context.Context, id int64, name string, configJson string, updater string) error
 		ChannelConfigDelete(ctx context.Context, id int64, updater string) error
 		ChannelConfigSetActive(ctx context.Context, id int64, updater string) error
-		Send(ctx context.Context, templateCode, channel, recipient, variables string) (bool, error)
-		LogList(ctx context.Context, page, size int, channel, recipient string) ([]sysentity.SysNotificationLog, int, error)
+		LogList(ctx context.Context, page int, size int, channel string, recipient string) ([]sysentity.SysNotificationLog, int, error)
+		Send(ctx context.Context, templateCode string, channel string, recipient string, variables string) (bool, error)
+		TemplateList(ctx context.Context, page int, size int, code string, channel string) ([]sysentity.SysNotificationTemplate, int, error)
+		TemplateCreate(ctx context.Context, code string, name string, channel string, content string, variables string, creator string, status int) (int64, error)
+		TemplateUpdate(ctx context.Context, id int64, name string, content string, variables string, updater string, status int) error
+		TemplateDelete(ctx context.Context, id int64, updater string) error
 	}
 )
 
