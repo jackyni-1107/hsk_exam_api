@@ -84,7 +84,7 @@ func doDatabaseSync(ctx context.Context, attemptID int64) error {
 					"version":          gdb.Raw("version + 1"), // 简单逻辑：落库时版本自增
 					"updater":          "system_async_worker",
 					"update_time":      answeredTime,
-					"delete_flag":      0,
+					"delete_flag":      consts.DeleteFlagNotDeleted,
 					"create_time":      answeredTime, // 仅在 Insert 时生效
 					"creator":          "system_async_worker",
 				}).
