@@ -4,12 +4,12 @@ import (
 	"exam/internal/service/sysfile"
 )
 
-type sSysfile struct{}
+type sSysFile struct{}
 
 func init() {
-	sysfile.RegisterSysfile(New())
+	sysfile.RegisterSysFile(New())
 }
 
-func New() *sSysfile {
-	return &sSysfile{}
+func New() *sSysFile {
+	return &sSysFile{}
 }

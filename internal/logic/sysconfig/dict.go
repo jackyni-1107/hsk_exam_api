@@ -11,7 +11,7 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
-func (s *sSysconfig) DictTypeList(ctx context.Context, page, size int, dictType string) ([]sysentity.SysDictType, int, error) {
+func (s *sSysConfig) DictTypeList(ctx context.Context, page, size int, dictType string) ([]sysentity.SysDictType, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -34,7 +34,7 @@ func (s *sSysconfig) DictTypeList(ctx context.Context, page, size int, dictType 
 	return list, total, nil
 }
 
-func (s *sSysconfig) DictTypeCreate(ctx context.Context, dictName, dictType, remark, creator string, status int) (int64, error) {
+func (s *sSysConfig) DictTypeCreate(ctx context.Context, dictName, dictType, remark, creator string, status int) (int64, error) {
 	cnt, err := dao.SystemDictType.Ctx(ctx).
 		Where("dict_type", dictType).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -60,7 +60,7 @@ func (s *sSysconfig) DictTypeCreate(ctx context.Context, dictName, dictType, rem
 	return id, nil
 }
 
-func (s *sSysconfig) DictTypeUpdate(ctx context.Context, id int64, dictName, remark, updater string, status int) error {
+func (s *sSysConfig) DictTypeUpdate(ctx context.Context, id int64, dictName, remark, updater string, status int) error {
 	data := map[string]interface{}{
 		"updater": updater,
 		"status":  status,
@@ -78,7 +78,7 @@ func (s *sSysconfig) DictTypeUpdate(ctx context.Context, id int64, dictName, rem
 	return nil
 }
 
-func (s *sSysconfig) DictTypeDelete(ctx context.Context, id int64, updater string) error {
+func (s *sSysConfig) DictTypeDelete(ctx context.Context, id int64, updater string) error {
 	_, err := dao.SystemDictType.Ctx(ctx).Where("id", id).Data(sysdo.SysDictType{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
@@ -89,7 +89,7 @@ func (s *sSysconfig) DictTypeDelete(ctx context.Context, id int64, updater strin
 	return nil
 }
 
-func (s *sSysconfig) DictDataList(ctx context.Context, page, size int, dictType string) ([]sysentity.SysDictData, int, error) {
+func (s *sSysConfig) DictDataList(ctx context.Context, page, size int, dictType string) ([]sysentity.SysDictData, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -112,7 +112,7 @@ func (s *sSysconfig) DictDataList(ctx context.Context, page, size int, dictType 
 	return list, total, nil
 }
 
-func (s *sSysconfig) DictDataCreate(ctx context.Context, dictType, dictLabel, dictValue, remark, creator string, sort, status int) (int64, error) {
+func (s *sSysConfig) DictDataCreate(ctx context.Context, dictType, dictLabel, dictValue, remark, creator string, sort, status int) (int64, error) {
 	r, err := dao.SystemDictData.Ctx(ctx).Insert(sysdo.SysDictData{
 		DictType:   dictType,
 		DictLabel:  dictLabel,
@@ -130,7 +130,7 @@ func (s *sSysconfig) DictDataCreate(ctx context.Context, dictType, dictLabel, di
 	return id, nil
 }
 
-func (s *sSysconfig) DictDataUpdate(ctx context.Context, id int64, dictLabel, dictValue, remark, updater string, sort, status int) error {
+func (s *sSysConfig) DictDataUpdate(ctx context.Context, id int64, dictLabel, dictValue, remark, updater string, sort, status int) error {
 	data := map[string]interface{}{
 		"updater": updater,
 		"sort":    sort,
@@ -152,7 +152,7 @@ func (s *sSysconfig) DictDataUpdate(ctx context.Context, id int64, dictLabel, di
 	return nil
 }
 
-func (s *sSysconfig) DictDataDelete(ctx context.Context, id int64, updater string) error {
+func (s *sSysConfig) DictDataDelete(ctx context.Context, id int64, updater string) error {
 	_, err := dao.SystemDictData.Ctx(ctx).Where("id", id).Data(sysdo.SysDictData{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,

@@ -2,19 +2,20 @@ package sysconfig
 
 import (
 	"exam/internal/service/sysconfig"
+
 	"github.com/gogf/gf/v2/os/gcache"
 )
 
-type sSysconfig struct {
+type sSysConfig struct {
 	cache *gcache.Cache // 预留缓存对象
 }
 
 func init() {
-	sysconfig.RegisterSysconfig(New())
+	sysconfig.RegisterSysConfig(New())
 }
 
-func New() *sSysconfig {
-	return &sSysconfig{
+func New() *sSysConfig {
+	return &sSysConfig{
 		cache: gcache.New(), // 初始化缓存
 	}
 }

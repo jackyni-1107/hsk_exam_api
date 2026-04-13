@@ -11,7 +11,7 @@ import (
 )
 
 type (
-	ISysconfig interface {
+	ISysConfig interface {
 		ConfigList(ctx context.Context, page int, size int, group string, key string) ([]sysentity.SysConfig, int, error)
 		ConfigCreate(ctx context.Context, configKey string, configValue string, configType string, groupName string, remark string, creator string) (int64, error)
 		ConfigUpdate(ctx context.Context, id int64, configValue string, remark string, updater string) error
@@ -29,16 +29,16 @@ type (
 )
 
 var (
-	localSysconfig ISysconfig
+	localSysConfig ISysConfig
 )
 
-func Sysconfig() ISysconfig {
-	if localSysconfig == nil {
-		panic("implement not found for interface ISysconfig, forgot register?")
+func SysConfig() ISysConfig {
+	if localSysConfig == nil {
+		panic("implement not found for interface ISysConfig, forgot register?")
 	}
-	return localSysconfig
+	return localSysConfig
 }
 
-func RegisterSysconfig(i ISysconfig) {
-	localSysconfig = i
+func RegisterSysConfig(i ISysConfig) {
+	localSysConfig = i
 }

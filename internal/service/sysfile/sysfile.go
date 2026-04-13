@@ -12,7 +12,7 @@ import (
 )
 
 type (
-	ISysfile interface {
+	ISysFile interface {
 		FileList(ctx context.Context, page int, size int, filename string) ([]sysentity.SysFileStorage, int, error)
 		// FileUpload 将文件写入当前活动存储并登记 sys_file_storage，返回新记录 id、存储 path、展示用文件名。
 		FileUpload(ctx context.Context, originalFilename string, size int64, contentType string, body io.ReadSeeker, isPrivate int, creator string) (id int64, objectPath string, displayName string, err error)
@@ -28,16 +28,16 @@ type (
 )
 
 var (
-	localSysfile ISysfile
+	localSysFile ISysFile
 )
 
-func Sysfile() ISysfile {
-	if localSysfile == nil {
-		panic("implement not found for interface ISysfile, forgot register?")
+func SysFile() ISysFile {
+	if localSysFile == nil {
+		panic("implement not found for interface ISysFile, forgot register?")
 	}
-	return localSysfile
+	return localSysFile
 }
 
-func RegisterSysfile(i ISysfile) {
-	localSysfile = i
+func RegisterSysFile(i ISysFile) {
+	localSysFile = i
 }

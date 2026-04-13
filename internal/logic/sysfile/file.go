@@ -19,7 +19,7 @@ import (
 
 const maxSysFileUploadBytes = 100 << 20 // 100MB
 
-func (s *sSysfile) FileList(ctx context.Context, page, size int, filename string) ([]sysentity.SysFileStorage, int, error) {
+func (s *sSysFile) FileList(ctx context.Context, page, size int, filename string) ([]sysentity.SysFileStorage, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -43,7 +43,7 @@ func (s *sSysfile) FileList(ctx context.Context, page, size int, filename string
 }
 
 // FileUpload 将文件写入当前活动存储并登记 sys_file_storage，返回新记录 id、存储 path、展示用文件名。
-func (s *sSysfile) FileUpload(ctx context.Context, originalFilename string, size int64, contentType string, body io.ReadSeeker, isPrivate int, creator string) (id int64, objectPath string, displayName string, err error) {
+func (s *sSysFile) FileUpload(ctx context.Context, originalFilename string, size int64, contentType string, body io.ReadSeeker, isPrivate int, creator string) (id int64, objectPath string, displayName string, err error) {
 	if size > maxSysFileUploadBytes {
 		return 0, "", "", gerror.NewCode(consts.CodeInvalidParams)
 	}
@@ -90,7 +90,7 @@ func (s *sSysfile) FileUpload(ctx context.Context, originalFilename string, size
 }
 
 // FileOpenDownload 按文件记录打开存储对象，供 HTTP 下载流式写出。
-func (s *sSysfile) FileOpenDownload(ctx context.Context, id int64) (filename string, mime string, size int64, body io.ReadCloser, err error) {
+func (s *sSysFile) FileOpenDownload(ctx context.Context, id int64) (filename string, mime string, size int64, body io.ReadCloser, err error) {
 	var e sysentity.SysFileStorage
 	err = dao.SysFileStorage.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil {
@@ -118,7 +118,7 @@ func (s *sSysfile) FileOpenDownload(ctx context.Context, id int64) (filename str
 	return e.Filename, mime, size, rc, nil
 }
 
-func (s *sSysfile) FileDelete(ctx context.Context, id int64) error {
+func (s *sSysFile) FileDelete(ctx context.Context, id int64) error {
 	var e sysentity.SysFileStorage
 	err := dao.SysFileStorage.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil {
@@ -138,7 +138,7 @@ func (s *sSysfile) FileDelete(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (s *sSysfile) StorageConfigList(ctx context.Context) ([]sysentity.SysFileStorageConfig, error) {
+func (s *sSysFile) StorageConfigList(ctx context.Context) ([]sysentity.SysFileStorageConfig, error) {
 	var list []sysentity.SysFileStorageConfig
 	err := dao.SysFileStorageConfig.Ctx(ctx).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -150,7 +150,7 @@ func (s *sSysfile) StorageConfigList(ctx context.Context) ([]sysentity.SysFileSt
 	return list, nil
 }
 
-func (s *sSysfile) StorageConfigCreate(ctx context.Context, storageType, name, configJson, creator string, cleanupBeforeDays int) (int64, error) {
+func (s *sSysFile) StorageConfigCreate(ctx context.Context, storageType, name, configJson, creator string, cleanupBeforeDays int) (int64, error) {
 	if cleanupBeforeDays <= 0 {
 		cleanupBeforeDays = 30
 	}
@@ -170,7 +170,7 @@ func (s *sSysfile) StorageConfigCreate(ctx context.Context, storageType, name, c
 	return id, nil
 }
 
-func (s *sSysfile) StorageConfigUpdate(ctx context.Context, id int64, name, configJson, updater string, cleanupBeforeDays int) error {
+func (s *sSysFile) StorageConfigUpdate(ctx context.Context, id int64, name, configJson, updater string, cleanupBeforeDays int) error {
 	data := map[string]interface{}{
 		"updater": updater,
 	}
@@ -190,7 +190,7 @@ func (s *sSysfile) StorageConfigUpdate(ctx context.Context, id int64, name, conf
 	return nil
 }
 
-func (s *sSysfile) StorageConfigDelete(ctx context.Context, id int64, updater string) error {
+func (s *sSysFile) StorageConfigDelete(ctx context.Context, id int64, updater string) error {
 	var e sysentity.SysFileStorageConfig
 	err := dao.SysFileStorageConfig.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil {
@@ -212,7 +212,7 @@ func (s *sSysfile) StorageConfigDelete(ctx context.Context, id int64, updater st
 	return nil
 }
 
-func (s *sSysfile) StorageConfigSetActive(ctx context.Context, id int64, updater string) error {
+func (s *sSysFile) StorageConfigSetActive(ctx context.Context, id int64, updater string) error {
 	_, err := dao.SysFileStorageConfig.Ctx(ctx).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Data(map[string]interface{}{"is_active": 0, "updater": updater}).

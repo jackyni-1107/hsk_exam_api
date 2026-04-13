@@ -11,7 +11,7 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
-func (s *sSysconfig) ConfigList(ctx context.Context, page, size int, group, key string) ([]sysentity.SysConfig, int, error) {
+func (s *sSysConfig) ConfigList(ctx context.Context, page, size int, group, key string) ([]sysentity.SysConfig, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -37,7 +37,7 @@ func (s *sSysconfig) ConfigList(ctx context.Context, page, size int, group, key 
 	return list, total, nil
 }
 
-func (s *sSysconfig) ConfigCreate(ctx context.Context, configKey, configValue, configType, groupName, remark, creator string) (int64, error) {
+func (s *sSysConfig) ConfigCreate(ctx context.Context, configKey, configValue, configType, groupName, remark, creator string) (int64, error) {
 	cnt, err := dao.SystemConfig.Ctx(ctx).
 		Where("config_key", configKey).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -70,7 +70,7 @@ func (s *sSysconfig) ConfigCreate(ctx context.Context, configKey, configValue, c
 	return id, nil
 }
 
-func (s *sSysconfig) ConfigUpdate(ctx context.Context, id int64, configValue, remark, updater string) error {
+func (s *sSysConfig) ConfigUpdate(ctx context.Context, id int64, configValue, remark, updater string) error {
 	data := map[string]interface{}{
 		"updater": updater,
 	}
@@ -87,7 +87,7 @@ func (s *sSysconfig) ConfigUpdate(ctx context.Context, id int64, configValue, re
 	return nil
 }
 
-func (s *sSysconfig) ConfigDelete(ctx context.Context, id int64, updater string) error {
+func (s *sSysConfig) ConfigDelete(ctx context.Context, id int64, updater string) error {
 	_, err := dao.SystemConfig.Ctx(ctx).Where("id", id).Data(sysdo.SysConfig{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
@@ -98,7 +98,7 @@ func (s *sSysconfig) ConfigDelete(ctx context.Context, id int64, updater string)
 	return nil
 }
 
-func (s *sSysconfig) ConfigGet(ctx context.Context, key string) (string, error) {
+func (s *sSysConfig) ConfigGet(ctx context.Context, key string) (string, error) {
 	var e sysentity.SysConfig
 	err := dao.SystemConfig.Ctx(ctx).
 		Where("config_key", key).
