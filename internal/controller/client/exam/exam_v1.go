@@ -44,17 +44,17 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 			SegmentCode:   sec.SegmentCode,
 			TopicItems:    sec.TopicItemsFile,
 			//TopicJson:     sec.TopicJson,
-			//Blocks:        make([]v1.PaperForExamBlockInit, 0, len(sec.Blocks)),
+			Blocks: make([]v1.PaperForExamBlockInit, 0, len(sec.Blocks)),
 		}
-		//for _, blk := range sec.Blocks {
-		//	item.Blocks = append(item.Blocks, v1.PaperForExamBlockInit{
-		//		Id:                      blk.Id,
-		//		BlockOrder:              blk.BlockOrder,
-		//		GroupIndex:              blk.GroupIndex,
-		//		QuestionDescriptionJson: blk.QuestionDescriptionJson,
-		//		QuestionCount:           blk.QuestionCount,
-		//	})
-		//}
+		for _, blk := range sec.Blocks {
+			item.Blocks = append(item.Blocks, v1.PaperForExamBlockInit{
+				Id:                      blk.Id,
+				BlockOrder:              blk.BlockOrder,
+				GroupIndex:              blk.GroupIndex,
+				QuestionDescriptionJson: blk.QuestionDescriptionJson,
+				QuestionCount:           blk.QuestionCount,
+			})
+		}
 		res.Items = append(res.Items, item)
 	}
 	return res, nil
