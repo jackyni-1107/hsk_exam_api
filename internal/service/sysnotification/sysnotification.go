@@ -11,7 +11,7 @@ import (
 )
 
 type (
-	ISysnotification interface {
+	ISysNotification interface {
 		ChannelConfigList(ctx context.Context, channel string) ([]sysentity.SysNotificationChannelConfig, error)
 		ChannelConfigCreate(ctx context.Context, channel string, provider string, name string, configJson string, creator string) (int64, error)
 		ChannelConfigUpdate(ctx context.Context, id int64, name string, configJson string, updater string) error
@@ -27,16 +27,16 @@ type (
 )
 
 var (
-	localSysnotification ISysnotification
+	localSysNotification ISysNotification
 )
 
-func Sysnotification() ISysnotification {
-	if localSysnotification == nil {
-		panic("implement not found for interface ISysnotification, forgot register?")
+func SysNotification() ISysNotification {
+	if localSysNotification == nil {
+		panic("implement not found for interface ISysNotification, forgot register?")
 	}
-	return localSysnotification
+	return localSysNotification
 }
 
-func RegisterSysnotification(i ISysnotification) {
-	localSysnotification = i
+func RegisterSysNotification(i ISysNotification) {
+	localSysNotification = i
 }
