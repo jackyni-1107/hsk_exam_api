@@ -11,5 +11,6 @@ type MyExamBatchItem struct {
 	PaperTitle              string      `json:"paper_title"`
 	ExamStartAt             *gtime.Time `json:"exam_start_at"`
 	ExamEndAt               *gtime.Time `json:"exam_end_at"`
+	AttemptId               int64       `json:"attempt_id"`
 	WindowStatus            string      `json:"window_status"` // upcoming | open | closed
 }

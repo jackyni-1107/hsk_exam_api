@@ -18,5 +18,6 @@ type ExamBatchItem struct {
 	PaperTitle   string `json:"paper_title" dc:"试卷标题"`
 	ExamStartAt  string `json:"exam_start_at" dc:"考试开始时间"`
 	ExamEndAt    string `json:"exam_end_at" dc:"考试结束时间"`
+	AttemptId    int64  `json:"attempt_id" dc:"会话id"`
 	WindowStatus string `json:"window_status" dc:"upcoming=未开始 open=进行中 closed=已结束或未开放"`
 }

@@ -46,12 +46,13 @@ func (s *sBatch) MyExamBatches(ctx context.Context, memberID int64) (list []bo.M
 	// 既然有唯一索引 (member_id, exam_batch_id, mock_examination_paper_id)，直接查出 status 即可
 	batchIDs := gdb.ListItemValuesUnique(rows, "BatchId")
 	var attempts []struct {
+		Id                     int64 `orm:"id"`
 		ExamBatchId            int64 `orm:"exam_batch_id"`
 		MockExaminationPaperId int64 `orm:"mock_examination_paper_id"`
 		Status                 int   `orm:"status"`
 	}
 	err = dao.ExamAttempt.Ctx(ctx).
-		Fields("exam_batch_id, mock_examination_paper_id, status").
+		Fields("id, exam_batch_id, mock_examination_paper_id, status").
 		Where(g.Map{
 			"member_id":   memberID,
 			"delete_flag": consts.DeleteFlagNotDeleted,
@@ -63,13 +64,19 @@ func (s *sBatch) MyExamBatches(ctx context.Context, memberID int64) (list []bo.M
 		return nil, err
 	}
 
-	// 3. 过滤掉已完成的batchId
-	// 使用空结构体 map[string]struct{} 性能最优，不占用内存
-	finishedSet := make(map[string]struct{}, len(attempts))
+	// 3. 将 attempt 记录映射到 Map 中
+	// Key: BatchId_PaperId
+	attemptMap := make(map[string]struct {
+		Id     int64
+		Status int
+	}, len(attempts))
+
 	for _, a := range attempts {
-		// 建议 Key 格式：批次ID_试卷ID
 		key := fmt.Sprintf("%d_%d", a.ExamBatchId, a.MockExaminationPaperId)
-		finishedSet[key] = struct{}{}
+		attemptMap[key] = struct {
+			Id     int64
+			Status int
+		}{Id: a.Id, Status: a.Status}
 	}
 
 	// 4. 组装结果并过滤已完成的考试
@@ -77,19 +84,22 @@ func (s *sBatch) MyExamBatches(ctx context.Context, memberID int64) (list []bo.M
 	list = make([]bo.MyExamBatchItem, 0, len(rows))
 	for _, r := range rows {
 
-		// 生成同样的 Key 进行比对
 		key := fmt.Sprintf("%d_%d", r.BatchId, r.MockExaminationPaperId)
-		if _, exists := finishedSet[key]; exists {
-			// 如果在黑名单（已提交或已结束）中，直接跳过，不返回给前端
+		att, hasAttempt := attemptMap[key]
+
+		// 过滤：已提交或系统强制结束的考试不显示在“待考”列表
+		if hasAttempt && (att.Status == consts.ExamAttemptSubmitted || att.Status == consts.ExamAttemptEnded) {
 			continue
 		}
 
-		// 5. [补充建议] 考试窗口状态判断
 		winStatus := s.GetExamWindowStatus(now, r.ExamStartAt, r.ExamEndAt)
-
-		// 如果业务要求“过期未考”也不显示，可以加上：
-		if winStatus == "closed" {
+		// 过滤：过期的且没考过的卷子不显示
+		if winStatus == "closed" && !hasAttempt {
 			continue
+		}
+		var attemptId int64
+		if hasAttempt && att.Status == consts.ExamAttemptInProgress {
+			attemptId = att.Id
 		}
 
 		list = append(list, bo.MyExamBatchItem{
@@ -99,8 +109,10 @@ func (s *sBatch) MyExamBatches(ctx context.Context, memberID int64) (list []bo.M
 			PaperTitle:             r.PaperTitle,
 			ExamStartAt:            r.ExamStartAt,
 			ExamEndAt:              r.ExamEndAt,
+			AttemptId:              attemptId,
 			WindowStatus:           winStatus,
 		})
+
 	}
 
 	return list, nil
