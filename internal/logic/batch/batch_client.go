@@ -30,7 +30,8 @@ func (s *sBatch) MyExamBatches(ctx context.Context, memberID int64) (list []bo.M
 		LeftJoin("exam_paper ep", "ep.mock_examination_paper_id = ebm.mock_examination_paper_id").
 		Fields("eb.id AS batch_id, eb.title, ebm.mock_examination_paper_id, ep.title AS paper_title, eb.exam_start_at, eb.exam_end_at").
 		Where("ebm.member_id = ?", memberID).
-		Where("eb.exam_start_at > ?", gtime.Now()).
+		Where("eb.exam_start_at <= ?", gtime.Now()).
+		Where("eb.exam_end_at >= ?", gtime.Now()).
 		Where(g.Map{
 			"eb.delete_flag": consts.DeleteFlagNotDeleted,
 			"ep.delete_flag": consts.DeleteFlagNotDeleted,
