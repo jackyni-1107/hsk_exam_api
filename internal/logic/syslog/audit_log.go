@@ -4,6 +4,7 @@ import (
 	"context"
 	"exam/internal/consts"
 	"exam/internal/dao"
+	sysdao "exam/internal/dao/sys"
 	sysentity "exam/internal/model/entity/sys"
 
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -51,4 +52,13 @@ func (s *sSysLog) AuditLogList(ctx context.Context, page, size int, username, pa
 	}
 
 	return list, total, nil
+}
+
+func (s *sSysLog) AuditLogChangeDetails(ctx context.Context, operationLogId int64) ([]sysentity.SysAuditChangeDetail, error) {
+	var list []sysentity.SysAuditChangeDetail
+	err := sysdao.SysAuditChangeDetail.Ctx(ctx).Where("operation_log_id", operationLogId).OrderAsc("id").Scan(&list)
+	if err != nil {
+		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	return list, nil
 }
