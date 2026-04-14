@@ -8,7 +8,7 @@ import (
 	v1 "exam/api/client/me/v1"
 	"exam/internal/consts"
 	"exam/internal/middleware"
-	examsvc "exam/internal/service/exam"
+	batchsvc "exam/internal/service/batch"
 	"exam/internal/utility"
 )
 
@@ -17,7 +17,7 @@ func (c *ControllerV1) MyExams(ctx context.Context, req *v1.ExamsReq) (res *v1.E
 	if d == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
-	rows, err := examsvc.Exam().MyExamBatches(ctx, d.UserId)
+	rows, err := batchsvc.Batch().MyExamBatches(ctx, d.UserId)
 	if err != nil {
 		return nil, err
 	}
