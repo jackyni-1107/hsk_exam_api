@@ -5,7 +5,7 @@ import (
 
 	v1 "exam/api/admin/menu/v1"
 	"exam/internal/middleware"
-	menusvc "exam/internal/service/menu"
+	menusvc "exam/internal/service/sysmenu"
 )
 
 func (c *ControllerV1) MenuCreate(ctx context.Context, req *v1.MenuCreateReq) (res *v1.MenuCreateRes, err error) {
@@ -13,7 +13,7 @@ func (c *ControllerV1) MenuCreate(ctx context.Context, req *v1.MenuCreateReq) (r
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := menusvc.Menu().MenuCreate(ctx,
+	id, err := menusvc.SysMenu().MenuCreate(ctx,
 		req.Name, req.Permission, req.Path, req.Icon, req.Component, req.ComponentName, creator,
 		req.Type, req.Sort, req.ParentId, req.Status,
 		boolToInt(req.Visible), boolToInt(req.KeepAlive), boolToInt(req.AlwaysShow),

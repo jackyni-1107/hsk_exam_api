@@ -5,7 +5,7 @@ import (
 
 	v1 "exam/api/admin/role/v1"
 	"exam/internal/middleware"
-	rolesvc "exam/internal/service/role"
+	rolesvc "exam/internal/service/sysrole"
 )
 
 func (c *ControllerV1) RoleCreate(ctx context.Context, req *v1.RoleCreateReq) (res *v1.RoleCreateRes, err error) {
@@ -13,7 +13,7 @@ func (c *ControllerV1) RoleCreate(ctx context.Context, req *v1.RoleCreateReq) (r
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := rolesvc.Role().RoleCreate(ctx, req.Name, req.Code, req.Remark, creator, req.Status, req.Sort, req.Type)
+	id, err := rolesvc.SysRole().RoleCreate(ctx, req.Name, req.Code, req.Remark, creator, req.Status, req.Sort, req.Type)
 	if err != nil {
 		return nil, err
 	}

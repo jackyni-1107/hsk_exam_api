@@ -8,7 +8,7 @@ import (
 	"exam/internal/consts"
 	"exam/internal/middleware"
 	sysentity "exam/internal/model/entity/sys"
-	menusvc "exam/internal/service/menu"
+	menusvc "exam/internal/service/sysmenu"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -19,7 +19,7 @@ func (c *ControllerV1) Menus(ctx context.Context, req *v1.MenusReq) (res *v1.Men
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
 
-	all, err := menusvc.Menu().MenuTree(ctx)
+	all, err := menusvc.SysMenu().MenuTree(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (c *ControllerV1) Menus(ctx context.Context, req *v1.MenusReq) (res *v1.Men
 			allowed[m.Id] = struct{}{}
 		}
 	} else {
-		allowed, err = menusvc.Menu().MenuIdsForUser(ctx, d.UserId)
+		allowed, err = menusvc.SysMenu().MenuIdsForUser(ctx, d.UserId)
 		if err != nil {
 			return nil, err
 		}

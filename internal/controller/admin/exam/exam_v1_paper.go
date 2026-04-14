@@ -8,13 +8,13 @@ import (
 
 	v1 "exam/api/admin/exam/v1"
 	"exam/internal/middleware"
-	"exam/internal/service/exam"
+	papersvc "exam/internal/service/paper"
 	"exam/internal/utility"
 	"exam/internal/utility/exampaper"
 )
 
 func (c *ControllerV1) PaperList(ctx context.Context, req *v1.PaperListReq) (res *v1.PaperListRes, err error) {
-	list, total, err := exam.Exam().PaperList(ctx, req.Page, req.Size, req.Level)
+	list, total, err := papersvc.Paper().PaperList(ctx, req.Page, req.Size, req.Level)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (c *ControllerV1) PaperDetail(ctx context.Context, req *v1.PaperDetailReq) 
 	if err != nil {
 		return nil, err
 	}
-	d, err := exam.Exam().PaperDetail(ctx, paper.Id)
+	d, err := papersvc.Paper().PaperDetail(ctx, paper.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (c *ControllerV1) PaperImport(ctx context.Context, req *v1.PaperImportReq) 
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	r, err := exam.Exam().ImportFromIndex(ctx, exambo.ImportParams{
+	r, err := papersvc.Paper().ImportFromIndex(ctx, exambo.ImportParams{
 		MockExaminationPaperId: req.MockExaminationPaperId,
 		IndexURL:               req.IndexUrl,
 		IndexJSON:              req.IndexJson,
@@ -93,7 +93,7 @@ func (c *ControllerV1) PaperUpdate(ctx context.Context, req *v1.PaperUpdateReq) 
 	if err != nil {
 		return nil, err
 	}
-	err = exam.Exam().UpdatePaperSettings(ctx, paper.Id, exambo.PaperHlsExamAdminUpdate{
+	err = papersvc.Paper().UpdatePaperSettings(ctx, paper.Id, exambo.PaperHlsExamAdminUpdate{
 		AudioHlsPrefix:          req.AudioHlsPrefix,
 		AudioHlsSegmentCount:    req.AudioHlsSegmentCount,
 		AudioHlsSegmentPattern:  req.AudioHlsSegmentPattern,
