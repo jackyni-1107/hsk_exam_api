@@ -10,12 +10,6 @@ import (
 	"exam/internal/utility"
 )
 
-type sAudit struct{}
-
-func New() *sAudit {
-	return &sAudit{}
-}
-
 // RecordLoginSuccess 记录登录成功
 func (s *sAudit) RecordLoginSuccess(ctx context.Context, userId int64, username string, userType int, ip, userAgent, traceId string) {
 	deviceInfo := utility.ParseDeviceInfo(userAgent)
