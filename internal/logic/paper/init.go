@@ -3,23 +3,23 @@ package paper
 import (
 	"context"
 
-	"exam/internal/service/exam"
+	"exam/internal/service/paper"
 )
 
-type sExam struct{}
+type sPaper struct{}
 
 func init() {
-	exam.RegisterExam(New())
+	paper.RegisterPaper(New())
 }
 
-func New() *sExam {
-	return &sExam{}
+func New() *sPaper {
+	return &sPaper{}
 }
 
-func (s *sExam) InvalidatePaperForExamCache(ctx context.Context, examPaperId int64) {
+func (s *sPaper) InvalidatePaperForExamCache(ctx context.Context, examPaperId int64) {
 	InvalidatePaperForExamCache(ctx, examPaperId)
 }
 
-func (s *sExam) InvalidatePaperSectionForExamCache(ctx context.Context, examPaperId int64, sectionId int64) {
+func (s *sPaper) InvalidatePaperSectionForExamCache(ctx context.Context, examPaperId int64, sectionId int64) {
 	InvalidatePaperSectionForExamCache(ctx, examPaperId, sectionId)
 }

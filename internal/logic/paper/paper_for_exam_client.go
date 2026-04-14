@@ -13,7 +13,7 @@ import (
 	"exam/internal/utility/exampaper"
 )
 
-func (s *sExam) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (map[string]interface{}, error) {
+func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (map[string]interface{}, error) {
 	paper, err := exampaper.ByMockID(ctx, mockPaperID)
 	if err != nil {
 		return nil, err
@@ -39,7 +39,7 @@ func (s *sExam) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64,
 	return m, nil
 }
 
-func (s *sExam) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, error) {
+func (s *sPaper) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, error) {
 	paper, err := exampaper.ByMockID(ctx, mockPaperID)
 	if err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func (s *sExam) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (
 	return &out, nil
 }
 
-func (s *sExam) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionDetailForExamView, error) {
+func (s *sPaper) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionDetailForExamView, error) {
 	paper, err := exampaper.ByMockID(ctx, mockPaperID)
 	if err != nil {
 		return nil, err

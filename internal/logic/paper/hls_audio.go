@@ -38,7 +38,7 @@ type paperHLSConfig struct {
 	AudioHlsSegmentDuration float64 `json:"audio_hls_segment_duration"`
 }
 
-func (s *sExam) hlsTicketTTL() time.Duration {
+func (s *sPaper) hlsTicketTTL() time.Duration {
 	sec := config.Config.Exam.AudioHlsTicketTTLSeconds
 	if sec <= 0 {
 		sec = 120
@@ -46,7 +46,7 @@ func (s *sExam) hlsTicketTTL() time.Duration {
 	return time.Duration(sec) * time.Second
 }
 
-func (s *sExam) hlsPresignTTL() time.Duration {
+func (s *sPaper) hlsPresignTTL() time.Duration {
 	sec := config.Config.Exam.AudioHlsPresignTTLSeconds
 	if sec <= 0 {
 		sec = 300
@@ -93,18 +93,18 @@ func minInt3(a, b, c int) int {
 }
 
 // loadPaperHLS 按 mock_examination_paper.id 查卷（与客户端 paper.id 一致）。
-func (s *sExam) loadPaperHLS(ctx context.Context, mockExaminationPaperID int64) (*paperHLSConfig, error) {
+func (s *sPaper) loadPaperHLS(ctx context.Context, mockExaminationPaperID int64) (*paperHLSConfig, error) {
 	c := dao.ExamPaper.Columns()
 	return s.pickExamPaperHLS(ctx, c.MockExaminationPaperId, mockExaminationPaperID)
 }
 
 // loadPaperHLSByExamPaperRowID 按 exam_paper.id 查卷（HLS 票据内存的是行主键）。
-func (s *sExam) loadPaperHLSByExamPaperRowID(ctx context.Context, examPaperID int64) (*paperHLSConfig, error) {
+func (s *sPaper) loadPaperHLSByExamPaperRowID(ctx context.Context, examPaperID int64) (*paperHLSConfig, error) {
 	c := dao.ExamPaper.Columns()
 	return s.pickExamPaperHLS(ctx, c.Id, examPaperID)
 }
 
-func (s *sExam) pickExamPaperHLS(ctx context.Context, column string, value int64) (*paperHLSConfig, error) {
+func (s *sPaper) pickExamPaperHLS(ctx context.Context, column string, value int64) (*paperHLSConfig, error) {
 	var cfg paperHLSConfig
 	err := dao.ExamPaper.Ctx(ctx).
 		Fields("id,audio_hls_prefix,audio_hls_segment_count,audio_hls_segment_pattern,audio_hls_key_object,audio_hls_iv_hex,audio_hls_segment_duration").
@@ -123,11 +123,11 @@ func (s *sExam) pickExamPaperHLS(ctx context.Context, column string, value int64
 	return &cfg, nil
 }
 
-func (s *sExam) assertAttemptInProgress(ctx context.Context, userID, attemptID int64) (*examentity.ExamAttempt, error) {
+func (s *sPaper) assertAttemptInProgress(ctx context.Context, userID, attemptID int64) (*examentity.ExamAttempt, error) {
 	return attempt.AssertAttemptInProgressByUser(ctx, attemptID, userID)
 }
 
-func (s *sExam) loadQuestionHLS(ctx context.Context, paperID, questionID int64) (*examentity.ExamQuestion, error) {
+func (s *sPaper) loadQuestionHLS(ctx context.Context, paperID, questionID int64) (*examentity.ExamQuestion, error) {
 	var q examentity.ExamQuestion
 	err := dao.ExamQuestion.Ctx(ctx).
 		Where("id", questionID).
@@ -147,7 +147,7 @@ func (s *sExam) loadQuestionHLS(ctx context.Context, paperID, questionID int64) 
 }
 
 // IssueAudioHlsPlay 签发短期播放票据，返回相对 play_url（以 / 开头）。
-func (s *sExam) IssueAudioHlsPlay(ctx context.Context, userID, attemptID, questionID int64) (playURL string, expiresAt string, err error) {
+func (s *sPaper) IssueAudioHlsPlay(ctx context.Context, userID, attemptID, questionID int64) (playURL string, expiresAt string, err error) {
 	att, err := s.assertAttemptInProgress(ctx, userID, attemptID)
 	if err != nil {
 		return "", "", err
@@ -184,7 +184,7 @@ func (s *sExam) IssueAudioHlsPlay(ctx context.Context, userID, attemptID, questi
 }
 
 // IssuePaperHlsPlay 基于试卷级 HLS 配置签发短期播放票据，返回相对 play_url（以 / 开头）。
-func (s *sExam) IssuePaperHlsPlay(ctx context.Context, userID, paperID int64) (playURL string, expiresAt string, err error) {
+func (s *sPaper) IssuePaperHlsPlay(ctx context.Context, userID, paperID int64) (playURL string, expiresAt string, err error) {
 	if paperID <= 0 {
 		return "", "", gerror.NewCode(consts.CodeInvalidParams)
 	}
@@ -223,7 +223,7 @@ func (s *sExam) IssuePaperHlsPlay(ctx context.Context, userID, paperID int64) (p
 }
 
 // BuildHlsM3U8Playlist 校验 Redis 票据并生成 m3u8（内嵌 presigned URL）。
-func (s *sExam) BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte, error) {
+func (s *sPaper) BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte, error) {
 	ticket = strings.TrimSuffix(strings.TrimSpace(ticket), ".m3u8")
 	if ticket == "" {
 		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid)

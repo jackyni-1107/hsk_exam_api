@@ -41,23 +41,23 @@ func dedupePositiveMockPaperIDs(ids []int64) []int64 {
 	return out
 }
 
-func (s *sExam) MyExamBatches(ctx context.Context, memberID int64) ([]bo.MyExamBatchItem, error) {
+func (s *sPaper) MyExamBatches(ctx context.Context, memberID int64) ([]bo.MyExamBatchItem, error) {
 	return batch.Batch().MyExamBatches(ctx, memberID)
 }
 
-func (s *sExam) ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdminItem, error) {
+func (s *sPaper) ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdminItem, error) {
 	return batch.Batch().ExamBatchDetail(ctx, id)
 }
 
-func (s *sExam) ExamBatchDelete(ctx context.Context, id int64) error {
+func (s *sPaper) ExamBatchDelete(ctx context.Context, id int64) error {
 	return batch.Batch().ExamBatchDelete(ctx, id, "")
 }
 
-func (s *sExam) ExamBatchMembersRemove(ctx context.Context, batchID int64, mockExaminationPaperId int64, memberIDs []int64) (int, error) {
+func (s *sPaper) ExamBatchMembersRemove(ctx context.Context, batchID int64, mockExaminationPaperId int64, memberIDs []int64) (int, error) {
 	return batch.Batch().ExamBatchMembersRemove(ctx, batchID, mockExaminationPaperId, memberIDs)
 }
 
-func (s *sExam) ExamBatchMembersImport(ctx context.Context, batchID int64, mockExaminationPaperId int64, memberIDs []int64, creator string) (int, error) {
+func (s *sPaper) ExamBatchMembersImport(ctx context.Context, batchID int64, mockExaminationPaperId int64, memberIDs []int64, creator string) (int, error) {
 	if _, err := batch.Batch().GetBatchByID(ctx, batchID); err != nil {
 		return 0, err
 	}
@@ -90,7 +90,7 @@ func (s *sExam) ExamBatchMembersImport(ctx context.Context, batchID int64, mockE
 	return inserted, err
 }
 
-func (s *sExam) ExamBatchMemberList(ctx context.Context, batchID int64, page int, size int) ([]bo.ExamBatchMemberAdminRow, int, error) {
+func (s *sPaper) ExamBatchMemberList(ctx context.Context, batchID int64, page int, size int) ([]bo.ExamBatchMemberAdminRow, int, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -132,7 +132,7 @@ func (s *sExam) ExamBatchMemberList(ctx context.Context, batchID int64, page int
 	return out, total, nil
 }
 
-func (s *sExam) ExamBatchList(ctx context.Context, mockExaminationPaperId int64, page int, size int) ([]bo.ExamBatchAdminItem, int, error) {
+func (s *sPaper) ExamBatchList(ctx context.Context, mockExaminationPaperId int64, page int, size int) ([]bo.ExamBatchAdminItem, int, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -218,7 +218,7 @@ func examBatchLoadMockPaperIDs(ctx context.Context, batchID int64) ([]int64, err
 	return out, nil
 }
 
-func (s *sExam) ExamBatchCreate(ctx context.Context, title string, examStartAt string, examEndAt string, mockExaminationPaperIds []int64, creator string) (int64, error) {
+func (s *sPaper) ExamBatchCreate(ctx context.Context, title string, examStartAt string, examEndAt string, mockExaminationPaperIds []int64, creator string) (int64, error) {
 	st := examBatchParseTime(examStartAt)
 	et := examBatchParseTime(examEndAt)
 	if st == nil || et == nil {
@@ -256,7 +256,7 @@ func (s *sExam) ExamBatchCreate(ctx context.Context, title string, examStartAt s
 	return batchID, err
 }
 
-func (s *sExam) ExamBatchUpdate(ctx context.Context, id int64, title string, examStartAt string, examEndAt string, mockExaminationPaperIds []int64, updater string) error {
+func (s *sPaper) ExamBatchUpdate(ctx context.Context, id int64, title string, examStartAt string, examEndAt string, mockExaminationPaperIds []int64, updater string) error {
 	if err := batch.Batch().ExamBatchUpdate(ctx, id, title, examStartAt, examEndAt, updater); err != nil {
 		return err
 	}

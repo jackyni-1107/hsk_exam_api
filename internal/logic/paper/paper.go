@@ -17,7 +17,7 @@ import (
 )
 
 // PaperDetail 返回试卷及嵌套大题、题块、小题、选项（只读查看）。
-func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.PaperDetailTree, error) {
+func (s *sPaper) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.PaperDetailTree, error) {
 	var paper examentity.ExamPaper
 	err := examdao.ExamPaper.Ctx(ctx).
 		Where("id", examPaperId).
@@ -182,7 +182,7 @@ func (s *sExam) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.Pap
 }
 
 // UpdatePaperSettings 修改试卷听力 HLS 配置（答题时长以 mock_examination_paper 为准）。
-func (s *sExam) UpdatePaperSettings(ctx context.Context, examPaperId int64, in exambo.PaperHlsExamAdminUpdate, updater string) error {
+func (s *sPaper) UpdatePaperSettings(ctx context.Context, examPaperId int64, in exambo.PaperHlsExamAdminUpdate, updater string) error {
 	if examPaperId <= 0 {
 		return gerror.NewCode(consts.CodeInvalidParams)
 	}

@@ -23,7 +23,7 @@ import (
 )
 
 // ImportFromIndex 拉取或解析 index.json，写入 exam_* 表。
-func (s *sExam) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*exambo.ImportResult, error) {
+func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*exambo.ImportResult, error) {
 	res := &exambo.ImportResult{}
 	if err := exampaper.EnsureMockExaminationPaper(ctx, p.MockExaminationPaperId); err != nil {
 		return nil, err
@@ -578,7 +578,7 @@ func insertOneQuestion(ctx context.Context, tx gdb.TX, examPaperId, mockPaperID,
 }
 
 // PaperList 分页试卷列表（管理端）
-func (s *sExam) PaperList(ctx context.Context, page, size int, level string) (list []examentity.ExamPaper, total int, err error) {
+func (s *sPaper) PaperList(ctx context.Context, page, size int, level string) (list []examentity.ExamPaper, total int, err error) {
 	if page <= 0 {
 		page = 1
 	}
