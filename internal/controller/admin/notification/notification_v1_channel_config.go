@@ -5,12 +5,12 @@ import (
 
 	v1 "exam/api/admin/notification/v1"
 	"exam/internal/middleware"
-	notisvc "exam/internal/service/sysnotification"
+	notisvc "exam/internal/service/SysNotification"
 	"exam/internal/utility"
 )
 
 func (c *ControllerV1) ChannelConfigList(ctx context.Context, req *v1.ChannelConfigListReq) (res *v1.ChannelConfigListRes, err error) {
-	list, err := notisvc.Sysnotification().ChannelConfigList(ctx, req.Channel)
+	list, err := notisvc.SysNotification().ChannelConfigList(ctx, req.Channel)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (c *ControllerV1) ChannelConfigCreate(ctx context.Context, req *v1.ChannelC
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := notisvc.Sysnotification().ChannelConfigCreate(ctx, req.Channel, req.Provider, req.Name, req.ConfigJson, creator)
+	id, err := notisvc.SysNotification().ChannelConfigCreate(ctx, req.Channel, req.Provider, req.Name, req.ConfigJson, creator)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (c *ControllerV1) ChannelConfigUpdate(ctx context.Context, req *v1.ChannelC
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = notisvc.Sysnotification().ChannelConfigUpdate(ctx, req.Id, req.Name, req.ConfigJson, updater)
+	err = notisvc.SysNotification().ChannelConfigUpdate(ctx, req.Id, req.Name, req.ConfigJson, updater)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (c *ControllerV1) ChannelConfigDelete(ctx context.Context, req *v1.ChannelC
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = notisvc.Sysnotification().ChannelConfigDelete(ctx, req.Id, updater)
+	err = notisvc.SysNotification().ChannelConfigDelete(ctx, req.Id, updater)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (c *ControllerV1) ChannelConfigSetActive(ctx context.Context, req *v1.Chann
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = notisvc.Sysnotification().ChannelConfigSetActive(ctx, req.Id, updater)
+	err = notisvc.SysNotification().ChannelConfigSetActive(ctx, req.Id, updater)
 	if err != nil {
 		return nil, err
 	}

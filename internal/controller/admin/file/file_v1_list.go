@@ -4,12 +4,12 @@ import (
 	"context"
 
 	v1 "exam/api/admin/file/v1"
-	sysfilesvc "exam/internal/service/sysfile"
+	SysFilesvc "exam/internal/service/SysFile"
 	"exam/internal/utility"
 )
 
 func (c *ControllerV1) List(ctx context.Context, req *v1.FileListReq) (res *v1.FileListRes, err error) {
-	list, total, err := sysfilesvc.Sysfile().FileList(ctx, req.Page, req.Size, req.Filename)
+	list, total, err := SysFilesvc.SysFile().FileList(ctx, req.Page, req.Size, req.Filename)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.FileListReq) (res *v1.F
 }
 
 func (c *ControllerV1) Delete(ctx context.Context, req *v1.FileDeleteReq) (res *v1.FileDeleteRes, err error) {
-	err = sysfilesvc.Sysfile().FileDelete(ctx, req.Id)
+	err = SysFilesvc.SysFile().FileDelete(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}

@@ -5,12 +5,12 @@ import (
 
 	v1 "exam/api/admin/notification/v1"
 	"exam/internal/middleware"
-	notisvc "exam/internal/service/sysnotification"
+	notisvc "exam/internal/service/SysNotification"
 	"exam/internal/utility"
 )
 
 func (c *ControllerV1) TemplateList(ctx context.Context, req *v1.TemplateListReq) (res *v1.TemplateListRes, err error) {
-	list, total, err := notisvc.Sysnotification().TemplateList(ctx, req.Page, req.Size, req.Code, req.Channel)
+	list, total, err := notisvc.SysNotification().TemplateList(ctx, req.Page, req.Size, req.Code, req.Channel)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (c *ControllerV1) TemplateCreate(ctx context.Context, req *v1.TemplateCreat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := notisvc.Sysnotification().TemplateCreate(ctx, req.Code, req.Name, req.Channel, req.Content, req.Variables, creator, req.Status)
+	id, err := notisvc.SysNotification().TemplateCreate(ctx, req.Code, req.Name, req.Channel, req.Content, req.Variables, creator, req.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (c *ControllerV1) TemplateUpdate(ctx context.Context, req *v1.TemplateUpdat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = notisvc.Sysnotification().TemplateUpdate(ctx, req.Id, req.Name, req.Content, req.Variables, updater, req.Status)
+	err = notisvc.SysNotification().TemplateUpdate(ctx, req.Id, req.Name, req.Content, req.Variables, updater, req.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (c *ControllerV1) TemplateDelete(ctx context.Context, req *v1.TemplateDelet
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = notisvc.Sysnotification().TemplateDelete(ctx, req.Id, updater)
+	err = notisvc.SysNotification().TemplateDelete(ctx, req.Id, updater)
 	if err != nil {
 		return nil, err
 	}

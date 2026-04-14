@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"exam/internal/consts"
-	sysfilesvc "exam/internal/service/sysfile"
+	SysFilesvc "exam/internal/service/SysFile"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/net/ghttp"
@@ -23,7 +23,7 @@ func ServeDownload(r *ghttp.Request) {
 		writeDownloadJSONErr(r, 400, "invalid id")
 		return
 	}
-	filename, mime, size, rc, err := sysfilesvc.Sysfile().FileOpenDownload(ctx, id)
+	filename, mime, size, rc, err := SysFilesvc.SysFile().FileOpenDownload(ctx, id)
 	if err != nil {
 		st := 500
 		if c := gerror.Code(err); c != nil && c.Code() == consts.CodeFileNotFound.Code() {

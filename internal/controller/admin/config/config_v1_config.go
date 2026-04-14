@@ -10,7 +10,7 @@ import (
 )
 
 func (c *ControllerV1) ConfigList(ctx context.Context, req *v1.ConfigListReq) (res *v1.ConfigListRes, err error) {
-	list, total, err := sysconfigsvc.Sysconfig().ConfigList(ctx, req.Page, req.Size, req.Group, req.Key)
+	list, total, err := sysconfigsvc.SysConfig().ConfigList(ctx, req.Page, req.Size, req.Group, req.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (c *ControllerV1) ConfigCreate(ctx context.Context, req *v1.ConfigCreateReq
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := sysconfigsvc.Sysconfig().ConfigCreate(ctx, req.ConfigKey, req.ConfigValue, req.ConfigType, req.GroupName, req.Remark, creator)
+	id, err := sysconfigsvc.SysConfig().ConfigCreate(ctx, req.ConfigKey, req.ConfigValue, req.ConfigType, req.GroupName, req.Remark, creator)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (c *ControllerV1) ConfigUpdate(ctx context.Context, req *v1.ConfigUpdateReq
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = sysconfigsvc.Sysconfig().ConfigUpdate(ctx, req.Id, req.ConfigValue, req.Remark, updater)
+	err = sysconfigsvc.SysConfig().ConfigUpdate(ctx, req.Id, req.ConfigValue, req.Remark, updater)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (c *ControllerV1) ConfigDelete(ctx context.Context, req *v1.ConfigDeleteReq
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = sysconfigsvc.Sysconfig().ConfigDelete(ctx, req.Id, updater)
+	err = sysconfigsvc.SysConfig().ConfigDelete(ctx, req.Id, updater)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (c *ControllerV1) ConfigDelete(ctx context.Context, req *v1.ConfigDeleteReq
 }
 
 func (c *ControllerV1) ConfigGet(ctx context.Context, req *v1.ConfigGetReq) (res *v1.ConfigGetRes, err error) {
-	val, err := sysconfigsvc.Sysconfig().ConfigGet(ctx, req.Key)
+	val, err := sysconfigsvc.SysConfig().ConfigGet(ctx, req.Key)
 	if err != nil {
 		return nil, err
 	}

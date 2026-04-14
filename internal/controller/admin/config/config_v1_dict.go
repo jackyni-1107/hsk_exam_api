@@ -10,7 +10,7 @@ import (
 )
 
 func (c *ControllerV1) DictTypeList(ctx context.Context, req *v1.DictTypeListReq) (res *v1.DictTypeListRes, err error) {
-	list, total, err := sysconfigsvc.Sysconfig().DictTypeList(ctx, req.Page, req.Size, req.DictType)
+	list, total, err := sysconfigsvc.SysConfig().DictTypeList(ctx, req.Page, req.Size, req.DictType)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func (c *ControllerV1) DictTypeCreate(ctx context.Context, req *v1.DictTypeCreat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := sysconfigsvc.Sysconfig().DictTypeCreate(ctx, req.DictName, req.DictType, req.Remark, creator, req.Status)
+	id, err := sysconfigsvc.SysConfig().DictTypeCreate(ctx, req.DictName, req.DictType, req.Remark, creator, req.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (c *ControllerV1) DictTypeUpdate(ctx context.Context, req *v1.DictTypeUpdat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = sysconfigsvc.Sysconfig().DictTypeUpdate(ctx, req.Id, req.DictName, req.Remark, updater, req.Status)
+	err = sysconfigsvc.SysConfig().DictTypeUpdate(ctx, req.Id, req.DictName, req.Remark, updater, req.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (c *ControllerV1) DictTypeDelete(ctx context.Context, req *v1.DictTypeDelet
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = sysconfigsvc.Sysconfig().DictTypeDelete(ctx, req.Id, updater)
+	err = sysconfigsvc.SysConfig().DictTypeDelete(ctx, req.Id, updater)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (c *ControllerV1) DictTypeDelete(ctx context.Context, req *v1.DictTypeDelet
 }
 
 func (c *ControllerV1) DictDataList(ctx context.Context, req *v1.DictDataListReq) (res *v1.DictDataListRes, err error) {
-	list, total, err := sysconfigsvc.Sysconfig().DictDataList(ctx, req.Page, req.Size, req.DictType)
+	list, total, err := sysconfigsvc.SysConfig().DictDataList(ctx, req.Page, req.Size, req.DictType)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (c *ControllerV1) DictDataCreate(ctx context.Context, req *v1.DictDataCreat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := sysconfigsvc.Sysconfig().DictDataCreate(ctx, req.DictType, req.DictLabel, req.DictValue, req.Remark, creator, req.Sort, req.Status)
+	id, err := sysconfigsvc.SysConfig().DictDataCreate(ctx, req.DictType, req.DictLabel, req.DictValue, req.Remark, creator, req.Sort, req.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (c *ControllerV1) DictDataUpdate(ctx context.Context, req *v1.DictDataUpdat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = sysconfigsvc.Sysconfig().DictDataUpdate(ctx, req.Id, req.DictLabel, req.DictValue, req.Remark, updater, req.Sort, req.Status)
+	err = sysconfigsvc.SysConfig().DictDataUpdate(ctx, req.Id, req.DictLabel, req.DictValue, req.Remark, updater, req.Sort, req.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (c *ControllerV1) DictDataDelete(ctx context.Context, req *v1.DictDataDelet
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = sysconfigsvc.Sysconfig().DictDataDelete(ctx, req.Id, updater)
+	err = sysconfigsvc.SysConfig().DictDataDelete(ctx, req.Id, updater)
 	if err != nil {
 		return nil, err
 	}

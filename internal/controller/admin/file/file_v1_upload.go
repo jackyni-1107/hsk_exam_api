@@ -6,7 +6,7 @@ import (
 	v1 "exam/api/admin/file/v1"
 	"exam/internal/consts"
 	"exam/internal/middleware"
-	sysfilesvc "exam/internal/service/sysfile"
+	SysFilesvc "exam/internal/service/SysFile"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
@@ -34,7 +34,7 @@ func (c *ControllerV1) Upload(ctx context.Context, req *v1.FileUploadReq) (res *
 	if ct == "" {
 		ct = "application/octet-stream"
 	}
-	id, objectPath, displayName, err := sysfilesvc.Sysfile().FileUpload(ctx, f.Filename, f.Size, ct, rf, req.IsPrivate, creator)
+	id, objectPath, displayName, err := SysFilesvc.SysFile().FileUpload(ctx, f.Filename, f.Size, ct, rf, req.IsPrivate, creator)
 	if err != nil {
 		return nil, err
 	}

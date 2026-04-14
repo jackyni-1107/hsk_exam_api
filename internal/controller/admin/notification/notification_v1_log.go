@@ -4,12 +4,12 @@ import (
 	"context"
 
 	v1 "exam/api/admin/notification/v1"
-	notisvc "exam/internal/service/sysnotification"
+	notisvc "exam/internal/service/SysNotification"
 	"exam/internal/utility"
 )
 
 func (c *ControllerV1) LogList(ctx context.Context, req *v1.LogListReq) (res *v1.LogListRes, err error) {
-	list, total, err := notisvc.Sysnotification().LogList(ctx, req.Page, req.Size, req.Channel, req.Recipient)
+	list, total, err := notisvc.SysNotification().LogList(ctx, req.Page, req.Size, req.Channel, req.Recipient)
 	if err != nil {
 		return nil, err
 	}
