@@ -14,7 +14,7 @@ import (
 	"exam/internal/consts"
 	"exam/internal/middleware"
 	secsvc "exam/internal/service/security"
-	usersvc "exam/internal/service/user"
+	usersvc "exam/internal/service/sysuser"
 	"exam/internal/utility"
 )
 
@@ -37,7 +37,7 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 		return nil, gerror.NewCode(consts.CodeAccountLocked)
 	}
 
-	u, _ := usersvc.User().FindByUsername(ctx, name)
+	u, _ := usersvc.SysUser().FindByUsername(ctx, name)
 	if u == nil || !utility.CheckPassword(u.Password, req.Password) {
 		secsvc.Security().RecordLoginFailure(ctx, consts.UserTypeAdmin, name, ip, r.Header.Get("User-Agent"), middleware.GetTraceId(ctx))
 		return nil, gerror.NewCode(consts.CodeInvalidCredentials)

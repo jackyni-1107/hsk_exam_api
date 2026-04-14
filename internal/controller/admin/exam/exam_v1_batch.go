@@ -6,7 +6,7 @@ import (
 	v1 "exam/api/admin/exam/v1"
 	"exam/internal/middleware"
 	"exam/internal/model/bo"
-	"exam/internal/service/exam"
+	"exam/internal/service/batch"
 	"exam/internal/utility"
 )
 
@@ -35,7 +35,7 @@ func (c *ControllerV1) BatchList(ctx context.Context, req *v1.BatchListReq) (res
 	if req.Size <= 0 {
 		req.Size = 10
 	}
-	rows, total, err := exam.Exam().ExamBatchList(ctx, req.MockExaminationPaperId, req.Page, req.Size)
+	rows, total, err := batch.Batch().ExamBatchList(ctx, req.MockExaminationPaperId, req.Page, req.Size, "")
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (c *ControllerV1) BatchList(ctx context.Context, req *v1.BatchListReq) (res
 }
 
 func (c *ControllerV1) BatchDetail(ctx context.Context, req *v1.BatchDetailReq) (res *v1.BatchDetailRes, err error) {
-	b, err := exam.Exam().ExamBatchDetail(ctx, req.Id)
+	b, err := batch.Batch().ExamBatchDetail(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (c *ControllerV1) BatchCreate(ctx context.Context, req *v1.BatchCreateReq) 
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := exam.Exam().ExamBatchCreate(ctx, req.Title, req.ExamStartAt, req.ExamEndAt, req.MockExaminationPaperIds, creator)
+	id, err := batch.Batch().ExamBatchCreate(ctx, req.Title, req.ExamStartAt, req.ExamEndAt, req.MockExaminationPaperIds, creator)
 	if err != nil {
 		return nil, err
 	}
@@ -71,14 +71,14 @@ func (c *ControllerV1) BatchUpdate(ctx context.Context, req *v1.BatchUpdateReq) 
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	if err := exam.Exam().ExamBatchUpdate(ctx, req.Id, req.Title, req.ExamStartAt, req.ExamEndAt, req.MockExaminationPaperIds, updater); err != nil {
+	if err := batch.Batch().ExamBatchUpdate(ctx, req.Id, req.Title, req.ExamStartAt, req.ExamEndAt, req.MockExaminationPaperIds, updater); err != nil {
 		return nil, err
 	}
 	return &v1.BatchUpdateRes{}, nil
 }
 
 func (c *ControllerV1) BatchDelete(ctx context.Context, req *v1.BatchDeleteReq) (res *v1.BatchDeleteRes, err error) {
-	if err := exam.Exam().ExamBatchDelete(ctx, req.Id); err != nil {
+	if err := batch.Batch().ExamBatchDelete(ctx, req.Id); err != nil {
 		return nil, err
 	}
 	return &v1.BatchDeleteRes{}, nil
@@ -89,7 +89,7 @@ func (c *ControllerV1) BatchMembersImport(ctx context.Context, req *v1.BatchMemb
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	n, err := exam.Exam().ExamBatchMembersImport(ctx, req.Id, req.MockExaminationPaperId, req.MemberIds, creator)
+	n, err := batch.Batch().ExamBatchMembersAdd(ctx, req.Id, req.MockExaminationPaperId, req.MemberIds, creator)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (c *ControllerV1) BatchMemberList(ctx context.Context, req *v1.BatchMemberL
 	if req.Size <= 0 {
 		req.Size = 10
 	}
-	rows, total, err := exam.Exam().ExamBatchMemberList(ctx, req.Id, req.Page, req.Size)
+	rows, total, err := batch.Batch().ExamBatchMemberList(ctx, req.Id, req.Page, req.Size)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (c *ControllerV1) BatchMemberList(ctx context.Context, req *v1.BatchMemberL
 }
 
 func (c *ControllerV1) BatchMembersRemove(ctx context.Context, req *v1.BatchMembersRemoveReq) (res *v1.BatchMembersRemoveRes, err error) {
-	n, err := exam.Exam().ExamBatchMembersRemove(ctx, req.Id, req.MockExaminationPaperId, req.MemberIds)
+	n, err := batch.Batch().ExamBatchMembersRemove(ctx, req.Id, req.MockExaminationPaperId, req.MemberIds)
 	if err != nil {
 		return nil, err
 	}
