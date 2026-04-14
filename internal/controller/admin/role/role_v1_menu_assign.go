@@ -5,7 +5,7 @@ import (
 
 	v1 "exam/api/admin/role/v1"
 	"exam/internal/middleware"
-	rolesvc "exam/internal/service/role"
+	rolesvc "exam/internal/service/sysrole"
 )
 
 func (c *ControllerV1) RoleMenuAssign(ctx context.Context, req *v1.RoleMenuAssignReq) (res *v1.RoleMenuAssignRes, err error) {
@@ -13,7 +13,7 @@ func (c *ControllerV1) RoleMenuAssign(ctx context.Context, req *v1.RoleMenuAssig
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	err = rolesvc.Role().RoleMenuAssign(ctx, req.Id, req.MenuIds, creator)
+	err = rolesvc.SysRole().RoleMenuAssign(ctx, req.Id, req.MenuIds, creator)
 	if err != nil {
 		return nil, err
 	}

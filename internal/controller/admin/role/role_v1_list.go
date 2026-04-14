@@ -4,12 +4,12 @@ import (
 	"context"
 
 	v1 "exam/api/admin/role/v1"
-	rolesvc "exam/internal/service/role"
+	rolesvc "exam/internal/service/sysrole"
 	"exam/internal/utility"
 )
 
 func (c *ControllerV1) RoleList(ctx context.Context, req *v1.RoleListReq) (res *v1.RoleListRes, err error) {
-	roles, total, err := rolesvc.Role().RoleList(ctx, req.Page, req.Size, req.Name, req.Status)
+	roles, total, err := rolesvc.SysRole().RoleList(ctx, req.Page, req.Size, req.Name, req.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (c *ControllerV1) RoleList(ctx context.Context, req *v1.RoleListReq) (res *
 		if r.CreateTime != nil {
 			item.CreateTime = utility.ToRFC3339UTC(r.CreateTime)
 		}
-		menuIds, _ := rolesvc.Role().RoleMenuIds(ctx, r.Id)
+		menuIds, _ := rolesvc.SysRole().RoleMenuIds(ctx, r.Id)
 		item.MenuIds = menuIds
 		list = append(list, item)
 	}
