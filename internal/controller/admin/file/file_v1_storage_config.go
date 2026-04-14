@@ -5,12 +5,12 @@ import (
 
 	v1 "exam/api/admin/file/v1"
 	"exam/internal/middleware"
-	SysFilesvc "exam/internal/service/SysFile"
+	sysfilesvc "exam/internal/service/sysfile"
 	"exam/internal/utility"
 )
 
 func (c *ControllerV1) StorageConfigList(ctx context.Context, req *v1.StorageConfigListReq) (res *v1.StorageConfigListRes, err error) {
-	list, err := SysFilesvc.SysFile().StorageConfigList(ctx)
+	list, err := sysfilesvc.SysFile().StorageConfigList(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (c *ControllerV1) StorageConfigCreate(ctx context.Context, req *v1.StorageC
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := SysFilesvc.SysFile().StorageConfigCreate(ctx, req.StorageType, req.Name, req.ConfigJson, creator, req.CleanupBeforeDays)
+	id, err := sysfilesvc.SysFile().StorageConfigCreate(ctx, req.StorageType, req.Name, req.ConfigJson, creator, req.CleanupBeforeDays)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (c *ControllerV1) StorageConfigUpdate(ctx context.Context, req *v1.StorageC
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = SysFilesvc.SysFile().StorageConfigUpdate(ctx, req.Id, req.Name, req.ConfigJson, updater, req.CleanupBeforeDays)
+	err = sysfilesvc.SysFile().StorageConfigUpdate(ctx, req.Id, req.Name, req.ConfigJson, updater, req.CleanupBeforeDays)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (c *ControllerV1) StorageConfigDelete(ctx context.Context, req *v1.StorageC
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = SysFilesvc.SysFile().StorageConfigDelete(ctx, req.Id, updater)
+	err = sysfilesvc.SysFile().StorageConfigDelete(ctx, req.Id, updater)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (c *ControllerV1) StorageConfigSetActive(ctx context.Context, req *v1.Stora
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = SysFilesvc.SysFile().StorageConfigSetActive(ctx, req.Id, updater)
+	err = sysfilesvc.SysFile().StorageConfigSetActive(ctx, req.Id, updater)
 	if err != nil {
 		return nil, err
 	}

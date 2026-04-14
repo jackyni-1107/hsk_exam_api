@@ -4,7 +4,7 @@ import (
 	"context"
 
 	v1 "exam/api/admin/notification/v1"
-	notisvc "exam/internal/service/SysNotification"
+	notisvc "exam/internal/service/sysnotification"
 	"exam/internal/utility"
 )
 

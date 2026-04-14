@@ -5,7 +5,7 @@ import (
 
 	v1 "exam/api/admin/notification/v1"
 	"exam/internal/middleware"
-	notisvc "exam/internal/service/SysNotification"
+	notisvc "exam/internal/service/sysnotification"
 	"exam/internal/utility"
 )
 

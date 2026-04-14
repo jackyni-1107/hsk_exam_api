@@ -4,7 +4,7 @@ import (
 	"context"
 
 	v1 "exam/api/admin/notification/v1"
-	notisvc "exam/internal/service/SysNotification"
+	notisvc "exam/internal/service/sysnotification"
 )
 
 func (c *ControllerV1) Send(ctx context.Context, req *v1.NotificationSendReq) (res *v1.NotificationSendRes, err error) {
