@@ -59,7 +59,7 @@ func (s *sBatch) MyExamBatches(ctx context.Context, memberID int64) (list []bo.M
 			"delete_flag": consts.DeleteFlagNotDeleted,
 		}).
 		WhereIn("exam_batch_id", batchIDs).
-		WhereIn("status", []int{consts.ExamAttemptSubmitted, consts.ExamAttemptEnded}).
+		//WhereIn("status", []int{consts.ExamAttemptSubmitted, consts.ExamAttemptEnded}).
 		Scan(&attempts)
 	if err != nil {
 		return nil, err
@@ -98,11 +98,6 @@ func (s *sBatch) MyExamBatches(ctx context.Context, memberID int64) (list []bo.M
 		if winStatus == "closed" && !hasAttempt {
 			continue
 		}
-		var attemptId int64
-		if hasAttempt && att.Status == consts.ExamAttemptInProgress {
-			attemptId = att.Id
-		}
-
 		list = append(list, bo.MyExamBatchItem{
 			BatchId:                r.BatchId,
 			Title:                  r.Title,
@@ -110,7 +105,7 @@ func (s *sBatch) MyExamBatches(ctx context.Context, memberID int64) (list []bo.M
 			PaperTitle:             r.PaperTitle,
 			ExamStartAt:            r.ExamStartAt,
 			ExamEndAt:              r.ExamEndAt,
-			AttemptId:              attemptId,
+			AttemptId:              att.Id,
 			WindowStatus:           winStatus,
 		})
 
