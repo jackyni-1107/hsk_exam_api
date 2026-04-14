@@ -7,7 +7,8 @@ import (
 	"exam/internal/consts"
 	"exam/internal/middleware"
 	"exam/internal/model/bo"
-	"exam/internal/service/exam"
+	attemptsvc "exam/internal/service/attempt"
+	papersvc "exam/internal/service/paper"
 	"exam/internal/utility"
 
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -18,11 +19,11 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 	if data == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
-	d, err := exam.Exam().PaperDetailForExamInit(ctx, req.PaperId)
+	d, err := papersvc.Paper().PaperDetailForExamInit(ctx, req.PaperId)
 	if err != nil {
 		return nil, err
 	}
-	playURL, _, err := exam.Exam().IssuePaperHlsPlay(ctx, data.UserId, d.Paper.Id)
+	playURL, _, err := papersvc.Paper().IssuePaperHlsPlay(ctx, data.UserId, d.Paper.Id)
 	res = &v1.PaperForExamRes{
 		Id:              d.Paper.Id,
 		Level:           d.Paper.Level,
@@ -66,20 +67,8 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 }
 
 func (c *ControllerV1) PaperSectionForExam(ctx context.Context, req *v1.PaperSectionForExamReq) (res map[string]interface{}, err error) {
-	return exam.Exam().PaperSectionTopicForExam(ctx, req.PaperId, req.SectionId)
+	return papersvc.Paper().PaperSectionTopicForExam(ctx, req.PaperId, req.SectionId)
 }
-
-//func (c *ControllerV1) AttemptCreate(ctx context.Context, req *v1.AttemptCreateReq) (res *v1.AttemptCreateRes, err error) {
-//	ctxData := middleware.GetCtxData(ctx)
-//	if ctxData == nil {
-//		return nil, gerror.NewCode(consts.CodeTokenRequired)
-//	}
-//	id, err := exam.Exam().CreateAttempt(ctx, ctxData.UserId, req.PaperId)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return &v1.AttemptCreateRes{AttemptId: id}, nil
-//}
 
 func (c *ControllerV1) AttemptCreateByBatch(ctx context.Context, req *v1.AttemptCreateByBatchReq) (res *v1.AttemptCreateRes, err error) {
 	ctxData := middleware.GetCtxData(ctx)
@@ -91,7 +80,7 @@ func (c *ControllerV1) AttemptCreateByBatch(ctx context.Context, req *v1.Attempt
 	//	return nil, err
 	//}
 	var id int64
-	id, err = exam.Exam().CreateAttemptForBatch(ctx, ctxData.UserId, req.BatchId)
+	id, err = attemptsvc.Attempt().CreateAttemptForBatch(ctx, ctxData.UserId, req.BatchId)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +92,7 @@ func (c *ControllerV1) AttemptStart(ctx context.Context, req *v1.AttemptStartReq
 	if ctxData == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
-	err = exam.Exam().StartAttempt(ctx, ctxData.UserId, req.Id, req.DurationSeconds)
+	err = attemptsvc.Attempt().StartAttempt(ctx, ctxData.UserId, req.Id, req.DurationSeconds)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +104,7 @@ func (c *ControllerV1) AttemptGet(ctx context.Context, req *v1.AttemptGetReq) (r
 	if ctxData == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
-	v, err := exam.Exam().GetAttempt(ctx, ctxData.UserId, req.Id)
+	v, err := attemptsvc.Attempt().GetAttempt(ctx, ctxData.UserId, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +134,7 @@ func (c *ControllerV1) AttemptAnswersGet(ctx context.Context, req *v1.AttemptAns
 	if ctxData == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
-	rows, err := exam.Exam().GetAttemptAnswers(ctx, ctxData.UserId, req.Id)
+	rows, err := attemptsvc.Attempt().GetAttemptAnswers(ctx, ctxData.UserId, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +185,7 @@ func (c *ControllerV1) AttemptSaveAnswers(ctx context.Context, req *v1.AttemptSa
 			AnswerJSON: string(raw),
 		})
 	}
-	err = exam.Exam().SaveAnswers(ctx, ctxData.UserId, req.Id, items)
+	err = attemptsvc.Attempt().SaveAnswers(ctx, ctxData.UserId, req.Id, items)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +197,7 @@ func (c *ControllerV1) AttemptSubmit(ctx context.Context, req *v1.AttemptSubmitR
 	if ctxData == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
-	err = exam.Exam().SubmitAttempt(ctx, ctxData.UserId, req.Id)
+	err = attemptsvc.Attempt().SubmitAttempt(ctx, ctxData.UserId, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +209,7 @@ func (c *ControllerV1) AttemptRandomAnswers(ctx context.Context, req *v1.Attempt
 	if ctxData == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
-	drafts, err := exam.Exam().RandomFillAnswersForTest(ctx, ctxData.UserId, req.PaperId, req.AttemptId)
+	drafts, err := papersvc.Paper().RandomFillAnswersForTest(ctx, ctxData.UserId, req.PaperId, req.AttemptId)
 	if err != nil {
 		return nil, err
 	}
