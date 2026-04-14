@@ -65,13 +65,11 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 
 	mockID := p.MockExaminationPaperId
 	var exist examentity.ExamPaper
-	if err := dao.ExamPaper.Ctx(ctx).
+	count, err := dao.ExamPaper.Ctx(ctx).
 		Where("mock_examination_paper_id", mockID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&exist); err != nil {
-		return nil, err
-	}
-	if exist.Id > 0 {
+		Count()
+	if count > 0 {
 		switch mode {
 		case consts.ExamImportConflictFail:
 			res.Conflict = true
@@ -98,18 +96,6 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 			}
 		default:
 			return nil, gerror.NewCode(consts.CodeExamConflictModeInvalid)
-		}
-	} else {
-		var pathDup examentity.ExamPaper
-		if err := dao.ExamPaper.Ctx(ctx).
-			Where("level", level).
-			Where("paper_id", paperID).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Scan(&pathDup); err != nil {
-			return nil, err
-		}
-		if pathDup.Id > 0 {
-			return nil, gerror.NewCode(consts.CodeExamNewPaperIdExists)
 		}
 	}
 
