@@ -6,11 +6,11 @@ import (
 
 	v1 "exam/api/admin/menu/v1"
 	sysentity "exam/internal/model/entity/sys"
-	menusvc "exam/internal/service/menu"
+	menusvc "exam/internal/service/sysmenu"
 )
 
 func (c *ControllerV1) MenuTree(ctx context.Context, req *v1.MenuTreeReq) (res *v1.MenuTreeRes, err error) {
-	all, err := menusvc.Menu().MenuTree(ctx)
+	all, err := menusvc.SysMenu().MenuTree(ctx)
 	if err != nil {
 		return nil, err
 	}

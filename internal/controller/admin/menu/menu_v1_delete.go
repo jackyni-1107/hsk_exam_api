@@ -5,7 +5,7 @@ import (
 
 	v1 "exam/api/admin/menu/v1"
 	"exam/internal/middleware"
-	menusvc "exam/internal/service/menu"
+	menusvc "exam/internal/service/sysmenu"
 )
 
 func (c *ControllerV1) MenuDelete(ctx context.Context, req *v1.MenuDeleteReq) (res *v1.MenuDeleteRes, err error) {
@@ -13,7 +13,7 @@ func (c *ControllerV1) MenuDelete(ctx context.Context, req *v1.MenuDeleteReq) (r
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = menusvc.Menu().MenuDelete(ctx, req.Id, updater)
+	err = menusvc.SysMenu().MenuDelete(ctx, req.Id, updater)
 	if err != nil {
 		return nil, err
 	}
