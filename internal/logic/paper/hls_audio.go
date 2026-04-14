@@ -1,16 +1,16 @@
-package exam
+package paper
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"exam/internal/logic/attempt"
 	"fmt"
 	"math"
 	"strings"
 	"time"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/frame/g"
 	"github.com/google/uuid"
 
 	"exam/internal/config"
@@ -124,7 +124,7 @@ func (s *sExam) pickExamPaperHLS(ctx context.Context, column string, value int64
 }
 
 func (s *sExam) assertAttemptInProgress(ctx context.Context, userID, attemptID int64) (*examentity.ExamAttempt, error) {
-	return assertAttemptInProgressByUser(ctx, attemptID, userID)
+	return attempt.AssertAttemptInProgressByUser(ctx, attemptID, userID)
 }
 
 func (s *sExam) loadQuestionHLS(ctx context.Context, paperID, questionID int64) (*examentity.ExamQuestion, error) {
@@ -174,8 +174,8 @@ func (s *sExam) IssueAudioHlsPlay(ctx context.Context, userID, attemptID, questi
 		return "", "", err
 	}
 	ttl := s.hlsTicketTTL()
-	key := consts.HlsPlayKeyPrefix + ticket
-	if err := g.Redis().SetEX(ctx, key, string(b), int64(ttl.Seconds())); err != nil {
+	key := hlsPlayRedisKey(ticket)
+	if err := redisSetHlsPlayTicket(ctx, key, string(b), int64(ttl.Seconds())); err != nil {
 		return "", "", err
 	}
 	playURL = "/api/client/exam/media/hls/" + ticket + ".m3u8"
@@ -213,8 +213,8 @@ func (s *sExam) IssuePaperHlsPlay(ctx context.Context, userID, paperID int64) (p
 		return "", "", err
 	}
 	ttl := s.hlsTicketTTL()
-	key := consts.HlsPlayKeyPrefix + ticket
-	if err := g.Redis().SetEX(ctx, key, string(b), int64(ttl.Seconds())); err != nil {
+	key := hlsPlayRedisKey(ticket)
+	if err := redisSetHlsPlayTicket(ctx, key, string(b), int64(ttl.Seconds())); err != nil {
 		return "", "", err
 	}
 	playURL = "/api/client/exam/media/hls/" + ticket + ".m3u8"
@@ -228,8 +228,8 @@ func (s *sExam) BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte
 	if ticket == "" {
 		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid)
 	}
-	key := consts.HlsPlayKeyPrefix + ticket
-	val, err := g.Redis().Get(ctx, key)
+	key := hlsPlayRedisKey(ticket)
+	val, err := redisGetHlsPlayTicket(ctx, key)
 	if err != nil || val.IsEmpty() {
 		return nil, gerror.NewCode(consts.CodeExamHlsTicketInvalid)
 	}

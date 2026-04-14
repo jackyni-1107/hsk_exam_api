@@ -1,105 +1,18 @@
-package exam
+package paper
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"sort"
 
-	"github.com/gogf/gf/v2/container/gvar"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
-	"golang.org/x/sync/singleflight"
 
 	"exam/internal/consts"
 	"exam/internal/dao"
 	examentity "exam/internal/model/entity/exam"
 	"exam/internal/utility"
 )
-
-func paperForExamInitRedisKey(examPaperId int64) string {
-	return fmt.Sprintf(consts.ExamPaperInitCacheKeyFmt, examPaperId)
-}
-
-// paperForExamLegacyRedisKey 历史整卷考前缓存（大 value），失效时一并删除以免长期占用 Redis。
-func paperForExamLegacyRedisKey(examPaperId int64) string {
-	return fmt.Sprintf(consts.ExamPaperLegacyCacheKeyFmt, examPaperId)
-}
-
-func paperForExamSectionRedisKey(examPaperId, sectionId int64) string {
-	return fmt.Sprintf(consts.ExamPaperSectionCacheKeyFmt, examPaperId, sectionId)
-}
-
-var paperForExamInitSF singleflight.Group
-var paperForExamSectionSF singleflight.Group
-
-// InvalidatePaperForExamCache 试卷树变更后删除考前相关缓存（初始化 + 各 section 详情 + 历史整卷 key）。
-func InvalidatePaperForExamCache(ctx context.Context, examPaperId int64) {
-	if examPaperId <= 0 {
-		return
-	}
-	initKey := paperForExamInitRedisKey(examPaperId)
-	legacyKey := paperForExamLegacyRedisKey(examPaperId)
-	if _, err := g.Redis().Del(ctx, initKey, legacyKey); err != nil {
-		g.Log().Warningf(ctx, "paper for-exam redis del init/legacy %s %s: %v", initKey, legacyKey, err)
-	}
-	invalidatePaperSectionExamCachesByPaper(ctx, examPaperId)
-}
-
-// InvalidatePaperSectionForExamCache 删除单个 section 的考前详情缓存（精确 key）。
-func InvalidatePaperSectionForExamCache(ctx context.Context, examPaperId, sectionId int64) {
-	if examPaperId <= 0 || sectionId <= 0 {
-		return
-	}
-	key := paperForExamSectionRedisKey(examPaperId, sectionId)
-	if _, err := g.Redis().Del(ctx, key); err != nil {
-		g.Log().Warningf(ctx, "paper for-exam redis del section %s: %v", key, err)
-	}
-}
-
-func invalidatePaperSectionExamCachesByPaper(ctx context.Context, examPaperId int64) {
-	pattern := fmt.Sprintf(consts.ExamPaperSectionCachePattern, examPaperId)
-	var cursor int64
-	for {
-		v, err := g.Redis().Do(ctx, "SCAN", cursor, "MATCH", pattern, "COUNT", 100)
-		if err != nil {
-			g.Log().Warningf(ctx, "paper for-exam redis scan %s cursor=%d: %v", pattern, cursor, err)
-			return
-		}
-		arr := v.Interfaces()
-		if len(arr) < 2 {
-			return
-		}
-		nextCursor := gvar.New(arr[0]).Int64()
-		keys := gvar.New(arr[1]).Strings()
-		if len(keys) > 0 {
-			if _, err := g.Redis().Del(ctx, keys...); err != nil {
-				g.Log().Warningf(ctx, "paper for-exam redis del section keys pattern %s: %v", pattern, err)
-			}
-		}
-		cursor = nextCursor
-		if cursor == 0 {
-			break
-		}
-	}
-}
-
-func redisGetPaperForExamInit(ctx context.Context, rkey string) *PaperDetailForExamInitTree {
-	val, err := g.Redis().Get(ctx, rkey)
-	if err != nil {
-		g.Log().Warningf(ctx, "paper for-exam init redis get %s: %v", rkey, err)
-		return nil
-	}
-	if val.IsEmpty() {
-		return nil
-	}
-	var out PaperDetailForExamInitTree
-	if err := json.Unmarshal([]byte(val.String()), &out); err != nil {
-		g.Log().Warningf(ctx, "paper for-exam init redis unmarshal %s: %v", rkey, err)
-		return nil
-	}
-	return &out
-}
 
 // PaperDetailForExamInit 客户端考前初始化：仅试卷结构（paper + section 概要 + block 概要 + 题量），不含题目与选项。
 // 流程：Redis → singleflight → DB；TTL 1h。
@@ -121,32 +34,13 @@ func PaperDetailForExamInit(ctx context.Context, examPaperId int64) (*PaperDetai
 			g.Log().Warningf(ctx, "paper for-exam init json marshal for redis: %v", mErr)
 			return tree, nil
 		}
-		if err := g.Redis().SetEX(ctx, rkey, string(b), consts.PaperForExamCacheTTLSeconds); err != nil {
-			g.Log().Warningf(ctx, "paper for-exam init redis setex %s: %v", rkey, err)
-		}
+		redisSetPaperForExamInitJSON(ctx, rkey, string(b))
 		return tree, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	return v.(*PaperDetailForExamInitTree), nil
-}
-
-func redisGetPaperSectionForExam(ctx context.Context, rkey string) *SectionDetailForExamView {
-	val, err := g.Redis().Get(ctx, rkey)
-	if err != nil {
-		g.Log().Warningf(ctx, "paper for-exam section redis get %s: %v", rkey, err)
-		return nil
-	}
-	if val.IsEmpty() {
-		return nil
-	}
-	var out SectionDetailForExamView
-	if err := json.Unmarshal([]byte(val.String()), &out); err != nil {
-		g.Log().Warningf(ctx, "paper for-exam section redis unmarshal %s: %v", rkey, err)
-		return nil
-	}
-	return &out
 }
 
 // PaperSectionDetailForExam 按 section 拉取完整题目树（blocks + questions + options），不含选项正误。
@@ -168,9 +62,7 @@ func PaperSectionDetailForExam(ctx context.Context, examPaperId, sectionId int64
 			g.Log().Warningf(ctx, "paper for-exam section json marshal for redis: %v", mErr)
 			return secView, nil
 		}
-		if err := g.Redis().SetEX(ctx, rkey, string(b), consts.PaperForExamCacheTTLSeconds); err != nil {
-			g.Log().Warningf(ctx, "paper for-exam section redis setex %s: %v", rkey, err)
-		}
+		redisSetPaperSectionForExamJSON(ctx, rkey, string(b))
 		return secView, nil
 	})
 	if err != nil {

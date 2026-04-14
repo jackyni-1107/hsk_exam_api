@@ -1,4 +1,4 @@
-package exam
+package paper
 
 import (
 	"context"
