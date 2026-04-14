@@ -2,6 +2,7 @@ package mock
 
 import (
 	"context"
+	"exam/internal/model/bo"
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -10,7 +11,6 @@ import (
 	"exam/internal/dao"
 	examdao "exam/internal/dao/exam"
 	mockentity "exam/internal/model/entity/mock"
-	mocksvc "exam/internal/service/mock"
 )
 
 func examinationPaperImportFilter(status string) string {
@@ -61,7 +61,7 @@ func (s *sMock) MockLevelsList(ctx context.Context) ([]mockentity.MockLevels, er
 	return list, nil
 }
 
-func (s *sMock) ExaminationPaperList(ctx context.Context, levelId int64, importStatus string) ([]*mocksvc.MockExaminationPaperWithImport, error) {
+func (s *sMock) ExaminationPaperList(ctx context.Context, levelId int64, importStatus string) ([]bo.MockExaminationPaperWithImport, error) {
 	m := dao.MockExaminationPaper.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted).Where("status", 1)
 	if levelId > 0 {
 		m = m.Where("level_id", levelId)
@@ -88,10 +88,10 @@ func (s *sMock) ExaminationPaperList(ctx context.Context, levelId int64, importS
 	if err != nil {
 		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
-	items := make([]*mocksvc.MockExaminationPaperWithImport, 0, len(list))
+	items := make([]bo.MockExaminationPaperWithImport, 0, len(list))
 	for _, e := range list {
 		_, imp := importedSet[e.Id]
-		items = append(items, &mocksvc.MockExaminationPaperWithImport{
+		items = append(items, bo.MockExaminationPaperWithImport{
 			MockExaminationPaper: e,
 			Imported:             imp,
 		})
@@ -99,11 +99,11 @@ func (s *sMock) ExaminationPaperList(ctx context.Context, levelId int64, importS
 	return items, nil
 }
 
-func (s *sMock) ExaminationPaperDetail(ctx context.Context, id int64) (*mocksvc.MockExaminationPaperWithImport, error) {
+func (s *sMock) ExaminationPaperDetail(ctx context.Context, id int64) (*bo.MockExaminationPaperWithImport, error) {
 	var e mockentity.MockExaminationPaper
 	err := dao.MockExaminationPaper.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
 	if err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
+		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	if e.Id == 0 {
 		return nil, gerror.NewCode(consts.CodeResourceNotFound)
@@ -113,9 +113,9 @@ func (s *sMock) ExaminationPaperDetail(ctx context.Context, id int64) (*mocksvc.
 		Where(examdao.ExamPaper.Columns().DeleteFlag, consts.DeleteFlagNotDeleted).
 		Count()
 	if err != nil {
-		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
+		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
-	return &mocksvc.MockExaminationPaperWithImport{
+	return &bo.MockExaminationPaperWithImport{
 		MockExaminationPaper: e,
 		Imported:             n > 0,
 	}, nil

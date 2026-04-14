@@ -7,15 +7,15 @@ package mock
 
 import (
 	"context"
+	"exam/internal/model/bo"
 	mockentity "exam/internal/model/entity/mock"
-	mocksvc "exam/internal/service/mock"
 )
 
 type (
 	IMock interface {
 		MockLevelsList(ctx context.Context) ([]mockentity.MockLevels, error)
-		ExaminationPaperList(ctx context.Context, levelId int64, importStatus string) ([]*mocksvc.MockExaminationPaperWithImport, error)
-		ExaminationPaperDetail(ctx context.Context, id int64) (*mocksvc.MockExaminationPaperWithImport, error)
+		ExaminationPaperList(ctx context.Context, levelId int64, importStatus string) ([]bo.MockExaminationPaperWithImport, error)
+		ExaminationPaperDetail(ctx context.Context, id int64) (*bo.MockExaminationPaperWithImport, error)
 	}
 )
 
