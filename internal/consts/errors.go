@@ -29,6 +29,7 @@ var (
 	CodePasswordReuse          = gcode.New(10018, "err.password_reuse", nil)
 	CodeResourceNotFound       = gcode.New(10019, "err.not_found", nil)
 	CodeCannotDeleteSuperAdmin = gcode.New(10020, "err.cannot_delete_super_admin", nil)
+	CodeDataNotFound           = gcode.New(10021, "err.data_not_found", nil)
 
 	// ---------- 系统（配置、字典、文件、任务、通知、角色与组织，12001-16003） ----------
 	// 配置与字典（12001-12004）

@@ -2,14 +2,11 @@ package exam
 
 import (
 	"context"
-	"fmt"
+	"exam/internal/consts"
+	"exam/internal/model/bo"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
-
-	"exam/internal/consts"
-	"exam/internal/dao"
-	"exam/internal/model/bo"
 )
 
 func examWindowStatus(now, start, end *gtime.Time) string {
