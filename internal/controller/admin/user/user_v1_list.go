@@ -4,12 +4,12 @@ import (
 	"context"
 
 	v1 "exam/api/admin/user/v1"
-	usersvc "exam/internal/service/user"
+	usersvc "exam/internal/service/sysuser"
 	"exam/internal/utility"
 )
 
 func (c *ControllerV1) UserList(ctx context.Context, req *v1.UserListReq) (res *v1.UserListRes, err error) {
-	users, total, err := usersvc.User().UserList(ctx, req.Page, req.Size, req.Username, req.Status)
+	users, total, err := usersvc.SysUser().UserList(ctx, req.Page, req.Size, req.Username, req.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func (c *ControllerV1) UserList(ctx context.Context, req *v1.UserListReq) (res *
 		if u.CreateTime != nil {
 			item.CreateTime = utility.ToRFC3339UTC(u.CreateTime)
 		}
-		roleIds, _ := usersvc.User().UserRoleIds(ctx, u.Id)
+		roleIds, _ := usersvc.SysUser().UserRoleIds(ctx, u.Id)
 		item.RoleIds = roleIds
 		list = append(list, item)
 	}
