@@ -32,15 +32,6 @@ type (
 		UpdatePaperSettings(ctx context.Context, examPaperId int64, in exambo.PaperHlsExamAdminUpdate, updater string) error
 		// RandomFillAnswersForTest 仅返回随机答案草稿列表，不写库。若需生成并保存，使用 RandomFillAndSaveAnswers。
 		RandomFillAnswersForTest(ctx context.Context, userID int64, mockPaperID int64, attemptID int64) ([]bo.RandomAnswerDraftItem, error)
-		MyExamBatches(ctx context.Context, memberID int64) ([]bo.MyExamBatchItem, error)
-		ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdminItem, error)
-		ExamBatchDelete(ctx context.Context, id int64) error
-		ExamBatchMembersRemove(ctx context.Context, batchID int64, mockExaminationPaperId int64, memberIDs []int64) (int, error)
-		ExamBatchMembersImport(ctx context.Context, batchID int64, mockExaminationPaperId int64, memberIDs []int64, creator string) (int, error)
-		ExamBatchMemberList(ctx context.Context, batchID int64, page int, size int) ([]bo.ExamBatchMemberAdminRow, int, error)
-		ExamBatchList(ctx context.Context, mockExaminationPaperId int64, page int, size int) ([]bo.ExamBatchAdminItem, int, error)
-		ExamBatchCreate(ctx context.Context, title string, examStartAt string, examEndAt string, mockExaminationPaperIds []int64, creator string) (int64, error)
-		ExamBatchUpdate(ctx context.Context, id int64, title string, examStartAt string, examEndAt string, mockExaminationPaperIds []int64, updater string) error
 		PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (map[string]interface{}, error)
 		PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, error)
 		PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionDetailForExamView, error)
