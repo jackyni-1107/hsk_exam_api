@@ -10,7 +10,7 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/service/exam"
+	attemptsvc "exam/internal/service/attempt"
 )
 
 const (
@@ -64,7 +64,7 @@ func (examScoreFinalizeHandler) Execute(ctx context.Context, taskID int64, param
 	var firstErr error
 	failN := 0
 	for _, row := range rows {
-		if err := exam.Exam().FinalizeAttempt(ctx, row.Id); err != nil {
+		if err := attemptsvc.Attempt().FinalizeAttempt(ctx, row.Id); err != nil {
 			failN++
 			if firstErr == nil {
 				firstErr = err
