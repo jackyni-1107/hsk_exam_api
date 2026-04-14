@@ -18,6 +18,8 @@ type (
 	IBatch interface {
 		// ExamBatchList 分页查询考试批次列表
 		ExamBatchList(ctx context.Context, page int, size int, key string) (list []examentity.ExamBatch, total int, err error)
+		// ExamBatchDetail 批次详情（含 Mock 卷 id 列表与学员数）。
+		ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdminItem, error)
 		// ExamBatchCreate 创建考试批次
 		ExamBatchCreate(ctx context.Context, name string, startAt string, endAt string, creator string) (int64, error)
 		// ExamBatchUpdate 更新考试批次

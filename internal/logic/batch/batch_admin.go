@@ -2,6 +2,7 @@ package batch
 
 import (
 	"context"
+	"exam/internal/model/bo"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -38,6 +39,24 @@ func (s *sBatch) ExamBatchList(ctx context.Context, page, size int, key string) 
 	}
 
 	return list, total, nil
+}
+
+// ExamBatchDetail 批次详情（含 Mock 卷 id 列表与学员数）。
+func (s *sBatch) ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdminItem, error) {
+	b, err := examBatchByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	pids, err := loadMockPaperIDsForBatch(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	cntMap, err := memberCountByBatchIDs(ctx, []int64{id})
+	if err != nil {
+		return nil, err
+	}
+	item := toBatchAdminItem(b, pids, cntMap[id])
+	return &item, nil
 }
 
 // ExamBatchCreate 创建考试批次
@@ -175,4 +194,63 @@ func (s *sBatch) ExamBatchMemberList(ctx context.Context, page, size int, batchI
 
 	err = m.Page(page, size).OrderAsc("u.id").Scan(&list)
 	return list, total, err
+}
+
+func toBatchAdminItem(b examentity.ExamBatch, paperIDs []int64, memberCount int) bo.ExamBatchAdminItem {
+	return bo.ExamBatchAdminItem{
+		Id:                      b.Id,
+		MockExaminationPaperIds: paperIDs,
+		Title:                   b.Title,
+		ExamStartAt:             b.ExamStartAt,
+		ExamEndAt:               b.ExamEndAt,
+		MemberCount:             memberCount,
+		CreateTime:              b.CreateTime,
+	}
+}
+
+func memberCountByBatchIDs(ctx context.Context, batchIDs []int64) (map[int64]int, error) {
+	if len(batchIDs) == 0 {
+		return map[int64]int{}, nil
+	}
+	type cntRow struct {
+		BatchId int64 `orm:"batch_id"`
+		Cnt     int   `orm:"cnt"`
+	}
+	var rows []cntRow
+	err := g.DB().Ctx(ctx).Model(dao.ExamBatchMember.Table()).
+		Fields("batch_id, COUNT(*) AS cnt").
+		WhereIn("batch_id", batchIDs).
+		Group("batch_id").
+		Scan(&rows)
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[int64]int, len(rows))
+	for _, r := range rows {
+		m[r.BatchId] = r.Cnt
+	}
+	return m, nil
+}
+
+func loadMockPaperIDsForBatch(ctx context.Context, batchID int64) ([]int64, error) {
+	var rows []examentity.ExamBatchMockPaper
+	if err := dao.ExamBatchMockPaper.Ctx(ctx).Where("batch_id", batchID).OrderAsc("mock_examination_paper_id").Scan(&rows); err != nil {
+		return nil, err
+	}
+	out := make([]int64, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, r.MockExaminationPaperId)
+	}
+	return out, nil
+}
+
+func examBatchByID(ctx context.Context, id int64) (examentity.ExamBatch, error) {
+	var b examentity.ExamBatch
+	if err := dao.ExamBatch.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&b); err != nil {
+		return b, err
+	}
+	if b.Id == 0 {
+		return b, gerror.NewCode(consts.CodeExamBatchNotFound)
+	}
+	return b, nil
 }

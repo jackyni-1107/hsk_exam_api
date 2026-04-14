@@ -11,7 +11,6 @@ import (
 	_ "exam/internal/logic/exam"
 	_ "exam/internal/logic/member"
 	_ "exam/internal/logic/mock"
-	_ "exam/internal/logic/paper"
 	_ "exam/internal/logic/security"
 	_ "exam/internal/logic/sysconfig"
 	_ "exam/internal/logic/sysfile"
