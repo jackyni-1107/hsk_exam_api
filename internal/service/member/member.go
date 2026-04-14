@@ -1,5 +1,8 @@
+// ================================================================================
 // Code generated and maintained by GoFrame CLI tool. DO NOT EDIT.
 // You can delete these comments if you wish manually maintain this interface file.
+// ================================================================================
+
 package member
 
 import (
@@ -9,9 +12,9 @@ import (
 
 type (
 	IMember interface {
-		MemberList(ctx context.Context, page, size int, username string, status int) ([]sysentity.SysMember, int, error)
-		MemberCreate(ctx context.Context, username, password, nickname, email, mobile, creator string, status int) (int64, error)
-		MemberUpdate(ctx context.Context, id int64, password, nickname, email, mobile, updater string, status int) error
+		MemberList(ctx context.Context, page int, size int, username string, status int) ([]sysentity.SysMember, int, error)
+		MemberCreate(ctx context.Context, username string, password string, nickname string, email string, mobile string, creator string, status int) (int64, error)
+		MemberUpdate(ctx context.Context, id int64, password string, nickname string, email string, mobile string, updater string, status int) error
 		MemberDelete(ctx context.Context, id int64, updater string) error
 		MemberProfile(ctx context.Context, memberId int64) (*sysentity.SysMember, error)
 		FindByUsername(ctx context.Context, username string) (*sysentity.SysMember, error)

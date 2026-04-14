@@ -1,7 +1,13 @@
 package member
 
-import membersvc "exam/internal/service/member"
+import "exam/internal/service/member"
+
+type sMember struct{}
 
 func init() {
-	membersvc.RegisterMember(new(sMember))
+	member.RegisterMember(New())
+}
+
+func New() *sMember {
+	return &sMember{}
 }
