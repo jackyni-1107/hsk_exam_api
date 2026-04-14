@@ -1,0 +1,458 @@
+package attempt
+
+import (
+	"context"
+
+	"github.com/gogf/gf/v2/database/gdb"
+	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gtime"
+
+	"exam/internal/consts"
+	"exam/internal/dao"
+	"exam/internal/model/bo"
+	examdo "exam/internal/model/do/exam"
+	examentity "exam/internal/model/entity/exam"
+	"exam/internal/service/attempt"
+	"exam/internal/utility/examutil"
+)
+
+const (
+	updaterClient = "client"
+	updaterAdmin  = "admin"
+	updaterTask   = "task"
+)
+
+// examSessionCfg 与 internal/logic/exam/exam_session_cfg 同键，避免 attempt 引用 exam 包产生循环依赖。
+type examSessionCfg struct {
+	DefaultDurationSeconds int
+	MaxDurationSeconds     int
+	SaveAnswersPerSecond   int
+}
+
+type sAttempt struct{}
+
+func init() {
+	attempt.RegisterAttempt(New())
+}
+
+func New() *sAttempt {
+	return &sAttempt{}
+}
+
+// --- 公用方法 ---
+
+// GetAttemptByID 获取答题会话详情
+func (s *sAttempt) GetAttemptByID(ctx context.Context, id int64) (*examentity.ExamAttempt, error) {
+	var out *examentity.ExamAttempt
+	err := dao.ExamAttempt.Ctx(ctx).Where("id", id).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&out)
+	if err != nil {
+		return nil, err
+	}
+	if out == nil {
+		return nil, gerror.NewCode(consts.CodeDataNotFound, "答题记录不存在")
+	}
+	return out, nil
+}
+
+// IsWindowOpen 判断考试窗口是否开启（含起止边界时刻）。
+func (s *sAttempt) IsWindowOpen(now, start, end *gtime.Time) bool {
+	if start == nil || end == nil {
+		return false
+	}
+	if now.Before(start) || now.After(end) {
+		return false
+	}
+	return true
+}
+
+// getPageSize 统一分页工具
+func (s *sAttempt) getPageSize(page, size int) (int, int) {
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 10
+	}
+	return page, size
+}
+
+func (s *sAttempt) loadExamSessionCfg(ctx context.Context) examSessionCfg {
+	c := g.Cfg()
+	return examSessionCfg{
+		DefaultDurationSeconds: c.MustGet(ctx, "exam.defaultDurationSeconds", 3600).Int(),
+		MaxDurationSeconds:     c.MustGet(ctx, "exam.maxDurationSeconds", 14400).Int(),
+		SaveAnswersPerSecond:   c.MustGet(ctx, "exam.saveAnswersPerSecond", 20).Int(),
+	}
+}
+
+func resolveDurationSeconds(cfg examSessionCfg, paperDuration int, clientOverride int) int {
+	d := paperDuration
+	if d <= 0 {
+		d = cfg.DefaultDurationSeconds
+	}
+	if clientOverride > 0 {
+		d = clientOverride
+	}
+	if d > cfg.MaxDurationSeconds {
+		d = cfg.MaxDurationSeconds
+	}
+	if d <= 0 {
+		d = cfg.DefaultDurationSeconds
+	}
+	return d
+}
+
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+// LoadAttemptByUser 按用户加载未删除的答题会话（供本包与 exam 桥接使用）。
+func LoadAttemptByUser(ctx context.Context, attemptID, userID int64) (examentity.ExamAttempt, error) {
+	var att examentity.ExamAttempt
+	if err := dao.ExamAttempt.Ctx(ctx).
+		Where("id", attemptID).
+		Where("member_id", userID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&att); err != nil {
+		return att, err
+	}
+	if att.Id == 0 {
+		return att, gerror.NewCode(consts.CodeExamAttemptNotFound)
+	}
+	return att, nil
+}
+
+// AssertAttemptInProgressByUser 校验会话归属且为进行中。
+func AssertAttemptInProgressByUser(ctx context.Context, attemptID, userID int64) (*examentity.ExamAttempt, error) {
+	att, err := LoadAttemptByUser(ctx, attemptID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if att.Status != consts.ExamAttemptInProgress {
+		return nil, gerror.NewCode(consts.CodeExamAlreadySubmitted)
+	}
+	return &att, nil
+}
+
+func loadCorrectOptionIDsByQuestion(ctx context.Context, qIDs []interface{}) map[int64][]int64 {
+	out := make(map[int64][]int64)
+	if len(qIDs) == 0 {
+		return out
+	}
+	var opts []examentity.ExamOption
+	if err := dao.ExamOption.Ctx(ctx).
+		WhereIn("question_id", qIDs).
+		Where("is_correct", 1).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&opts); err != nil {
+		g.Log().Warningf(ctx, "loadCorrectOptionIDsByQuestion: %v", err)
+		return out
+	}
+	for _, o := range opts {
+		out[o.QuestionId] = append(out[o.QuestionId], o.Id)
+	}
+	return out
+}
+
+func loadBlocksByID(ctx context.Context, blockIDs []interface{}) map[int64]examentity.ExamQuestionBlock {
+	out := make(map[int64]examentity.ExamQuestionBlock)
+	if len(blockIDs) == 0 {
+		return out
+	}
+	var blocks []examentity.ExamQuestionBlock
+	if err := dao.ExamQuestionBlock.Ctx(ctx).
+		WhereIn("id", blockIDs).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&blocks); err != nil {
+		g.Log().Warningf(ctx, "loadBlocksByID: %v", err)
+		return out
+	}
+	for _, b := range blocks {
+		out[b.Id] = b
+	}
+	return out
+}
+
+func loadSectionsByID(ctx context.Context, examPaperId int64, blocks map[int64]examentity.ExamQuestionBlock) map[int64]examentity.ExamSection {
+	out := make(map[int64]examentity.ExamSection)
+	if len(blocks) == 0 {
+		return out
+	}
+	sectionIDs := make([]interface{}, 0, len(blocks))
+	seen := make(map[int64]struct{})
+	for _, b := range blocks {
+		if _, ok := seen[b.SectionId]; ok {
+			continue
+		}
+		seen[b.SectionId] = struct{}{}
+		sectionIDs = append(sectionIDs, b.SectionId)
+	}
+	if len(sectionIDs) == 0 {
+		return out
+	}
+	var sections []examentity.ExamSection
+	if err := dao.ExamSection.Ctx(ctx).
+		Where("exam_paper_id", examPaperId).
+		WhereIn("id", sectionIDs).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&sections); err != nil {
+		g.Log().Warningf(ctx, "loadSectionsByID: %v", err)
+		return out
+	}
+	for _, sec := range sections {
+		out[sec.Id] = sec
+	}
+	return out
+}
+
+func loadOptionsByQuestion(ctx context.Context, qIDs []interface{}) map[int64][]examentity.ExamOption {
+	out := make(map[int64][]examentity.ExamOption)
+	if len(qIDs) == 0 {
+		return out
+	}
+	var opts []examentity.ExamOption
+	if err := dao.ExamOption.Ctx(ctx).
+		WhereIn("question_id", qIDs).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		OrderAsc("sort_order").
+		Scan(&opts); err != nil {
+		g.Log().Warningf(ctx, "loadOptionsByQuestion: %v", err)
+		return out
+	}
+	for _, o := range opts {
+		qid := o.QuestionId
+		out[qid] = append(out[qid], o)
+	}
+	return out
+}
+
+func answerPayloadToClientAnswer(p bo.AnswerPayload) any {
+	hasText := p.Text != ""
+	n := len(p.SelectedOptionIDs)
+	if hasText && n == 0 {
+		return p.Text
+	}
+	if n == 1 && !hasText {
+		return p.SelectedOptionIDs[0]
+	}
+	if n > 1 {
+		return append([]int64(nil), p.SelectedOptionIDs...)
+	}
+	if n == 1 && hasText {
+		return map[string]interface{}{
+			"selected_option_ids": append([]int64(nil), p.SelectedOptionIDs...),
+			"text":                p.Text,
+		}
+	}
+	return nil
+}
+
+func lastAnswerReferenceTime(ctx context.Context, attemptID int64, startedAt *gtime.Time) *gtime.Time {
+	var row examentity.ExamAttemptAnswer
+	_ = dao.ExamAttemptAnswer.Ctx(ctx).
+		Fields("update_time").
+		Where("attempt_id", attemptID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		OrderDesc("update_time").
+		Limit(1).
+		Scan(&row)
+	var best *gtime.Time
+	if row.UpdateTime != nil {
+		best = row.UpdateTime
+	}
+	if rds := RedisMaxDraftSaveTime(ctx, attemptID); rds != nil {
+		if best == nil || rds.After(best) {
+			best = rds
+		}
+	}
+	if best == nil {
+		best = startedAt
+	}
+	return best
+}
+
+func computeBatchExamRemainingSeconds(ctx context.Context, att examentity.ExamAttempt) *int {
+	if att.Status != consts.ExamAttemptInProgress || att.ExamBatchId <= 0 {
+		return nil
+	}
+	var batch examentity.ExamBatch
+	if err := dao.ExamBatch.Ctx(ctx).
+		Where("id", att.ExamBatchId).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&batch); err != nil || batch.Id == 0 || batch.ExamEndAt == nil {
+		return nil
+	}
+	ref := lastAnswerReferenceTime(ctx, att.Id, att.StartedAt)
+	if ref == nil {
+		return nil
+	}
+	sec := batch.ExamEndAt.Timestamp() - ref.Timestamp()
+	if sec < 0 {
+		sec = 0
+	}
+	x := int(sec)
+	return &x
+}
+
+func maybeAutoSubmitIfOverdue(ctx context.Context, userID int64, attemptID int64) error {
+	att, err := LoadAttemptByUser(ctx, attemptID, userID)
+	if err != nil {
+		return nil
+	}
+	if att.Status != consts.ExamAttemptInProgress || att.DeadlineAt == nil {
+		return nil
+	}
+	now := gtime.Now()
+	if !att.DeadlineAt.Before(now) {
+		return nil
+	}
+	return markSubmitted(ctx, attemptID, true, updaterClient)
+}
+
+func markSubmitted(ctx context.Context, attemptID int64, onlyIfOverdue bool, updater string) error {
+	ok, err := TryAcquireSubmitLock(ctx, attemptID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return nil
+	}
+	defer ReleaseSubmitLock(ctx, attemptID)
+
+	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		var att examentity.ExamAttempt
+		if err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Scan(&att); err != nil {
+			return err
+		}
+		if att.Id == 0 || att.Status != consts.ExamAttemptInProgress {
+			return nil
+		}
+		now := gtime.Now()
+		if onlyIfOverdue {
+			if att.DeadlineAt == nil || !att.DeadlineAt.Before(now) {
+				return nil
+			}
+		}
+		_, err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Update(examdo.ExamAttempt{
+			Status:      consts.ExamAttemptSubmitted,
+			SubmittedAt: now,
+			Updater:     updater,
+			UpdateTime:  gtime.Now(),
+		})
+		return err
+	})
+}
+
+func finalizeScoring(ctx context.Context, attemptID int64) error {
+	ok, err := TryAcquireSubmitLock(ctx, attemptID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return nil
+	}
+	defer ReleaseSubmitLock(ctx, attemptID)
+
+	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		var att examentity.ExamAttempt
+		if err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Scan(&att); err != nil {
+			return err
+		}
+		if att.Id == 0 {
+			return gerror.NewCode(consts.CodeExamAttemptNotFound)
+		}
+		if att.Status == consts.ExamAttemptEnded {
+			return nil
+		}
+		if att.Status != consts.ExamAttemptSubmitted {
+			return nil
+		}
+
+		meta, err := loadQuestionScoreMetaTx(ctx, tx, att.ExamPaperId)
+		if err != nil {
+			return err
+		}
+		answers, err := loadAnswersMapTx(ctx, tx, attemptID)
+		if err != nil {
+			return err
+		}
+		objScore, hasSubj := examutil.ScoreObjective(meta, answers)
+		now := gtime.Now()
+		hasFlag := 0
+		if hasSubj {
+			hasFlag = 1
+		}
+		_, err = tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Update(examdo.ExamAttempt{
+			Status:          consts.ExamAttemptEnded,
+			EndedAt:         now,
+			ObjectiveScore:  objScore,
+			SubjectiveScore: 0,
+			TotalScore:      objScore,
+			HasSubjective:   hasFlag,
+			Updater:         updaterTask,
+			UpdateTime:      gtime.Now(),
+		})
+		if err != nil {
+			return err
+		}
+		return examutil.UpsertFromAttemptTx(ctx, tx, attemptID)
+	})
+}
+
+func loadQuestionScoreMetaTx(ctx context.Context, tx gdb.TX, paperID int64) ([]bo.QuestionScoreMeta, error) {
+	var qs []examentity.ExamQuestion
+	if err := tx.Model(dao.ExamQuestion.Table()).Ctx(ctx).
+		Where("exam_paper_id", paperID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&qs); err != nil {
+		return nil, err
+	}
+	if len(qs) == 0 {
+		return nil, nil
+	}
+	qIDs := make([]interface{}, len(qs))
+	for i, q := range qs {
+		qIDs[i] = q.Id
+	}
+	var correctOpts []examentity.ExamOption
+	if err := tx.Model(dao.ExamOption.Table()).Ctx(ctx).
+		WhereIn("question_id", qIDs).
+		Where("is_correct", 1).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		OrderAsc("sort_order").
+		Scan(&correctOpts); err != nil {
+		return nil, err
+	}
+	correctByQ := make(map[int64][]int64, len(qs))
+	for _, o := range correctOpts {
+		correctByQ[o.QuestionId] = append(correctByQ[o.QuestionId], o.Id)
+	}
+	out := make([]bo.QuestionScoreMeta, 0, len(qs))
+	for _, q := range qs {
+		out = append(out, bo.QuestionScoreMeta{
+			QuestionID:    q.Id,
+			IsExample:     q.IsExample,
+			IsSubjective:  q.IsSubjective,
+			Score:         q.Score,
+			CorrectOptIDs: correctByQ[q.Id],
+		})
+	}
+	return out, nil
+}
+
+func loadAnswersMapTx(ctx context.Context, tx gdb.TX, attemptID int64) (map[int64]bo.AnswerPayload, error) {
+	var rows []examentity.ExamAttemptAnswer
+	if err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
+		Where("attempt_id", attemptID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&rows); err != nil {
+		return nil, err
+	}
+	m := make(map[int64]bo.AnswerPayload, len(rows))
+	for _, r := range rows {
+		m[r.ExamQuestionId] = examutil.ParseAnswerPayload(r.AnswerJson)
+	}
+	return m, nil
+}

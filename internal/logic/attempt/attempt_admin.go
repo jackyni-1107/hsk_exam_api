@@ -1,4 +1,4 @@
-package exam
+package attempt
 
 import (
 	"context"
@@ -19,13 +19,8 @@ import (
 )
 
 // AttemptAdminList 分页查询答题会话（联表学员、试卷）。
-func (s *sExam) AttemptAdminList(ctx context.Context, page, size int, level string, examinationPaperId int64, examBatchId int64, status int, username string) ([]bo.AttemptAdminListRow, int, error) {
-	if page <= 0 {
-		page = 1
-	}
-	if size <= 0 {
-		size = 10
-	}
+func (s *sAttempt) AttemptAdminList(ctx context.Context, page, size int, level string, examinationPaperId int64, examBatchId int64, status int, username string) ([]bo.AttemptAdminListRow, int, error) {
+	page, size = s.getPageSize(page, size)
 	var where strings.Builder
 	where.WriteString("r.delete_flag = ?")
 	args := []interface{}{consts.DeleteFlagNotDeleted}
@@ -98,7 +93,7 @@ IFNULL(u.username,'') AS username, IFNULL(u.nickname,'') AS nickname,
 }
 
 // AttemptAdminDetail 按 id 加载会话、学员、试卷及答题明细（含客观题是否选对）。
-func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.AttemptAdminDetailView, error) {
+func (s *sAttempt) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.AttemptAdminDetailView, error) {
 	if attemptID <= 0 {
 		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
@@ -154,7 +149,6 @@ func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.At
 		}
 	}
 
-	// 预加载块与 section 信息，便于按 section 展示
 	blockIDs := make([]interface{}, 0, len(qByID))
 	for _, q := range qByID {
 		blockIDs = append(blockIDs, q.BlockId)
@@ -176,7 +170,6 @@ func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.At
 		var secPtr *examentity.ExamSection
 		if blk, ok := blockByID[q.BlockId]; ok {
 			if sec, ok2 := sectionByID[blk.SectionId]; ok2 {
-				// 复制一份，避免后续误修改原始 map
 				sv := sec
 				secPtr = &sv
 			}
@@ -198,7 +191,7 @@ func (s *sExam) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.At
 }
 
 // AttemptAdminSaveSubjectiveScores 写入主观题人工分并汇总 subjective_score、total_score（允许部分题目已评）。
-func (s *sExam) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, items []bo.SubjectiveScoreItem) (subjectiveSum float64, totalScore float64, err error) {
+func (s *sAttempt) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, items []bo.SubjectiveScoreItem) (subjectiveSum float64, totalScore float64, err error) {
 	if attemptID <= 0 {
 		return 0, 0, gerror.NewCode(consts.CodeInvalidParams)
 	}
@@ -369,100 +362,4 @@ func sumSubjectiveAwardedTx(ctx context.Context, tx gdb.TX, attemptID int64, pap
 		sum += *a.AwardedScore
 	}
 	return sum, nil
-}
-
-func boolPtr(b bool) *bool {
-	return &b
-}
-
-func loadCorrectOptionIDsByQuestion(ctx context.Context, qIDs []interface{}) map[int64][]int64 {
-	out := make(map[int64][]int64)
-	if len(qIDs) == 0 {
-		return out
-	}
-	var opts []examentity.ExamOption
-	if err := dao.ExamOption.Ctx(ctx).
-		WhereIn("question_id", qIDs).
-		Where("is_correct", 1).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&opts); err != nil {
-		g.Log().Warningf(ctx, "loadCorrectOptionIDsByQuestion: %v", err)
-		return out
-	}
-	for _, o := range opts {
-		out[o.QuestionId] = append(out[o.QuestionId], o.Id)
-	}
-	return out
-}
-
-func loadBlocksByID(ctx context.Context, blockIDs []interface{}) map[int64]examentity.ExamQuestionBlock {
-	out := make(map[int64]examentity.ExamQuestionBlock)
-	if len(blockIDs) == 0 {
-		return out
-	}
-	var blocks []examentity.ExamQuestionBlock
-	if err := dao.ExamQuestionBlock.Ctx(ctx).
-		WhereIn("id", blockIDs).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&blocks); err != nil {
-		g.Log().Warningf(ctx, "loadBlocksByID: %v", err)
-		return out
-	}
-	for _, b := range blocks {
-		out[b.Id] = b
-	}
-	return out
-}
-
-func loadSectionsByID(ctx context.Context, examPaperId int64, blocks map[int64]examentity.ExamQuestionBlock) map[int64]examentity.ExamSection {
-	out := make(map[int64]examentity.ExamSection)
-	if len(blocks) == 0 {
-		return out
-	}
-	sectionIDs := make([]interface{}, 0, len(blocks))
-	seen := make(map[int64]struct{})
-	for _, b := range blocks {
-		if _, ok := seen[b.SectionId]; ok {
-			continue
-		}
-		seen[b.SectionId] = struct{}{}
-		sectionIDs = append(sectionIDs, b.SectionId)
-	}
-	if len(sectionIDs) == 0 {
-		return out
-	}
-	var sections []examentity.ExamSection
-	if err := dao.ExamSection.Ctx(ctx).
-		Where("exam_paper_id", examPaperId).
-		WhereIn("id", sectionIDs).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&sections); err != nil {
-		g.Log().Warningf(ctx, "loadSectionsByID: %v", err)
-		return out
-	}
-	for _, s := range sections {
-		out[s.Id] = s
-	}
-	return out
-}
-
-func loadOptionsByQuestion(ctx context.Context, qIDs []interface{}) map[int64][]examentity.ExamOption {
-	out := make(map[int64][]examentity.ExamOption)
-	if len(qIDs) == 0 {
-		return out
-	}
-	var opts []examentity.ExamOption
-	if err := dao.ExamOption.Ctx(ctx).
-		WhereIn("question_id", qIDs).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		OrderAsc("sort_order").
-		Scan(&opts); err != nil {
-		g.Log().Warningf(ctx, "loadOptionsByQuestion: %v", err)
-		return out
-	}
-	for _, o := range opts {
-		qid := o.QuestionId
-		out[qid] = append(out[qid], o)
-	}
-	return out
 }
