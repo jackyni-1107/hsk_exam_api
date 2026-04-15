@@ -14,7 +14,7 @@ type (
 		// RecordLoginSuccess 记录登录成功
 		RecordLoginSuccess(ctx context.Context, userId int64, username string, userType int, ip string, userAgent string, traceId string)
 		// RecordLoginFail 记录登录失败
-		RecordLoginFail(ctx context.Context, userId int64, username string, userType int, ip string, userAgent string, failReason string, traceId string)
+		RecordLoginFailure(ctx context.Context, userId int64, username string, userType int, ip string, userAgent string, failReason string, traceId string)
 		// RecordLogout 记录登出
 		RecordLogout(ctx context.Context, userId int64, username string, userType int, ip string, userAgent string, traceId string)
 		// RecordSecurityEvent 记录安全事件

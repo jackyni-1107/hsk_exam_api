@@ -48,17 +48,17 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 
 	u, _ := membersvc.Member().FindByUsername(ctx, name)
 	if u == nil {
-		auditsvc.Audit().RecordLoginFail(ctx, 0, req.Username, consts.UserTypeClient, ip, userAgent, "user not found", traceId)
+		auditsvc.Audit().RecordLoginFailure(ctx, 0, req.Username, consts.UserTypeClient, ip, userAgent, "user not found", traceId)
 		secsvc.Security().RecordLoginFailure(ctx, consts.UserTypeClient, req.Username, ip, userAgent, traceId)
 		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
 	}
 
 	if u.Status == consts.StatusDisabled {
-		auditsvc.Audit().RecordLoginFail(ctx, u.Id, req.Username, consts.UserTypeClient, ip, userAgent, "user disabled", traceId)
+		auditsvc.Audit().RecordLoginFailure(ctx, u.Id, req.Username, consts.UserTypeClient, ip, userAgent, "user disabled", traceId)
 		return nil, gerror.NewCode(consts.CodeUserDisabled)
 	}
 	if !utility.CheckPassword(u.Password, req.Password) {
-		auditsvc.Audit().RecordLoginFail(ctx, u.Id, req.Username, consts.UserTypeClient, ip, userAgent, "invalid password", traceId)
+		auditsvc.Audit().RecordLoginFailure(ctx, u.Id, req.Username, consts.UserTypeClient, ip, userAgent, "invalid password", traceId)
 		secsvc.Security().RecordLoginFailure(ctx, consts.UserTypeClient, req.Username, ip, userAgent, traceId)
 		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
 	}
@@ -73,13 +73,14 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 	})
 	key := consts.TokenRedisKeyPrefix + consts.UserTypeTagClient + ":" + token
 	if err := g.Redis().SetEX(ctx, key, string(payload), ttl); err != nil {
-		return nil, gerror.Wrap(err, "redis")
-		auditsvc.Audit().RecordLoginFail(ctx, u.Id, req.Username, consts.UserTypeClient, ip, userAgent, "redis set token failed", traceId)
+		g.Log().Errorf(ctx, "redis set token failed: %v", err)
+		auditsvc.Audit().RecordLoginFailure(ctx, u.Id, req.Username, consts.UserTypeClient, ip, userAgent, "redis set token failed", traceId)
+		return nil, gerror.NewCode(consts.CodeLoginFailed)
 	}
 	_ = secsvc.Security().RegisterSession(ctx, consts.UserTypeClient, u.Id, token, ttl)
 
-	secsvc.Security().ClearLoginFailure(ctx, consts.UserTypeAdmin, req.Username)
-	auditsvc.Audit().RecordLoginSuccess(ctx, u.Id, u.Username, consts.UserTypeAdmin, ip, userAgent, traceId)
+	secsvc.Security().ClearLoginFailure(ctx, consts.UserTypeClient, req.Username)
+	auditsvc.Audit().RecordLoginSuccess(ctx, u.Id, u.Username, consts.UserTypeClient, ip, userAgent, traceId)
 
 	return &v1.LoginRes{
 		Token: token,

@@ -28,7 +28,7 @@ func (s *sAudit) RecordLoginSuccess(ctx context.Context, userId int64, username 
 }
 
 // RecordLoginFail 记录登录失败
-func (s *sAudit) RecordLoginFail(ctx context.Context, userId int64, username string, userType int, ip, userAgent, failReason, traceId string) {
+func (s *sAudit) RecordLoginFailure(ctx context.Context, userId int64, username string, userType int, ip, userAgent, failReason, traceId string) {
 	deviceInfo := utility.ParseDeviceInfo(userAgent)
 	go func() {
 		_, _ = sysdao.SysLoginLog.Ctx(context.Background()).Insert(sysdo.SysLoginLog{
