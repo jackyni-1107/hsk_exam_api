@@ -3,6 +3,7 @@ package sysconfig
 import (
 	"context"
 
+	"exam/internal/auditutil"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	sysdo "exam/internal/model/do/sys"
@@ -67,10 +68,21 @@ func (s *sSysConfig) ConfigCreate(ctx context.Context, configKey, configValue, c
 		return 0, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 	id, _ := r.LastInsertId()
+	var after sysentity.SysConfig
+	if err := dao.SystemConfig.Ctx(ctx).Where("id", id).Scan(&after); err == nil && after.Id > 0 {
+		auditutil.RecordEntityDiff(ctx, dao.SystemConfig.Table(), id, nil, &after)
+	}
 	return id, nil
 }
 
 func (s *sSysConfig) ConfigUpdate(ctx context.Context, id int64, configValue, remark, updater string) error {
+	var before sysentity.SysConfig
+	if err := dao.SystemConfig.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeConfigNotFound)
+	}
 	data := map[string]interface{}{
 		"updater": updater,
 	}
@@ -84,16 +96,31 @@ func (s *sSysConfig) ConfigUpdate(ctx context.Context, id int64, configValue, re
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
+	var after sysentity.SysConfig
+	if err := dao.SystemConfig.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SystemConfig.Table(), id, &before, &after)
+	}
 	return nil
 }
 
 func (s *sSysConfig) ConfigDelete(ctx context.Context, id int64, updater string) error {
+	var before sysentity.SysConfig
+	if err := dao.SystemConfig.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeConfigNotFound)
+	}
 	_, err := dao.SystemConfig.Ctx(ctx).Where("id", id).Data(sysdo.SysConfig{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
 	}).Update()
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	var after sysentity.SysConfig
+	if err := dao.SystemConfig.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SystemConfig.Table(), id, &before, &after)
 	}
 	return nil
 }

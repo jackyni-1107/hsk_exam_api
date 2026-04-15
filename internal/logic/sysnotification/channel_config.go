@@ -8,6 +8,8 @@ import (
 	sysdo "exam/internal/model/do/sys"
 	sysentity "exam/internal/model/entity/sys"
 
+	"exam/internal/auditutil"
+
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
@@ -50,10 +52,21 @@ func (s *sSysNotification) ChannelConfigCreate(ctx context.Context, channel, pro
 		return 0, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 	id, _ := r.LastInsertId()
+	var after sysentity.SysNotificationChannelConfig
+	if err := dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", id).Scan(&after); err == nil && after.Id > 0 {
+		auditutil.RecordEntityDiff(ctx, dao.SysNotificationChannelConfig.Table(), id, nil, &after)
+	}
 	return id, nil
 }
 
 func (s *sSysNotification) ChannelConfigUpdate(ctx context.Context, id int64, name, configJson, updater string) error {
+	var before sysentity.SysNotificationChannelConfig
+	if err := dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeConfigNotFound)
+	}
 	data := map[string]interface{}{
 		"updater": updater,
 	}
@@ -66,6 +79,10 @@ func (s *sSysNotification) ChannelConfigUpdate(ctx context.Context, id int64, na
 	_, err := dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Data(data).Update()
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	var after sysentity.SysNotificationChannelConfig
+	if err := dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SysNotificationChannelConfig.Table(), id, &before, &after)
 	}
 	return nil
 }
@@ -89,20 +106,24 @@ func (s *sSysNotification) ChannelConfigDelete(ctx context.Context, id int64, up
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
+	var after sysentity.SysNotificationChannelConfig
+	if err := dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SysNotificationChannelConfig.Table(), id, &e, &after)
+	}
 	return nil
 }
 
 func (s *sSysNotification) ChannelConfigSetActive(ctx context.Context, id int64, updater string) error {
-	var e sysentity.SysNotificationChannelConfig
-	err := dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&e)
+	var before sysentity.SysNotificationChannelConfig
+	err := dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before)
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
-	if e.Id == 0 {
+	if before.Id == 0 {
 		return gerror.NewCode(consts.CodeConfigNotFound)
 	}
 	_, err = dao.SysNotificationChannelConfig.Ctx(ctx).
-		Where("channel", e.Channel).
+		Where("channel", before.Channel).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Data(map[string]interface{}{"is_active": 0, "updater": updater}).
 		Update()
@@ -115,6 +136,10 @@ func (s *sSysNotification) ChannelConfigSetActive(ctx context.Context, id int64,
 		Update()
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	var after sysentity.SysNotificationChannelConfig
+	if err := dao.SysNotificationChannelConfig.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SysNotificationChannelConfig.Table(), id, &before, &after)
 	}
 	return nil
 }

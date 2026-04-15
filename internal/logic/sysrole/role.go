@@ -3,10 +3,12 @@ package sysrole
 import (
 	"context"
 
+	"exam/internal/auditutil"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	sysdo "exam/internal/model/do/sys"
 	sysentity "exam/internal/model/entity/sys"
+	"exam/internal/utility"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -79,10 +81,24 @@ func (s *sSysRole) RoleCreate(ctx context.Context, name, code, remark, creator s
 		Creator: creator,
 		Updater: creator,
 	})
-	return id, err
+	if err != nil {
+		return 0, err
+	}
+	var after sysentity.SysRole
+	if err := dao.SystemRole.Ctx(ctx).Where("id", id).Scan(&after); err == nil && after.Id > 0 {
+		auditutil.RecordEntityDiff(ctx, dao.SystemRole.Table(), id, nil, &after)
+	}
+	return id, nil
 }
 
 func (s *sSysRole) RoleUpdate(ctx context.Context, id int64, name, code, remark, updater string, status, sort, typ int) error {
+	var before sysentity.SysRole
+	if err := dao.SystemRole.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+		return err
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeRoleNotFound)
+	}
 	data := sysdo.SysRole{
 		Name:    name,
 		Code:    code,
@@ -95,19 +111,45 @@ func (s *sSysRole) RoleUpdate(ctx context.Context, id int64, name, code, remark,
 		data.Status = status
 	}
 	_, err := dao.SystemRole.Ctx(ctx).Where("id", id).Data(data).Update()
-	return err
+	if err != nil {
+		return err
+	}
+	var after sysentity.SysRole
+	if err := dao.SystemRole.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SystemRole.Table(), id, &before, &after)
+	}
+	return nil
 }
 
 func (s *sSysRole) RoleDelete(ctx context.Context, id int64, updater string) error {
+	var before sysentity.SysRole
+	if err := dao.SystemRole.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+		return err
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeRoleNotFound)
+	}
 	_, err := dao.SystemRole.Ctx(ctx).Where("id", id).Data(sysdo.SysRole{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
 	}).Update()
-	return err
+	if err != nil {
+		return err
+	}
+	var after sysentity.SysRole
+	if err := dao.SystemRole.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SystemRole.Table(), id, &before, &after)
+	}
+	return nil
 }
 
 func (s *sSysRole) RoleMenuAssign(ctx context.Context, roleId int64, menuIds []int64, creator string) error {
-	_, err := dao.SystemRoleMenu.Ctx(ctx).
+	beforeIDs, err := s.RoleMenuIds(ctx, roleId)
+	if err != nil {
+		return err
+	}
+	beforeStr := utility.JoinSortedInt64IDs(beforeIDs)
+	_, err = dao.SystemRoleMenu.Ctx(ctx).
 		Where("role_id", roleId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Data(sysdo.SysRoleMenu{
@@ -130,5 +172,12 @@ func (s *sSysRole) RoleMenuAssign(ctx context.Context, roleId int64, menuIds []i
 		}
 		_, err = dao.SystemRoleMenu.Ctx(ctx).Insert(batch)
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	afterStr := utility.JoinSortedInt64IDs(menuIds)
+	auditutil.RecordMapDiff(ctx, dao.SystemRoleMenu.Table(), roleId,
+		map[string]interface{}{"menu_ids": beforeStr},
+		map[string]interface{}{"menu_ids": afterStr})
+	return nil
 }

@@ -2,9 +2,6 @@ package batch
 
 import (
 	"context"
-	"exam/internal/model/bo"
-	sysentity "exam/internal/model/entity/sys"
-	"exam/internal/utility/exampaper"
 	"strings"
 
 	"github.com/gogf/gf/v2/database/gdb"
@@ -12,9 +9,14 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
 
+	"exam/internal/auditutil"
 	"exam/internal/consts"
 	"exam/internal/dao"
+	"exam/internal/model/bo"
 	examentity "exam/internal/model/entity/exam"
+	sysentity "exam/internal/model/entity/sys"
+	"exam/internal/utility"
+	"exam/internal/utility/exampaper"
 )
 
 // ExamBatchList 分页查询考试批次列表
@@ -138,6 +140,15 @@ func (s *sBatch) ExamBatchCreate(ctx context.Context, title, examStartAt, examEn
 	if err != nil {
 		return 0, err
 	}
+	if b, err := examBatchByID(ctx, newID); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.ExamBatch.Table(), newID, nil, &b)
+	}
+	if pids, err := loadMockPaperIDsForBatch(ctx, newID); err == nil {
+		afterStr := utility.JoinSortedInt64IDs(pids)
+		auditutil.RecordMapDiff(ctx, dao.ExamBatch.Table(), newID,
+			map[string]interface{}{"mock_paper_ids": ""},
+			map[string]interface{}{"mock_paper_ids": afterStr})
+	}
 	return newID, nil
 }
 
@@ -165,7 +176,16 @@ func (s *sBatch) ExamBatchUpdate(ctx context.Context, id int64, title, examStart
 	if hasOrphan {
 		return gerror.NewCode(consts.CodeExamBatchPaperHasMembers)
 	}
-	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+	beforeBatch, err := examBatchByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	beforePapers, err := loadMockPaperIDsForBatch(ctx, id)
+	if err != nil {
+		return err
+	}
+	beforePaperStr := utility.JoinSortedInt64IDs(beforePapers)
+	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		if _, err := tx.Model(dao.ExamBatch.Table()).Ctx(ctx).Where("id", id).Data(g.Map{
 			dao.ExamBatch.Columns().Title:       strings.TrimSpace(title),
 			dao.ExamBatch.Columns().ExamStartAt: st,
@@ -190,18 +210,39 @@ func (s *sBatch) ExamBatchUpdate(ctx context.Context, id int64, title, examStart
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	if afterBatch, err := examBatchByID(ctx, id); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.ExamBatch.Table(), id, &beforeBatch, &afterBatch)
+	}
+	if afterPapers, err := loadMockPaperIDsForBatch(ctx, id); err == nil {
+		afterPaperStr := utility.JoinSortedInt64IDs(afterPapers)
+		auditutil.RecordMapDiff(ctx, dao.ExamBatch.Table(), id,
+			map[string]interface{}{"mock_paper_ids": beforePaperStr},
+			map[string]interface{}{"mock_paper_ids": afterPaperStr})
+	}
+	return nil
 }
 
 // ExamBatchDelete 删除考试批次
 func (s *sBatch) ExamBatchDelete(ctx context.Context, id int64) error {
-	if _, err := examBatchByID(ctx, id); err != nil {
+	before, err := examBatchByID(ctx, id)
+	if err != nil {
 		return err
 	}
-	_, err := dao.ExamBatch.Ctx(ctx).Where("id", id).Data(g.Map{
+	_, err = dao.ExamBatch.Ctx(ctx).Where("id", id).Data(g.Map{
 		dao.ExamBatch.Columns().DeleteFlag: consts.DeleteFlagDeleted,
 		dao.ExamBatch.Columns().UpdateTime: gtime.Now(),
 	}).Update()
-	return err
+	if err != nil {
+		return err
+	}
+	var after examentity.ExamBatch
+	if err := dao.ExamBatch.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.ExamBatch.Table(), id, &before, &after)
+	}
+	return nil
 }
 
 // ExamBatchMembersAdd 批量向指定批次和 Mock 卷添加学员

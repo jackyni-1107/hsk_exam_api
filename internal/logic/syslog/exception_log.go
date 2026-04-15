@@ -7,7 +7,6 @@ import (
 	sysentity "exam/internal/model/entity/sys"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/frame/g"
 )
 
 func (s *sSysLog) ExceptionLogList(ctx context.Context, page, size int, traceId, path, startTime, endTime string) ([]sysentity.SysExceptionLog, int, error) {
@@ -19,11 +18,9 @@ func (s *sSysLog) ExceptionLogList(ctx context.Context, page, size int, traceId,
 	if path != "" {
 		m = m.WhereLike("path", "%"+path+"%")
 	}
-
-	// 精确查询与范围查询
-	m = m.Where(g.Map{
-		"trace_id": traceId,
-	})
+	if traceId != "" {
+		m = m.Where("trace_id", traceId)
+	}
 
 	if startTime != "" {
 		m = m.WhereGTE("create_time", startTime)

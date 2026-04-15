@@ -3,10 +3,12 @@ package sysuser
 import (
 	"context"
 
+	"exam/internal/auditutil"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	sysdo "exam/internal/model/do/sys"
 	sysentity "exam/internal/model/entity/sys"
+	"exam/internal/utility"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"golang.org/x/crypto/bcrypt"
@@ -104,10 +106,21 @@ func (s *sSysUser) UserCreate(ctx context.Context, username, password, nickname,
 			return 0, err
 		}
 	}
+	var after sysentity.SysUser
+	if err := dao.SystemUser.Ctx(ctx).Where("id", id).Scan(&after); err == nil && after.Id > 0 {
+		auditutil.RecordEntityDiff(ctx, dao.SystemUser.Table(), id, nil, &after)
+	}
 	return id, nil
 }
 
 func (s *sSysUser) UserUpdate(ctx context.Context, id int64, password, nickname, email, mobile, updater string, status int) error {
+	var before sysentity.SysUser
+	if err := dao.SystemUser.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+		return err
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeUserNotFound)
+	}
 	data := sysdo.SysUser{
 		Nickname: nickname,
 		Email:    email,
@@ -125,22 +138,48 @@ func (s *sSysUser) UserUpdate(ctx context.Context, id int64, password, nickname,
 		data.Password = string(hash)
 	}
 	_, err := dao.SystemUser.Ctx(ctx).Where("id", id).Data(data).Update()
-	return err
+	if err != nil {
+		return err
+	}
+	var after sysentity.SysUser
+	if err := dao.SystemUser.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SystemUser.Table(), id, &before, &after)
+	}
+	return nil
 }
 
 func (s *sSysUser) UserDelete(ctx context.Context, id int64, updater string) error {
 	if id == consts.SuperAdminUserId {
 		return gerror.NewCode(consts.CodeCannotDeleteSuperAdmin)
 	}
+	var before sysentity.SysUser
+	if err := dao.SystemUser.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+		return err
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeUserNotFound)
+	}
 	_, err := dao.SystemUser.Ctx(ctx).Where("id", id).Data(sysdo.SysUser{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
 	}).Update()
-	return err
+	if err != nil {
+		return err
+	}
+	var after sysentity.SysUser
+	if err := dao.SystemUser.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SystemUser.Table(), id, &before, &after)
+	}
+	return nil
 }
 
 func (s *sSysUser) UserRoleAssign(ctx context.Context, userId int64, roleIds []int64, creator string) error {
-	_, err := dao.SystemUserRole.Ctx(ctx).
+	beforeIDs, err := s.UserRoleIds(ctx, userId)
+	if err != nil {
+		return err
+	}
+	beforeStr := utility.JoinSortedInt64IDs(beforeIDs)
+	_, err = dao.SystemUserRole.Ctx(ctx).
 		Where("user_id", userId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Data(sysdo.SysUserRole{
@@ -163,7 +202,14 @@ func (s *sSysUser) UserRoleAssign(ctx context.Context, userId int64, roleIds []i
 		}
 		_, err = dao.SystemUserRole.Ctx(ctx).Insert(batch)
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	afterStr := utility.JoinSortedInt64IDs(roleIds)
+	auditutil.RecordMapDiff(ctx, dao.SystemUserRole.Table(), userId,
+		map[string]interface{}{"role_ids": beforeStr},
+		map[string]interface{}{"role_ids": afterStr})
+	return nil
 }
 
 func (s *sSysUser) FindByUsername(ctx context.Context, username string) (*sysentity.SysUser, error) {

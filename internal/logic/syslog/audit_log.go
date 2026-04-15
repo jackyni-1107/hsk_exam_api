@@ -8,7 +8,6 @@ import (
 	sysentity "exam/internal/model/entity/sys"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/frame/g"
 )
 
 func (s *sSysLog) AuditLogList(ctx context.Context, page, size int, username, path, action, logType, traceId, startTime, endTime string) ([]sysentity.SysOperationAuditLog, int, error) {
@@ -25,12 +24,15 @@ func (s *sSysLog) AuditLogList(ctx context.Context, page, size int, username, pa
 		m = m.WhereLike("path", "%"+path+"%")
 	}
 
-	// 精确查询：利用 g.Map 自动忽略空值的特性
-	m = m.Where(g.Map{
-		"action":   action,
-		"log_type": logType,
-		"trace_id": traceId,
-	})
+	if action != "" {
+		m = m.Where("action", action)
+	}
+	if logType != "" {
+		m = m.Where("log_type", logType)
+	}
+	if traceId != "" {
+		m = m.Where("trace_id", traceId)
+	}
 
 	// 时间范围
 	if startTime != "" {

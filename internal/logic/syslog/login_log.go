@@ -5,8 +5,8 @@ import (
 	"exam/internal/consts"
 	sysdao "exam/internal/dao/sys"
 	sysentity "exam/internal/model/entity/sys"
+
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/frame/g"
 )
 
 func (s *sSysLog) LoginLogList(ctx context.Context, page, size int, username, logType string, userType int, startTime, endTime string) ([]sysentity.SysLoginLog, int, error) {
@@ -17,12 +17,12 @@ func (s *sSysLog) LoginLogList(ctx context.Context, page, size int, username, lo
 		m = m.WhereLike("username", "%"+username+"%")
 	}
 
-	// 组合查询
-	whereMap := g.Map{"log_type": logType}
-	if userType > 0 {
-		whereMap["user_type"] = userType
+	if logType != "" {
+		m = m.Where("log_type", logType)
 	}
-	m = m.Where(whereMap)
+	if userType > 0 {
+		m = m.Where("user_type", userType)
+	}
 
 	if startTime != "" {
 		m = m.WhereGTE("create_time", startTime)

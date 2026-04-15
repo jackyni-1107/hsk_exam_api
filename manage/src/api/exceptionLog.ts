@@ -34,3 +34,6 @@ export function fetchExceptionLogList(params: {
     }
   )
 }
+
+/** 与视图层 import 命名一致 */
+export const getExceptionLogList = fetchExceptionLogList

@@ -8,6 +8,7 @@ import (
 	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/util/gconv"
 
+	"exam/internal/auditutil"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	sysdo "exam/internal/model/do/sys"
@@ -89,6 +90,10 @@ func (s *sSysTask) TaskCreate(ctx context.Context, name, code, cronExpr, handler
 		return 0, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 	id, _ := r.LastInsertId()
+	var after sysentity.SysTask
+	if err := dao.SysTask.Ctx(ctx).Where("id", id).Scan(&after); err == nil && after.Id > 0 {
+		auditutil.RecordEntityDiff(ctx, dao.SysTask.Table(), id, nil, &after)
+	}
 	return id, nil
 }
 
@@ -120,15 +125,30 @@ func (s *sSysTask) TaskUpdate(ctx context.Context, id int64, name, code, cronExp
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
+	var after sysentity.SysTask
+	if err := dao.SysTask.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SysTask.Table(), id, &existing, &after)
+	}
 	return nil
 }
 
 func (s *sSysTask) TaskDelete(ctx context.Context, id int64) error {
+	var before sysentity.SysTask
+	if err := dao.SysTask.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeTaskNotFound)
+	}
 	_, err := dao.SysTask.Ctx(ctx).Where("id", id).Data(sysdo.SysTask{
 		DeleteFlag: consts.DeleteFlagDeleted, UpdateTime: gtime.Now(),
 	}).Update()
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	var after sysentity.SysTask
+	if err := dao.SysTask.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SysTask.Table(), id, &before, &after)
 	}
 	return nil
 }

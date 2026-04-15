@@ -3,6 +3,7 @@ package sysconfig
 import (
 	"context"
 
+	"exam/internal/auditutil"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	sysdo "exam/internal/model/do/sys"
@@ -57,10 +58,21 @@ func (s *sSysConfig) DictTypeCreate(ctx context.Context, dictName, dictType, rem
 		return 0, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 	id, _ := r.LastInsertId()
+	var after sysentity.SysDictType
+	if err := dao.SystemDictType.Ctx(ctx).Where("id", id).Scan(&after); err == nil && after.Id > 0 {
+		auditutil.RecordEntityDiff(ctx, dao.SystemDictType.Table(), id, nil, &after)
+	}
 	return id, nil
 }
 
 func (s *sSysConfig) DictTypeUpdate(ctx context.Context, id int64, dictName, remark, updater string, status int) error {
+	var before sysentity.SysDictType
+	if err := dao.SystemDictType.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeResourceNotFound)
+	}
 	data := map[string]interface{}{
 		"updater": updater,
 		"status":  status,
@@ -75,16 +87,31 @@ func (s *sSysConfig) DictTypeUpdate(ctx context.Context, id int64, dictName, rem
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
+	var after sysentity.SysDictType
+	if err := dao.SystemDictType.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SystemDictType.Table(), id, &before, &after)
+	}
 	return nil
 }
 
 func (s *sSysConfig) DictTypeDelete(ctx context.Context, id int64, updater string) error {
+	var before sysentity.SysDictType
+	if err := dao.SystemDictType.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeResourceNotFound)
+	}
 	_, err := dao.SystemDictType.Ctx(ctx).Where("id", id).Data(sysdo.SysDictType{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
 	}).Update()
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	var after sysentity.SysDictType
+	if err := dao.SystemDictType.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SystemDictType.Table(), id, &before, &after)
 	}
 	return nil
 }
@@ -127,10 +154,21 @@ func (s *sSysConfig) DictDataCreate(ctx context.Context, dictType, dictLabel, di
 		return 0, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 	id, _ := r.LastInsertId()
+	var after sysentity.SysDictData
+	if err := dao.SystemDictData.Ctx(ctx).Where("id", id).Scan(&after); err == nil && after.Id > 0 {
+		auditutil.RecordEntityDiff(ctx, dao.SystemDictData.Table(), id, nil, &after)
+	}
 	return id, nil
 }
 
 func (s *sSysConfig) DictDataUpdate(ctx context.Context, id int64, dictLabel, dictValue, remark, updater string, sort, status int) error {
+	var before sysentity.SysDictData
+	if err := dao.SystemDictData.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeResourceNotFound)
+	}
 	data := map[string]interface{}{
 		"updater": updater,
 		"sort":    sort,
@@ -149,16 +187,31 @@ func (s *sSysConfig) DictDataUpdate(ctx context.Context, id int64, dictLabel, di
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
+	var after sysentity.SysDictData
+	if err := dao.SystemDictData.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SystemDictData.Table(), id, &before, &after)
+	}
 	return nil
 }
 
 func (s *sSysConfig) DictDataDelete(ctx context.Context, id int64, updater string) error {
+	var before sysentity.SysDictData
+	if err := dao.SystemDictData.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeResourceNotFound)
+	}
 	_, err := dao.SystemDictData.Ctx(ctx).Where("id", id).Data(sysdo.SysDictData{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
 	}).Update()
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	var after sysentity.SysDictData
+	if err := dao.SystemDictData.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SystemDictData.Table(), id, &before, &after)
 	}
 	return nil
 }

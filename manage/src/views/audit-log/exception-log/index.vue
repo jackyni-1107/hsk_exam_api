@@ -1,172 +1,146 @@
 <template>
-  <div class="page">
-    <el-card shadow="never">
-      <template #header><span>异常日志</span></template>
-      <el-form :inline="true" class="filter" @submit.prevent="loadList">
-        <el-form-item label="TraceId">
-          <el-input v-model="query.trace_id" clearable style="width: 200px" />
-        </el-form-item>
-        <el-form-item label="路径">
-          <el-input v-model="query.path" clearable style="width: 200px" />
-        </el-form-item>
-        <el-form-item label="开始">
-          <el-date-picker
-            v-model="startDt"
-            type="datetime"
-            value-format="YYYY-MM-DD HH:mm:ss"
-            placeholder="可选"
-          />
-        </el-form-item>
-        <el-form-item label="结束">
-          <el-date-picker
-            v-model="endDt"
-            type="datetime"
-            value-format="YYYY-MM-DD HH:mm:ss"
-            placeholder="可选"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="loadList">查询</el-button>
-          <el-button @click="resetQuery">重置</el-button>
-        </el-form-item>
-      </el-form>
-      <el-table v-loading="loading" :data="rows" border stripe>
-        <el-table-column prop="id" label="ID" width="72" />
-        <el-table-column prop="method" label="方法" width="72" />
-        <el-table-column prop="path" label="路径" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="error_msg" label="错误信息" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="user_id" label="用户ID" width="88" />
-        <el-table-column prop="ip" label="IP" width="130" />
-        <el-table-column prop="trace_id" label="Trace" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="create_time" label="时间" width="180" :formatter="formatUtcForDisplay" />
-        <el-table-column label="操作" width="88" fixed="right">
+  <div>
+    <el-card>
+      <template #header>
+        <div class="card-header">
+          <el-form :inline="true" :model="query">
+            <el-form-item label="TraceId">
+              <el-input v-model="query.trace_id" placeholder="" clearable style="width: 200px" />
+            </el-form-item>
+            <el-form-item label="路径">
+              <el-input v-model="query.path" placeholder="" clearable style="width: 180px" />
+            </el-form-item>
+            <el-form-item label="开始时间">
+              <el-date-picker
+                v-model="query.start_time"
+                type="datetime"
+                placeholder="选择开始时间"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                style="width: 180px"
+                clearable
+              />
+            </el-form-item>
+            <el-form-item label="结束时间">
+              <el-date-picker
+                v-model="query.end_time"
+                type="datetime"
+                placeholder="选择结束时间"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                style="width: 180px"
+                clearable
+              />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="search">搜索</el-button>
+              <el-button @click="resetQuery">重置</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+      </template>
+      <el-table :data="list" border>
+        <el-table-column type="expand">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+            <div class="expand-content">
+              <div v-if="row.stack" class="expand-section">
+                <div class="expand-label">堆栈</div>
+                <pre class="expand-pre">{{ row.stack }}</pre>
+              </div>
+            </div>
           </template>
         </el-table-column>
+        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column prop="trace_id" label="TraceId" width="280" show-overflow-tooltip />
+        <el-table-column prop="path" label="路径" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="method" label="方法" width="80" />
+        <el-table-column prop="error_msg" label="错误信息" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="ip" label="IP" width="120" />
+        <el-table-column prop="create_time" label="时间" width="170" />
       </el-table>
-      <div class="pager">
-        <el-pagination
-          v-model:current-page="query.page"
-          v-model:page-size="query.size"
-          :total="total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
-          background
-          @size-change="loadList"
-          @current-change="loadList"
-        />
-      </div>
+      <el-pagination
+        v-model:current-page="query.page"
+        v-model:page-size="query.size"
+        :total="total"
+        layout="total, sizes, prev, pager, next"
+        @current-change="loadList"
+        @size-change="loadList"
+      />
     </el-card>
-
-    <el-drawer v-model="drawer" title="异常详情" size="55%">
-      <template v-if="current">
-        <el-descriptions :column="1" border size="small">
-          <el-descriptions-item label="路径">{{ current.method }} {{ current.path }}</el-descriptions-item>
-          <el-descriptions-item label="用户ID">{{ current.user_id }}</el-descriptions-item>
-          <el-descriptions-item label="IP">{{ current.ip }}</el-descriptions-item>
-          <el-descriptions-item label="Trace">{{ current.trace_id }}</el-descriptions-item>
-          <el-descriptions-item label="时间">{{ formatUtcText(current.create_time) }}</el-descriptions-item>
-        </el-descriptions>
-        <h4 class="sub">错误信息</h4>
-        <pre class="pre err">{{ current.error_msg || '—' }}</pre>
-        <h4 class="sub">堆栈</h4>
-        <pre class="pre stack">{{ current.stack || '—' }}</pre>
-      </template>
-    </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
-import { fetchExceptionLogList, type ExceptionLogItem } from '@/api/exceptionLog'
-import { formatUtcForDisplay, formatUtcText } from '@/utils/datetime'
+import { ref, reactive, onMounted } from 'vue'
+import { getExceptionLogList, type ExceptionLogItem } from '@/api/exceptionLog'
 
-const loading = ref(false)
-const rows = ref<ExceptionLogItem[]>([])
+const list = ref<ExceptionLogItem[]>([])
 const total = ref(0)
 const query = reactive({
-  page: 1,
-  size: 10,
   trace_id: '',
   path: '',
+  start_time: '',
+  end_time: '',
+  page: 1,
+  size: 10,
 })
-const startDt = ref<string | null>(null)
-const endDt = ref<string | null>(null)
-
-const drawer = ref(false)
-const current = ref<ExceptionLogItem | null>(null)
 
 async function loadList() {
-  loading.value = true
-  try {
-    const res = (await fetchExceptionLogList({
-      page: query.page,
-      size: query.size,
-      trace_id: query.trace_id || undefined,
-      path: query.path || undefined,
-      start_time: startDt.value || undefined,
-      end_time: endDt.value || undefined,
-    })) as { data?: { list?: ExceptionLogItem[]; total?: number } }
-    rows.value = res?.data?.list ?? []
-    total.value = res?.data?.total ?? 0
-  } finally {
-    loading.value = false
+  const params: Record<string, unknown> = {
+    page: query.page,
+    size: query.size,
   }
+  if (query.trace_id) params.trace_id = query.trace_id
+  if (query.path) params.path = query.path
+  if (query.start_time) params.start_time = query.start_time
+  if (query.end_time) params.end_time = query.end_time
+
+  const res = (await getExceptionLogList(params)) as { data?: { list: ExceptionLogItem[]; total: number } }
+  list.value = res?.data?.list || []
+  total.value = res?.data?.total || 0
 }
 
-function resetQuery() {
+function search() {
   query.page = 1
-  query.size = 10
-  query.trace_id = ''
-  query.path = ''
-  startDt.value = null
-  endDt.value = null
   loadList()
 }
 
-function openDetail(row: ExceptionLogItem) {
-  current.value = row
-  drawer.value = true
+function resetQuery() {
+  query.trace_id = ''
+  query.path = ''
+  query.start_time = ''
+  query.end_time = ''
+  query.page = 1
+  loadList()
 }
 
 onMounted(loadList)
 </script>
 
 <style scoped>
-.page {
-  padding: 8px 0;
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
-.filter {
+.expand-content {
+  padding: 12px 24px;
+}
+.expand-section {
   margin-bottom: 12px;
 }
-.pager {
-  margin-top: 16px;
-  display: flex;
-  justify-content: flex-end;
+.expand-label {
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #606266;
 }
-.sub {
-  margin: 14px 0 8px;
-  font-size: 14px;
-  font-weight: 600;
-}
-.pre {
-  background: #f1f5f9;
+.expand-pre {
+  margin: 0;
   padding: 10px;
-  border-radius: 8px;
+  background: #f5f7fa;
+  border-radius: 4px;
   font-size: 12px;
+  max-height: 200px;
+  overflow: auto;
   white-space: pre-wrap;
   word-break: break-all;
-  max-height: 280px;
-  overflow: auto;
-}
-.pre.err {
-  background: #fef2f2;
-  color: #991b1b;
-}
-.pre.stack {
-  background: #0f172a;
-  color: #e2e8f0;
-  max-height: 400px;
 }
 </style>

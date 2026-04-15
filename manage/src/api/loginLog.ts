@@ -36,3 +36,6 @@ export function fetchLoginLogList(params: {
     params: q,
   })
 }
+
+/** 与视图层 import 命名一致 */
+export const getLoginLogList = fetchLoginLogList

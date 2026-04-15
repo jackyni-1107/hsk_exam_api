@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"exam/internal/auditutil"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	sysdo "exam/internal/model/do/sys"
@@ -86,6 +87,10 @@ func (s *sSysFile) FileUpload(ctx context.Context, originalFilename string, size
 		return 0, "", "", gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 	newID, _ := r.LastInsertId()
+	var after sysentity.SysFileStorage
+	if err := dao.SysFileStorage.Ctx(ctx).Where("id", newID).Scan(&after); err == nil && after.Id > 0 {
+		auditutil.RecordEntityDiff(ctx, dao.SysFileStorage.Table(), newID, nil, &after)
+	}
 	return newID, objectKey, base, nil
 }
 
@@ -135,6 +140,10 @@ func (s *sSysFile) FileDelete(ctx context.Context, id int64) error {
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
+	var after sysentity.SysFileStorage
+	if err := dao.SysFileStorage.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SysFileStorage.Table(), id, &e, &after)
+	}
 	return nil
 }
 
@@ -167,10 +176,21 @@ func (s *sSysFile) StorageConfigCreate(ctx context.Context, storageType, name, c
 		return 0, gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
 	id, _ := r.LastInsertId()
+	var after sysentity.SysFileStorageConfig
+	if err := dao.SysFileStorageConfig.Ctx(ctx).Where("id", id).Scan(&after); err == nil && after.Id > 0 {
+		auditutil.RecordEntityDiff(ctx, dao.SysFileStorageConfig.Table(), id, nil, &after)
+	}
 	return id, nil
 }
 
 func (s *sSysFile) StorageConfigUpdate(ctx context.Context, id int64, name, configJson, updater string, cleanupBeforeDays int) error {
+	var before sysentity.SysFileStorageConfig
+	if err := dao.SysFileStorageConfig.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeConfigNotFound)
+	}
 	data := map[string]interface{}{
 		"updater": updater,
 	}
@@ -186,6 +206,10 @@ func (s *sSysFile) StorageConfigUpdate(ctx context.Context, id int64, name, conf
 	_, err := dao.SysFileStorageConfig.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Data(data).Update()
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	var after sysentity.SysFileStorageConfig
+	if err := dao.SysFileStorageConfig.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SysFileStorageConfig.Table(), id, &before, &after)
 	}
 	return nil
 }
@@ -209,11 +233,23 @@ func (s *sSysFile) StorageConfigDelete(ctx context.Context, id int64, updater st
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
+	var after sysentity.SysFileStorageConfig
+	if err := dao.SysFileStorageConfig.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SysFileStorageConfig.Table(), id, &e, &after)
+	}
 	return nil
 }
 
 func (s *sSysFile) StorageConfigSetActive(ctx context.Context, id int64, updater string) error {
-	_, err := dao.SysFileStorageConfig.Ctx(ctx).
+	var before sysentity.SysFileStorageConfig
+	err := dao.SysFileStorageConfig.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before)
+	if err != nil {
+		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	if before.Id == 0 {
+		return gerror.NewCode(consts.CodeConfigNotFound)
+	}
+	_, err = dao.SysFileStorageConfig.Ctx(ctx).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Data(map[string]interface{}{"is_active": 0, "updater": updater}).
 		Update()
@@ -227,6 +263,10 @@ func (s *sSysFile) StorageConfigSetActive(ctx context.Context, id int64, updater
 		Update()
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	var after sysentity.SysFileStorageConfig
+	if err := dao.SysFileStorageConfig.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SysFileStorageConfig.Table(), id, &before, &after)
 	}
 	return nil
 }

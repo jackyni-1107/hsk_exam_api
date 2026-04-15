@@ -7,18 +7,15 @@ import (
 	sysentity "exam/internal/model/entity/sys"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/frame/g"
 )
 
 func (s *sSysLog) SecurityEventLogList(ctx context.Context, page, size int, eventType, startTime, endTime string) ([]sysentity.SysSecurityEventLog, int, error) {
 	page, size = s.getPageSize(page, size)
 
 	m := sysdao.SysSecurityEventLog.Ctx(ctx)
-
-	// 使用 g.Map 自动过滤空值查询
-	m = m.Where(g.Map{
-		"event_type": eventType,
-	})
+	if eventType != "" {
+		m = m.Where("event_type", eventType)
+	}
 
 	// 时间范围过滤
 	if startTime != "" {

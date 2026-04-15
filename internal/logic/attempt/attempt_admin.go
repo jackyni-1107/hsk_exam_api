@@ -9,6 +9,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
 
+	"exam/internal/auditutil"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/model/bo"
@@ -314,6 +315,10 @@ func (s *sAttempt) AttemptAdminSaveSubjectiveScores(ctx context.Context, attempt
 	})
 	if err != nil {
 		return 0, 0, err
+	}
+	var afterAttempt examentity.ExamAttempt
+	if err := dao.ExamAttempt.Ctx(ctx).Where("id", attemptID).Scan(&afterAttempt); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.ExamAttempt.Table(), attemptID, &att, &afterAttempt)
 	}
 	return subjectiveSum, totalScore, nil
 }
