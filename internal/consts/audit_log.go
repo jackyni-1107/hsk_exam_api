@@ -6,3 +6,10 @@ const (
 	AuditLogTypeLoginFail    = 2
 	AuditLogTypeLogout       = 3
 )
+
+const (
+	EventTypeTokenInvalid     = "token_invalid"
+	EventTypePermissionDenied = "permission_denied"
+	EventTypeBruteForce       = "brute_force"
+	EventTypeSuspiciousIP     = "suspicious_ip"
+)

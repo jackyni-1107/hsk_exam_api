@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	auditsvc "exam/internal/service/audit"
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -20,11 +21,14 @@ import (
 
 func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.LoginRes, err error) {
 	r := ghttp.RequestFromCtx(ctx)
-	if r == nil {
-		return nil, gerror.NewCode(consts.CodeLoginFailed)
+	ip, userAgent := "", ""
+	if r != nil {
+		ip = r.GetClientIp()
+		userAgent = r.Header.Get("User-Agent")
 	}
-	ip := r.GetClientIp()
+	traceId := middleware.GetTraceId(ctx)
 	if secsvc.Security().CheckIPLoginRateLimit(ctx, ip) {
+		auditsvc.Audit().RecordSecurityEvent(ctx, consts.EventTypeSuspiciousIP, 0, ip, userAgent, "login rate limit exceeded", traceId)
 		return nil, gerror.NewCode(consts.CodeTooManyRequests)
 	}
 	name := secsvc.Security().NormalizeLoginName(req.Username)
@@ -38,15 +42,22 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 	}
 
 	u, _ := usersvc.SysUser().FindByUsername(ctx, name)
-	if u == nil || !utility.CheckPassword(u.Password, req.Password) {
-		secsvc.Security().RecordLoginFailure(ctx, consts.UserTypeAdmin, name, ip, r.Header.Get("User-Agent"), middleware.GetTraceId(ctx))
+
+	if u == nil {
+		auditsvc.Audit().RecordLoginFail(ctx, 0, req.Username, consts.UserTypeAdmin, ip, userAgent, "user not found", traceId)
+		secsvc.Security().RecordLoginFailure(ctx, consts.UserTypeAdmin, req.Username, ip, userAgent, traceId)
 		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
 	}
+
 	if u.Status == consts.StatusDisabled {
+		auditsvc.Audit().RecordLoginFail(ctx, u.Id, req.Username, consts.UserTypeAdmin, ip, userAgent, "user disabled", traceId)
 		return nil, gerror.NewCode(consts.CodeUserDisabled)
 	}
-
-	secsvc.Security().ClearLoginFailure(ctx, consts.UserTypeAdmin, name)
+	if !utility.CheckPassword(u.Password, req.Password) {
+		auditsvc.Audit().RecordLoginFail(ctx, u.Id, req.Username, consts.UserTypeAdmin, ip, userAgent, "invalid password", traceId)
+		secsvc.Security().RecordLoginFailure(ctx, consts.UserTypeAdmin, req.Username, ip, userAgent, traceId)
+		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
+	}
 
 	token := guid.S()
 	ttl := secsvc.Security().TokenTTLSeconds(ctx)
@@ -58,9 +69,14 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 	})
 	key := consts.TokenRedisKeyPrefix + consts.UserTypeTagAdmin + ":" + token
 	if err := g.Redis().SetEX(ctx, key, string(payload), ttl); err != nil {
-		return nil, gerror.Wrap(err, "redis")
+		g.Log().Errorf(ctx, "redis set token failed: %v", err)
+		auditsvc.Audit().RecordLoginFail(ctx, u.Id, req.Username, consts.UserTypeAdmin, ip, userAgent, "redis set token failed", traceId)
+		return nil, gerror.NewCode(consts.CodeLoginFailed, "")
 	}
 	_ = secsvc.Security().RegisterSession(ctx, consts.UserTypeAdmin, u.Id, token, ttl)
+
+	secsvc.Security().ClearLoginFailure(ctx, consts.UserTypeAdmin, req.Username)
+	auditsvc.Audit().RecordLoginSuccess(ctx, u.Id, u.Username, consts.UserTypeAdmin, ip, userAgent, traceId)
 
 	return &v1.LoginRes{
 		Token: token,
