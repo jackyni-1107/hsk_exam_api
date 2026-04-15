@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	auditsvc "exam/internal/service/audit"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
@@ -14,14 +15,20 @@ import (
 
 func (c *ControllerV1) Logout(ctx context.Context, req *v1.LogoutReq) (res *v1.LogoutRes, err error) {
 	r := ghttp.RequestFromCtx(ctx)
+	ip, userAgent := "", ""
+	if r != nil {
+		ip = r.GetClientIp()
+		userAgent = r.Header.Get("User-Agent")
+	}
 	if r != nil {
 		tok := bearerTokenClient(r)
+		if d := middleware.GetCtxData(ctx); d != nil && tok != "" {
+			auditsvc.Audit().RecordLogout(ctx, d.UserId, d.Username, d.UserType, ip, userAgent, middleware.GetTraceId(ctx))
+			secsvc.Security().RemoveSessionToken(ctx, consts.UserTypeClient, d.UserId, tok)
+		}
 		if tok != "" {
 			key := consts.TokenRedisKeyPrefix + consts.UserTypeTagClient + ":" + tok
 			_, _ = g.Redis().Del(ctx, key)
-		}
-		if d := middleware.GetCtxData(ctx); d != nil && tok != "" {
-			secsvc.Security().RemoveSessionToken(ctx, consts.UserTypeClient, d.UserId, tok)
 		}
 	}
 	return &v1.LogoutRes{}, nil
