@@ -1,0 +1,22 @@
+[Unit]
+Description=HSK Exam Service
+After=network.target docker.service
+# 如果你的程序强依赖 Redis 容器，建议加上 Wants
+Wants=docker.service
+
+[Service]
+# 程序所在的绝对路径
+ExecStart=/home/ubuntu/opt/server/hskexam/main
+# 程序运行的工作目录（通常与程序同目录）
+WorkingDirectory=/home/ubuntu/opt/server/hskexam/
+# 建议使用 ubuntu 用户运行，避免 root 权限过大
+User=ubuntu
+Group=ubuntu
+# 自动重启设置
+Restart=always
+RestartSec=5
+# 如果有环境变量文件，可以启用下面这行
+# EnvironmentFile=/home/ubuntu/opt/server/hskexam/.env
+
+[Install]
+WantedBy=multi-user.target
