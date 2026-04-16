@@ -30,7 +30,7 @@ type (
 		// GetAttemptAnswers 返回当前用户该会话下的答题明细：先读库再合并 Redis 草稿（与保存路径一致），仅包含非空答案。
 		GetAttemptAnswers(ctx context.Context, userID int64, attemptID int64) ([]bo.AttemptAnswerClientItem, error)
 		// SaveAnswers 保存答案 redis -> db
-		SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.SaveAnswerItem) error
+		SaveAnswers(ctx context.Context, userID int64, attemptID int64, segmentCode string, items []bo.SaveAnswerItem) error
 		// SubmitAttempt 主动交卷：仅标记为已交卷（待算分）。客观分与 exam_result 由 sys_task（ExamScoreFinalizeHandler）统一算分写入。
 		SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error
 		// MarkSubmittedIfOverdue 供定时任务：超时未操作会话标记为已交卷（待算分，不校验用户）。算分由 ExamScoreFinalizeHandler 执行。

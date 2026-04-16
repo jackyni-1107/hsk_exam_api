@@ -29,6 +29,10 @@ func attemptAnswersRedisKey(attemptID int64) string {
 	return fmt.Sprintf(consts.ExamAttemptKeyFmt, attemptID)
 }
 
+func attemptSegmentSaveRedisKey(attemptID int64) string {
+	return fmt.Sprintf(consts.ExamSegmentSaveKeyFmt, attemptID)
+}
+
 // TryAcquireSubmitLock 交卷/超时自动交卷互斥，避免重复计分。
 func TryAcquireSubmitLock(ctx context.Context, attemptID int64) (bool, error) {
 	key := submitLockKey(attemptID)
@@ -98,6 +102,58 @@ func RedisMaxDraftSaveTime(ctx context.Context, attemptID int64) *gtime.Time {
 		return nil
 	}
 	return gtime.NewFromTimeStamp(maxTs)
+}
+
+// RedisSaveSegmentSubmitTime 记录当前环节最近一次提交时间（Unix 秒）。
+func RedisSaveSegmentSubmitTime(ctx context.Context, attemptID int64, segmentCode string, saveAtTs int64) error {
+	if segmentCode == "" || saveAtTs <= 0 {
+		return nil
+	}
+	redisKey := attemptSegmentSaveRedisKey(attemptID)
+	if _, err := g.Redis().HSet(ctx, redisKey, map[string]any{segmentCode: saveAtTs}); err != nil {
+		return err
+	}
+	_, _ = g.Redis().Expire(ctx, redisKey, examAttemptDraftTTLSeconds)
+	return nil
+}
+
+// RedisGetSegmentLastSubmitTime 读取指定环节最近一次提交时间。
+func RedisGetSegmentLastSubmitTime(ctx context.Context, attemptID int64, segmentCode string) *gtime.Time {
+	if segmentCode == "" {
+		return nil
+	}
+	redisKey := attemptSegmentSaveRedisKey(attemptID)
+	v, err := g.Redis().HGet(ctx, redisKey, segmentCode)
+	if err != nil || v.IsNil() {
+		return nil
+	}
+	ts := v.Int64()
+	if ts <= 0 {
+		return nil
+	}
+	return gtime.NewFromTimeStamp(ts)
+}
+
+// RedisLatestSegmentCode 返回最近提交过答案的环节编码。
+func RedisLatestSegmentCode(ctx context.Context, attemptID int64) string {
+	redisKey := attemptSegmentSaveRedisKey(attemptID)
+	res, err := g.Redis().HGetAll(ctx, redisKey)
+	if err != nil || res == nil || res.IsEmpty() {
+		return ""
+	}
+	items := res.MapStrVar()
+	var (
+		maxTs int64
+		best  string
+	)
+	for code, tsVar := range items {
+		ts := tsVar.Int64()
+		if ts > maxTs {
+			maxTs = ts
+			best = code
+		}
+	}
+	return best
 }
 
 // RedisSaveAnswerDrafts 写入草稿并设置过期、推同步队列。

@@ -144,12 +144,14 @@ func (s *sAttempt) GetAttempt(ctx context.Context, userID int64, attemptID int64
 		return nil, err
 	}
 	now := gtime.Now()
-	deadlineReached := att.Status == consts.ExamAttemptInProgress && att.DeadlineAt != nil && att.DeadlineAt.Before(now)
-	rem := computeBatchExamRemainingSeconds(ctx, att)
+	//deadlineReached := att.Status == consts.ExamAttemptInProgress && att.DeadlineAt != nil && att.DeadlineAt.Before(now)
+	finalSegmentCode := RedisLatestSegmentCode(ctx, att.Id)
+	rem := computeSegmentRemainingSeconds(ctx, att, finalSegmentCode)
 	return &bo.AttemptView{
-		Attempt:          att,
-		ServerTime:       utility.ToRFC3339UTCShift(now),
-		DeadlineReached:  deadlineReached,
+		Attempt:    att,
+		ServerTime: utility.ToRFC3339UTCShift(now),
+		//DeadlineReached:  deadlineReached,
+		SegmentCode:      finalSegmentCode,
 		RemainingSeconds: rem,
 	}, nil
 }
@@ -199,7 +201,7 @@ func (s *sAttempt) GetAttemptAnswers(ctx context.Context, userID int64, attemptI
 }
 
 // SaveAnswers 保存答案 redis -> db
-func (s *sAttempt) SaveAnswers(ctx context.Context, userID int64, attemptID int64, items []bo.SaveAnswerItem) error {
+func (s *sAttempt) SaveAnswers(ctx context.Context, userID int64, attemptID int64, segmentCode string, items []bo.SaveAnswerItem) error {
 	cfg := s.loadExamSessionCfg(ctx)
 	if err := RateLimitSaveAnswers(ctx, attemptID, cfg.SaveAnswersPerSecond); err != nil {
 		return err
@@ -222,7 +224,10 @@ func (s *sAttempt) SaveAnswers(ctx context.Context, userID int64, attemptID int6
 		}
 		data[gconv.String(it.QuestionID)] = val
 	}
-	return RedisSaveAnswerDrafts(ctx, attemptID, data)
+	if err := RedisSaveAnswerDrafts(ctx, attemptID, data); err != nil {
+		return err
+	}
+	return RedisSaveSegmentSubmitTime(ctx, attemptID, segmentCode, now.Timestamp())
 }
 
 // SubmitAttempt 主动交卷：仅标记为已交卷（待算分）。客观分与 exam_result 由 sys_task（ExamScoreFinalizeHandler）统一算分写入。

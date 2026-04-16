@@ -11,6 +11,7 @@ const (
 	HlsPlayKeyPrefix            = "hskexam:exam:hls_play:"
 	ExamSubmitLockKeyFmt        = "hskexam:exam:submit_lock:%d"
 	ExamSaveRateKeyFmt          = "hskexam:exam:save_rate:%d"
+	ExamSegmentSaveKeyFmt       = "hskexam:exam:segment_save:%d"
 	ExamSubmitLockTTL           = 45
 	PaperForExamCacheTTLSeconds = 3600
 	PaperForExamMaxStringBytes  = 256 * 1024

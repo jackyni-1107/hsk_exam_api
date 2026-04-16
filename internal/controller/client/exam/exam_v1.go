@@ -137,19 +137,20 @@ func (c *ControllerV1) AttemptGet(ctx context.Context, req *v1.AttemptGetReq) (r
 		Id:                 a.Id,
 		ExaminationPaperId: a.MockExaminationPaperId,
 		Status:             a.Status,
-		DurationSeconds:    a.DurationSeconds,
-		ObjectiveScore:     a.ObjectiveScore,
-		SubjectiveScore:    a.SubjectiveScore,
-		TotalScore:         a.TotalScore,
-		HasSubjective:      a.HasSubjective,
-		ServerTime:         v.ServerTime,
-		DeadlineReached:    v.DeadlineReached,
-		RemainingSeconds:   v.RemainingSeconds,
+		//DurationSeconds:    a.DurationSeconds,
+		//ObjectiveScore:     a.ObjectiveScore,
+		//SubjectiveScore:    a.SubjectiveScore,
+		//TotalScore:         a.TotalScore,
+		//HasSubjective:      a.HasSubjective,
+		ServerTime: v.ServerTime,
+		//DeadlineReached:    v.DeadlineReached,
+		SegmentCode:      v.SegmentCode,
+		RemainingSeconds: v.RemainingSeconds,
 	}
 	out.StartedAt = utility.ToRFC3339UTC(a.StartedAt)
 	out.DeadlineAt = utility.ToRFC3339UTC(a.DeadlineAt)
-	out.SubmittedAt = utility.ToRFC3339UTC(a.SubmittedAt)
-	out.EndedAt = utility.ToRFC3339UTC(a.EndedAt)
+	//out.SubmittedAt = utility.ToRFC3339UTC(a.SubmittedAt)
+	//out.EndedAt = utility.ToRFC3339UTC(a.EndedAt)
 	return out, nil
 }
 
@@ -209,7 +210,7 @@ func (c *ControllerV1) AttemptSaveAnswers(ctx context.Context, req *v1.AttemptSa
 			AnswerJSON: string(raw),
 		})
 	}
-	err = attemptsvc.Attempt().SaveAnswers(ctx, ctxData.UserId, req.Id, items)
+	err = attemptsvc.Attempt().SaveAnswers(ctx, ctxData.UserId, req.Id, req.SegmentCode, items)
 	if err != nil {
 		return nil, err
 	}

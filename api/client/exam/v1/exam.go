@@ -108,21 +108,22 @@ type AttemptGetReq struct {
 }
 
 type AttemptGetRes struct {
-	Id                 int64   `json:"id" dc:"会话ID"`
-	ExaminationPaperId int64   `json:"examination_paper_id" dc:"mock_examination_paper.id"`
-	Status             int     `json:"status" dc:"会话状态"`
-	DurationSeconds    int     `json:"duration_seconds" dc:"考试时长(秒)"`
-	StartedAt          string  `json:"started_at" dc:"开考时间"`
-	DeadlineAt         string  `json:"deadline_at" dc:"截止时间"`
-	SubmittedAt        string  `json:"submitted_at" dc:"交卷时间"`
-	EndedAt            string  `json:"ended_at" dc:"结束时间"`
-	ObjectiveScore     float64 `json:"objective_score" dc:"客观题得分"`
-	SubjectiveScore    float64 `json:"subjective_score" dc:"主观题得分"`
-	TotalScore         float64 `json:"total_score" dc:"总分"`
-	HasSubjective      int     `json:"has_subjective" dc:"是否含主观题：0否 1是"`
-	ServerTime         string  `json:"server_time" dc:"服务端当前时间"`
-	DeadlineReached    bool    `json:"deadline_reached" dc:"是否已到截止时间"`
-	RemainingSeconds   *int    `json:"remaining_seconds,omitempty" dc:"考试剩余时间(秒)：批次 exam_end_at 减去最近一次保存答案时间（DB 与 Redis 取较新）；无批次结束或未进行中时不返回"`
+	Id                 int64 `json:"id" dc:"会话ID"`
+	ExaminationPaperId int64 `json:"examination_paper_id" dc:"mock_examination_paper.id"`
+	Status             int   `json:"status" dc:"会话状态"`
+	//DurationSeconds    int     `json:"duration_seconds" dc:"考试时长(秒)"`
+	StartedAt  string `json:"started_at" dc:"开考时间"`
+	DeadlineAt string `json:"deadline_at" dc:"截止时间"`
+	//SubmittedAt        string  `json:"submitted_at" dc:"交卷时间"`
+	//EndedAt            string  `json:"ended_at" dc:"结束时间"`
+	//ObjectiveScore     float64 `json:"objective_score" dc:"客观题得分"`
+	//SubjectiveScore    float64 `json:"subjective_score" dc:"主观题得分"`
+	//TotalScore         float64 `json:"total_score" dc:"总分"`
+	//HasSubjective      int     `json:"has_subjective" dc:"是否含主观题：0否 1是"`
+	ServerTime string `json:"server_time" dc:"服务端当前时间"`
+	//DeadlineReached  bool   `json:"deadline_reached" dc:"是否已到截止时间"`
+	SegmentCode      string `json:"segment_code,omitempty" dc:"当前环节编码"`
+	RemainingSeconds *int   `json:"remaining_seconds,omitempty" dc:"当前环节剩余时间(秒)：环节时长减去该环节最近一次提交后流逝的时间"`
 }
 
 type AttemptAnswersGetReq struct {
@@ -135,9 +136,10 @@ type AttemptAnswersGetRes struct {
 }
 
 type AttemptSaveAnswersReq struct {
-	g.Meta `path:"/exam/attempts/{id}/answers" method:"put" tags:"客户端-考试" summary:"保存答案（批量）"`
-	Id     int64               `json:"id" in:"path" v:"required|min:1" dc:"答题会话ID"`
-	Items  []AttemptAnswerItem `json:"items" dc:"答案列表"`
+	g.Meta      `path:"/exam/attempts/{id}/answers" method:"put" tags:"客户端-考试" summary:"保存答案（批量）"`
+	Id          int64               `json:"id" in:"path" v:"required|min:1" dc:"答题会话ID"`
+	SegmentCode string              `json:"segment_code" v:"required#err.invalid_params" dc:"当前作答环节编码（如 listen/read/write）"`
+	Items       []AttemptAnswerItem `json:"items" dc:"答案列表"`
 }
 
 type AttemptAnswerItem struct {

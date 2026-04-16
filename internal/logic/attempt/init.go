@@ -249,46 +249,50 @@ func answerPayloadToClientAnswer(p bo.AnswerPayload) any {
 	return nil
 }
 
-func lastAnswerReferenceTime(ctx context.Context, attemptID int64, startedAt *gtime.Time) *gtime.Time {
-	var row examentity.ExamAttemptAnswer
-	_ = dao.ExamAttemptAnswer.Ctx(ctx).
-		Fields("update_time").
-		Where("attempt_id", attemptID).
+func loadSegmentDurationSeconds(ctx context.Context, levelID int64, segmentCode string) int {
+	if levelID <= 0 || segmentCode == "" {
+		return 0
+	}
+	var seg struct {
+		Duration int `json:"duration"`
+	}
+	if err := dao.MockExaminationSegment.Ctx(ctx).
+		Fields("duration").
+		Where("level_id", levelID).
+		Where("segment_code", segmentCode).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		OrderDesc("update_time").
 		Limit(1).
-		Scan(&row)
-	var best *gtime.Time
-	if row.UpdateTime != nil {
-		best = row.UpdateTime
+		Scan(&seg); err != nil {
+		g.Log().Warningf(ctx, "loadSegmentDurationSeconds failed: %v", err)
+		return 0
 	}
-	if rds := RedisMaxDraftSaveTime(ctx, attemptID); rds != nil {
-		if best == nil || rds.After(best) {
-			best = rds
-		}
+	if seg.Duration <= 0 {
+		return 0
 	}
-	if best == nil {
-		best = startedAt
-	}
-	return best
+	return seg.Duration * 60
 }
 
-func computeBatchExamRemainingSeconds(ctx context.Context, att examentity.ExamAttempt) *int {
-	if att.Status != consts.ExamAttemptInProgress || att.ExamBatchId <= 0 {
+func computeSegmentRemainingSeconds(ctx context.Context, att examentity.ExamAttempt, segmentCode string) *int {
+	if att.Status != consts.ExamAttemptInProgress || segmentCode == "" {
 		return nil
 	}
-	var batch examentity.ExamBatch
-	if err := dao.ExamBatch.Ctx(ctx).
-		Where("id", att.ExamBatchId).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&batch); err != nil || batch.Id == 0 || batch.ExamEndAt == nil {
+	segmentDurationSeconds := loadSegmentDurationSeconds(ctx, att.MockLevelId, segmentCode)
+	if segmentDurationSeconds <= 0 {
 		return nil
 	}
-	ref := lastAnswerReferenceTime(ctx, att.Id, att.StartedAt)
+	ref := RedisGetSegmentLastSubmitTime(ctx, att.Id, segmentCode)
+	if ref == nil {
+		ref = att.StartedAt
+	}
 	if ref == nil {
 		return nil
 	}
-	sec := batch.ExamEndAt.Timestamp() - ref.Timestamp()
+	nowTs := gtime.Now().Timestamp()
+	used := nowTs - ref.Timestamp()
+	if used < 0 {
+		used = 0
+	}
+	sec := int64(segmentDurationSeconds) - used
 	if sec < 0 {
 		sec = 0
 	}

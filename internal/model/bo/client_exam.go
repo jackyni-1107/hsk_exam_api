@@ -14,7 +14,8 @@ type AttemptView struct {
 	Attempt          examentity.ExamAttempt
 	ServerTime       string
 	DeadlineReached  bool
-	RemainingSeconds *int // 进行中且存在批次结束时间时：exam_batch.exam_end_at 与最近一次保存答案时间的差（秒），下限 0
+	SegmentCode      string
+	RemainingSeconds *int // 当前 segment_code 对应环节剩余时间（秒）
 }
 
 // AnswerPayload 客户端答题 JSON。
