@@ -3,10 +3,14 @@ package paper
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/gogf/gf/v2/errors/gerror"
+	"golang.org/x/sync/singleflight"
 
 	"exam/internal/consts"
 	"exam/internal/dao"
@@ -14,6 +18,33 @@ import (
 	examentity "exam/internal/model/entity/exam"
 	mockentity "exam/internal/model/entity/mock"
 	"exam/internal/utility/exampaper"
+)
+
+const mockMetaCacheTTL = 10 * time.Minute
+
+type cachedMockPaperEntry struct {
+	data     mockentity.MockExaminationPaper
+	cachedAt time.Time
+}
+
+type cachedSegmentsEntry struct {
+	data     []mockentity.MockExaminationSegment
+	cachedAt time.Time
+}
+
+type cachedPartsEntry struct {
+	data     []mockentity.MockExaminationPart
+	cachedAt time.Time
+}
+
+var (
+	mockPaperMetaCache sync.Map
+	mockSegmentsCache  sync.Map
+	mockPartsCache     sync.Map
+
+	mockPaperMetaSF singleflight.Group
+	mockSegmentsSF  singleflight.Group
+	mockPartsSF     singleflight.Group
 )
 
 func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (map[string]interface{}, error) {
@@ -287,12 +318,40 @@ func (s *sPaper) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) 
 	if err != nil {
 		return nil, err
 	}
+	mockPaper, err := loadMockPaperByID(ctx, mockPaperID)
+	if err != nil {
+		return nil, err
+	}
 	t, err := PaperDetailForExamInit(ctx, paper.Id)
 	if err != nil {
 		return nil, err
 	}
 	out := paperDetailForExamInitTreeToBO(t)
+	out.Paper.ListenReviewDuration = mockPaper.ListenReviewDuration
 	return &out, nil
+}
+
+func (s *sPaper) PaperBootstrapForExam(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, []exambo.PaperPrepareSegment, error) {
+	paper, err := exampaper.ByMockID(ctx, mockPaperID)
+	if err != nil {
+		return nil, nil, err
+	}
+	mockPaper, err := loadMockPaperByID(ctx, mockPaperID)
+	if err != nil {
+		return nil, nil, err
+	}
+	t, err := PaperDetailForExamInit(ctx, paper.Id)
+	if err != nil {
+		return nil, nil, err
+	}
+	detail := paperDetailForExamInitTreeToBO(t)
+	detail.Paper.ListenReviewDuration = mockPaper.ListenReviewDuration
+
+	segments, err := paperPrepareSegmentsByLevelID(ctx, mockPaper.LevelId)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &detail, segments, nil
 }
 
 func (s *sPaper) PaperPrepareSegments(ctx context.Context, mockPaperID int64) ([]exambo.PaperPrepareSegment, error) {
@@ -326,23 +385,16 @@ func (s *sPaper) PaperPrepareSegments(ctx context.Context, mockPaperID int64) ([
 }
 
 func paperPrepareSegmentsFromDB(ctx context.Context, mockPaperID int64) ([]exambo.PaperPrepareSegment, error) {
-	var mockPaper mockentity.MockExaminationPaper
-	if err := dao.MockExaminationPaper.Ctx(ctx).
-		Where("id", mockPaperID).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&mockPaper); err != nil {
+	mockPaper, err := loadMockPaperByID(ctx, mockPaperID)
+	if err != nil {
 		return nil, err
 	}
-	if mockPaper.Id == 0 {
-		return []exambo.PaperPrepareSegment{}, nil
-	}
+	return paperPrepareSegmentsByLevelID(ctx, mockPaper.LevelId)
+}
 
-	segments := make([]mockentity.MockExaminationSegment, 0)
-	if err := dao.MockExaminationSegment.Ctx(ctx).
-		Where("level_id", mockPaper.LevelId).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		OrderAsc("seq,id").
-		Scan(&segments); err != nil {
+func paperPrepareSegmentsByLevelID(ctx context.Context, levelID int64) ([]exambo.PaperPrepareSegment, error) {
+	segments, err := loadSegmentsByLevelID(ctx, levelID)
+	if err != nil {
 		return nil, err
 	}
 	if len(segments) == 0 {
@@ -355,12 +407,8 @@ func paperPrepareSegmentsFromDB(ctx context.Context, mockPaperID int64) ([]examb
 		segmentIDs = append(segmentIDs, seg.Id)
 	}
 
-	parts := make([]mockentity.MockExaminationPart, 0)
-	if err := dao.MockExaminationPart.Ctx(ctx).
-		WhereIn("segment_id", segmentIDs).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		OrderAsc("segment_id,code,id").
-		Scan(&parts); err != nil {
+	parts, err := loadPartsByLevelID(ctx, levelID, segmentIDs)
+	if err != nil {
 		return nil, err
 	}
 	for _, part := range parts {
@@ -403,6 +451,110 @@ func paperPrepareSegmentsFromDB(ctx context.Context, mockPaperID int64) ([]examb
 		out = append(out, boSeg)
 	}
 	return out, nil
+}
+
+func loadMockPaperByID(ctx context.Context, mockPaperID int64) (mockentity.MockExaminationPaper, error) {
+	if entry, ok := mockPaperMetaCache.Load(mockPaperID); ok {
+		e := entry.(*cachedMockPaperEntry)
+		if time.Since(e.cachedAt) < mockMetaCacheTTL {
+			return e.data, nil
+		}
+		mockPaperMetaCache.Delete(mockPaperID)
+	}
+	sfKey := fmt.Sprintf("mock-paper:%d", mockPaperID)
+	v, err, _ := mockPaperMetaSF.Do(sfKey, func() (interface{}, error) {
+		if entry, ok := mockPaperMetaCache.Load(mockPaperID); ok {
+			e := entry.(*cachedMockPaperEntry)
+			if time.Since(e.cachedAt) < mockMetaCacheTTL {
+				return &e.data, nil
+			}
+			mockPaperMetaCache.Delete(mockPaperID)
+		}
+		var mockPaper mockentity.MockExaminationPaper
+		if err := dao.MockExaminationPaper.Ctx(ctx).
+			Where("id", mockPaperID).
+			Where("delete_flag", consts.DeleteFlagNotDeleted).
+			Scan(&mockPaper); err != nil {
+			return mockentity.MockExaminationPaper{}, err
+		}
+		if mockPaper.Id == 0 {
+			return mockentity.MockExaminationPaper{}, gerror.NewCode(consts.CodeMockExamPaperNotFound)
+		}
+		mockPaperMetaCache.Store(mockPaperID, &cachedMockPaperEntry{data: mockPaper, cachedAt: time.Now()})
+		return &mockPaper, nil
+	})
+	if err != nil {
+		return mockentity.MockExaminationPaper{}, err
+	}
+	return *v.(*mockentity.MockExaminationPaper), nil
+}
+
+func loadSegmentsByLevelID(ctx context.Context, levelID int64) ([]mockentity.MockExaminationSegment, error) {
+	if entry, ok := mockSegmentsCache.Load(levelID); ok {
+		e := entry.(*cachedSegmentsEntry)
+		if time.Since(e.cachedAt) < mockMetaCacheTTL {
+			return e.data, nil
+		}
+		mockSegmentsCache.Delete(levelID)
+	}
+	sfKey := fmt.Sprintf("mock-segments:%d", levelID)
+	v, err, _ := mockSegmentsSF.Do(sfKey, func() (interface{}, error) {
+		if entry, ok := mockSegmentsCache.Load(levelID); ok {
+			e := entry.(*cachedSegmentsEntry)
+			if time.Since(e.cachedAt) < mockMetaCacheTTL {
+				return e.data, nil
+			}
+			mockSegmentsCache.Delete(levelID)
+		}
+		segments := make([]mockentity.MockExaminationSegment, 0)
+		if err := dao.MockExaminationSegment.Ctx(ctx).
+			Where("level_id", levelID).
+			Where("delete_flag", consts.DeleteFlagNotDeleted).
+			OrderAsc("seq,id").
+			Scan(&segments); err != nil {
+			return nil, err
+		}
+		mockSegmentsCache.Store(levelID, &cachedSegmentsEntry{data: segments, cachedAt: time.Now()})
+		return segments, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]mockentity.MockExaminationSegment), nil
+}
+
+func loadPartsByLevelID(ctx context.Context, levelID int64, segmentIDs []int64) ([]mockentity.MockExaminationPart, error) {
+	if entry, ok := mockPartsCache.Load(levelID); ok {
+		e := entry.(*cachedPartsEntry)
+		if time.Since(e.cachedAt) < mockMetaCacheTTL {
+			return e.data, nil
+		}
+		mockPartsCache.Delete(levelID)
+	}
+	sfKey := fmt.Sprintf("mock-parts:%d", levelID)
+	v, err, _ := mockPartsSF.Do(sfKey, func() (interface{}, error) {
+		if entry, ok := mockPartsCache.Load(levelID); ok {
+			e := entry.(*cachedPartsEntry)
+			if time.Since(e.cachedAt) < mockMetaCacheTTL {
+				return e.data, nil
+			}
+			mockPartsCache.Delete(levelID)
+		}
+		parts := make([]mockentity.MockExaminationPart, 0)
+		if err := dao.MockExaminationPart.Ctx(ctx).
+			WhereIn("segment_id", segmentIDs).
+			Where("delete_flag", consts.DeleteFlagNotDeleted).
+			OrderAsc("segment_id,code,id").
+			Scan(&parts); err != nil {
+			return nil, err
+		}
+		mockPartsCache.Store(levelID, &cachedPartsEntry{data: parts, cachedAt: time.Now()})
+		return parts, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]mockentity.MockExaminationPart), nil
 }
 
 func (s *sPaper) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionDetailForExamView, error) {

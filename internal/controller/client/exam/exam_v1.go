@@ -7,13 +7,11 @@ import (
 	"exam/internal/consts"
 	"exam/internal/middleware"
 	"exam/internal/model/bo"
-	exambo "exam/internal/model/bo/exam"
 	attemptsvc "exam/internal/service/attempt"
 	papersvc "exam/internal/service/paper"
 	"exam/internal/utility"
 
 	"github.com/gogf/gf/v2/errors/gerror"
-	"golang.org/x/sync/errgroup"
 )
 
 func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq) (res *v1.PaperForExamRes, err error) {
@@ -22,23 +20,8 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
 
-	var (
-		d        *exambo.PaperDetailForExamInitTree
-		segments []exambo.PaperPrepareSegment
-	)
-
-	eg, egCtx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		var e error
-		d, e = papersvc.Paper().PaperDetailForExamInit(egCtx, req.PaperId)
-		return e
-	})
-	eg.Go(func() error {
-		var e error
-		segments, e = papersvc.Paper().PaperPrepareSegments(egCtx, req.PaperId)
-		return e
-	})
-	if err = eg.Wait(); err != nil {
+	d, segments, err := papersvc.Paper().PaperBootstrapForExam(ctx, req.PaperId)
+	if err != nil {
 		return nil, err
 	}
 
@@ -75,13 +58,14 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 	}
 	playURL, _, _ := papersvc.Paper().IssuePaperHlsPlay(ctx, data.UserId, d.Paper.Id)
 	res = &v1.PaperForExamRes{
-		Id:              d.Paper.Id,
-		Level:           d.Paper.Level,
-		PaperId:         d.Paper.PaperId,
-		Title:           d.Paper.Title,
-		SourceBaseUrl:   d.Paper.SourceBaseUrl,
-		AudioUrl:        playURL,
-		DurationSeconds: d.Paper.DurationSeconds,
+		Id:                   d.Paper.Id,
+		Level:                d.Paper.Level,
+		PaperId:              d.Paper.PaperId,
+		Title:                d.Paper.Title,
+		SourceBaseUrl:        d.Paper.SourceBaseUrl,
+		AudioUrl:             playURL,
+		DurationSeconds:      d.Paper.DurationSeconds,
+		ListenReviewDuration: d.Paper.ListenReviewDuration,
 		Prepare: v1.PaperForExamPrepare{
 			Instruction: d.Paper.PrepareInstruction,
 			AudioFile:   d.Paper.PrepareAudioFile,

@@ -107,18 +107,19 @@ type BlockOutlineForExamView struct {
 }
 
 type PaperHeadForExamView struct {
-	Id                 int64  `json:"id"`
-	Level              string `json:"level"`
-	PaperId            string `json:"paper_id"`
-	Title              string `json:"title"`
-	PrepareTitle       string `json:"prepare_title"`
-	PrepareInstruction string `json:"prepare_instruction"`
-	PrepareAudioFile   string `json:"prepare_audio_file"`
-	SourceBaseUrl      string `json:"source_base_url"`
-	AudioHlsPrefix     string `json:"audio_hls_prefix"`
-	IndexJson          string `json:"index_json"`
-	DurationSeconds    int    `json:"duration_seconds"`
-	CreateTime         string `json:"create_time"`
+	Id                   int64  `json:"id"`
+	Level                string `json:"level"`
+	PaperId              string `json:"paper_id"`
+	Title                string `json:"title"`
+	PrepareTitle         string `json:"prepare_title"`
+	PrepareInstruction   string `json:"prepare_instruction"`
+	PrepareAudioFile     string `json:"prepare_audio_file"`
+	SourceBaseUrl        string `json:"source_base_url"`
+	AudioHlsPrefix       string `json:"audio_hls_prefix"`
+	IndexJson            string `json:"index_json"`
+	DurationSeconds      int    `json:"duration_seconds"`
+	ListenReviewDuration int    `json:"listen_review_duration"`
+	CreateTime           string `json:"create_time"`
 }
 
 type PaperPrepareSegment struct {
