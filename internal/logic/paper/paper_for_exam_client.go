@@ -3,6 +3,8 @@ package paper
 import (
 	"context"
 	"encoding/json"
+	"sort"
+	"strconv"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 
@@ -37,7 +39,217 @@ func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64
 	if err := json.Unmarshal([]byte(sec.TopicJson), &m); err != nil {
 		return nil, err
 	}
+	var blocks []examentity.ExamQuestionBlock
+	if err := dao.ExamQuestionBlock.Ctx(ctx).
+		Where("section_id", sec.Id).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		OrderAsc("block_order,id").
+		Scan(&blocks); err != nil {
+		return nil, err
+	}
+	if len(blocks) == 0 {
+		return m, nil
+	}
+	blockIDs := make([]interface{}, 0, len(blocks))
+	for _, b := range blocks {
+		blockIDs = append(blockIDs, b.Id)
+	}
+	var questions []examentity.ExamQuestion
+	if err := dao.ExamQuestion.Ctx(ctx).
+		Fields("id", "block_id", "sort_in_block", "is_example").
+		Where("exam_paper_id", paper.Id).
+		WhereIn("block_id", blockIDs).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		OrderAsc("block_id,sort_in_block,id").
+		Scan(&questions); err != nil {
+		return nil, err
+	}
+	if len(questions) == 0 {
+		return m, nil
+	}
+	questionsByBlock := make(map[int64][]examentity.ExamQuestion, len(blocks))
+	questionIDs := make([]interface{}, 0, len(questions))
+	for _, q := range questions {
+		questionsByBlock[q.BlockId] = append(questionsByBlock[q.BlockId], q)
+		questionIDs = append(questionIDs, q.Id)
+	}
+	for bid := range questionsByBlock {
+		sort.Slice(questionsByBlock[bid], func(i, j int) bool {
+			if questionsByBlock[bid][i].SortInBlock != questionsByBlock[bid][j].SortInBlock {
+				return questionsByBlock[bid][i].SortInBlock < questionsByBlock[bid][j].SortInBlock
+			}
+			return questionsByBlock[bid][i].Id < questionsByBlock[bid][j].Id
+		})
+	}
+	var options []examentity.ExamOption
+	if err := dao.ExamOption.Ctx(ctx).
+		Fields("id", "question_id", "sort_order").
+		WhereIn("question_id", questionIDs).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		OrderAsc("question_id,sort_order,id").
+		Scan(&options); err != nil {
+		return nil, err
+	}
+	optionsByQuestion := make(map[int64][]examentity.ExamOption, len(questions))
+	for _, opt := range options {
+		optionsByQuestion[opt.QuestionId] = append(optionsByQuestion[opt.QuestionId], opt)
+	}
+	for qid := range optionsByQuestion {
+		sort.Slice(optionsByQuestion[qid], func(i, j int) bool {
+			if optionsByQuestion[qid][i].SortOrder != optionsByQuestion[qid][j].SortOrder {
+				return optionsByQuestion[qid][i].SortOrder < optionsByQuestion[qid][j].SortOrder
+			}
+			return optionsByQuestion[qid][i].Id < optionsByQuestion[qid][j].Id
+		})
+	}
+	enrichTopicWithExamIDs(m, blocks, questionsByBlock, optionsByQuestion)
+	stripSensitiveExamFields(m)
 	return m, nil
+}
+
+func enrichTopicWithExamIDs(
+	topic map[string]interface{},
+	blocks []examentity.ExamQuestionBlock,
+	questionsByBlock map[int64][]examentity.ExamQuestion,
+	optionsByQuestion map[int64][]examentity.ExamOption,
+) {
+	rawItems, ok := topic["items"]
+	if !ok {
+		return
+	}
+	items, ok := rawItems.([]interface{})
+	if !ok {
+		return
+	}
+	for i, rawItem := range items {
+		if i >= len(blocks) {
+			return
+		}
+		item, ok := rawItem.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		blockQs := questionsByBlock[blocks[i].Id]
+		if len(blockQs) == 0 {
+			continue
+		}
+		if rawQuestions, ok := item["questions"]; ok {
+			questions, ok := rawQuestions.([]interface{})
+			if !ok {
+				continue
+			}
+			for qi, rawQuestion := range questions {
+				if qi >= len(blockQs) {
+					break
+				}
+				question, ok := rawQuestion.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				enrichQuestionWithExamIDs(question, blockQs[qi], optionsByQuestion[blockQs[qi].Id])
+			}
+			continue
+		}
+		enrichQuestionWithExamIDs(item, blockQs[0], optionsByQuestion[blockQs[0].Id])
+	}
+}
+
+func enrichQuestionWithExamIDs(question map[string]interface{}, q examentity.ExamQuestion, options []examentity.ExamOption) {
+	question["eqid"] = q.Id
+	rawAnswers, ok := question["answers"]
+	if !ok {
+		return
+	}
+	answers, ok := rawAnswers.([]interface{})
+	if !ok {
+		return
+	}
+	optionIDBySortOrder := make(map[int]int64, len(options))
+	optionIDByFlag := make(map[string]int64, len(options))
+	optionIDByIDString := make(map[string]int64, len(options))
+	for _, opt := range options {
+		optionIDBySortOrder[opt.SortOrder] = opt.Id
+		if opt.Flag != "" {
+			optionIDByFlag[opt.Flag] = opt.Id
+		}
+		optionIDByIDString[strconv.FormatInt(opt.Id, 10)] = opt.Id
+	}
+	for ai, rawAnswer := range answers {
+		answer, ok := rawAnswer.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		var eaid int64
+		matched := false
+		if fv, ok := answer["flag"]; ok {
+			if flag, ok := fv.(string); ok && flag != "" {
+				if v, ok := optionIDByFlag[flag]; ok {
+					eaid = v
+					matched = true
+				}
+			}
+		}
+		rawID := ""
+		if !matched {
+			if iv, ok := answer["id"]; ok {
+				if idStr, ok := iv.(string); ok {
+					rawID = idStr
+				}
+				if rawID != "" {
+					if v, ok := optionIDByIDString[rawID]; ok {
+						eaid = v
+						matched = true
+					}
+				}
+			}
+		}
+		if !matched && rawID == "" {
+			sortOrder := ai
+			if iv, ok := answer["index"]; ok {
+				if n, ok := iv.(float64); ok {
+					sortOrder = int(n)
+				}
+			}
+			if v, ok := optionIDBySortOrder[sortOrder]; ok {
+				eaid = v
+				matched = true
+			} else if v, ok := optionIDBySortOrder[sortOrder+1]; ok {
+				// 兼容 index 起点与 DB sort_order 的 0/1 差异。
+				eaid = v
+				matched = true
+			}
+		}
+		if matched {
+			answer["eaid"] = eaid
+		}
+	}
+}
+
+func stripSensitiveExamFields(node interface{}) {
+	switch v := node.(type) {
+	case map[string]interface{}:
+		// 移除正确答案与分数相关字段，避免考试前泄露答案或计分信息。
+		delete(v, "correct_answer")
+		delete(v, "correct")
+		delete(v, "answer")
+		delete(v, "score")
+		delete(v, "total_score")
+		delete(v, "score_total")
+		delete(v, "question_score")
+		delete(v, "part_score")
+		delete(v, "part_rate")
+		delete(v, "objective_score")
+		delete(v, "subjective_score")
+		delete(v, "correct_count")
+		delete(v, "correct_rate")
+		for _, child := range v {
+			stripSensitiveExamFields(child)
+		}
+	case []interface{}:
+		for _, child := range v {
+			stripSensitiveExamFields(child)
+		}
+	}
 }
 
 func (s *sPaper) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, error) {
