@@ -21,4 +21,8 @@ const (
 	ExamPaperLegacyCacheKeyFmt   = "hskexam:exam:paper_legacy:%d"
 	ExamPaperSectionCacheKeyFmt  = "hskexam:exam:paper_section:%d:%d"
 	ExamPaperSectionCachePattern = "hskexam:exam:paper_section:%d:*"
+
+	ExamPaperSectionTopicCacheKeyFmt  = "hskexam:exam:paper_section_topic:%d:%d"
+	ExamPaperSectionTopicCachePattern = "hskexam:exam:paper_section_topic:%d:*"
+	ExamPaperPrepareCacheKeyFmt       = "hskexam:exam:paper_prepare:%d"
 )

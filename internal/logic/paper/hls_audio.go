@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/google/uuid"
+	"golang.org/x/sync/singleflight"
 
 	"exam/internal/config"
 	"exam/internal/consts"
@@ -92,10 +94,48 @@ func minInt3(a, b, c int) int {
 	return m
 }
 
-// loadPaperHLS 按 mock_examination_paper.id 查卷（与客户端 paper.id 一致）。
+const paperHLSCacheTTL = 10 * time.Minute
+
+type paperHLSCacheEntry struct {
+	cfg      *paperHLSConfig
+	cachedAt time.Time
+}
+
+var (
+	paperHLSCache sync.Map
+	paperHLSSF    singleflight.Group
+)
+
+// loadPaperHLS 按 mock_examination_paper.id 查卷（带进程内缓存）。
 func (s *sPaper) loadPaperHLS(ctx context.Context, mockExaminationPaperID int64) (*paperHLSConfig, error) {
-	c := dao.ExamPaper.Columns()
-	return s.pickExamPaperHLS(ctx, c.MockExaminationPaperId, mockExaminationPaperID)
+	cacheKey := fmt.Sprintf("hls_mock:%d", mockExaminationPaperID)
+	if entry, ok := paperHLSCache.Load(cacheKey); ok {
+		e := entry.(*paperHLSCacheEntry)
+		if time.Since(e.cachedAt) < paperHLSCacheTTL {
+			return e.cfg, nil
+		}
+		paperHLSCache.Delete(cacheKey)
+	}
+	v, err, _ := paperHLSSF.Do(cacheKey, func() (interface{}, error) {
+		if entry, ok := paperHLSCache.Load(cacheKey); ok {
+			e := entry.(*paperHLSCacheEntry)
+			if time.Since(e.cachedAt) < paperHLSCacheTTL {
+				return e.cfg, nil
+			}
+			paperHLSCache.Delete(cacheKey)
+		}
+		c := dao.ExamPaper.Columns()
+		cfg, err := s.pickExamPaperHLS(ctx, c.MockExaminationPaperId, mockExaminationPaperID)
+		if err != nil {
+			return nil, err
+		}
+		paperHLSCache.Store(cacheKey, &paperHLSCacheEntry{cfg: cfg, cachedAt: time.Now()})
+		return cfg, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.(*paperHLSConfig), nil
 }
 
 // loadPaperHLSByExamPaperRowID 按 exam_paper.id 查卷（HLS 票据内存的是行主键）。

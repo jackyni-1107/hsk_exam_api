@@ -21,10 +21,40 @@ func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64
 	if err != nil {
 		return nil, err
 	}
+	rkey := paperSectionTopicRedisKey(paper.Id, sectionId)
+	if cached := redisGetSectionTopicJSON(ctx, rkey); cached != "" {
+		var m map[string]interface{}
+		if err := json.Unmarshal([]byte(cached), &m); err == nil {
+			return m, nil
+		}
+	}
+	v, err, _ := paperSectionTopicSF.Do(rkey, func() (interface{}, error) {
+		if cached := redisGetSectionTopicJSON(ctx, rkey); cached != "" {
+			var m map[string]interface{}
+			if err := json.Unmarshal([]byte(cached), &m); err == nil {
+				return m, nil
+			}
+		}
+		m, err := paperSectionTopicFromDB(ctx, paper.Id, sectionId)
+		if err != nil {
+			return nil, err
+		}
+		if b, mErr := json.Marshal(m); mErr == nil {
+			redisSetSectionTopicJSON(ctx, rkey, string(b))
+		}
+		return m, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.(map[string]interface{}), nil
+}
+
+func paperSectionTopicFromDB(ctx context.Context, examPaperId int64, sectionId int64) (map[string]interface{}, error) {
 	var sec examentity.ExamSection
 	if err := dao.ExamSection.Ctx(ctx).
 		Where("id", sectionId).
-		Where("exam_paper_id", paper.Id).
+		Where("exam_paper_id", examPaperId).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&sec); err != nil {
 		return nil, err
@@ -57,7 +87,7 @@ func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64
 	var questions []examentity.ExamQuestion
 	if err := dao.ExamQuestion.Ctx(ctx).
 		Fields("id", "block_id", "sort_in_block", "is_example").
-		Where("exam_paper_id", paper.Id).
+		Where("exam_paper_id", examPaperId).
 		WhereIn("block_id", blockIDs).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		OrderAsc("block_id,sort_in_block,id").
@@ -266,6 +296,36 @@ func (s *sPaper) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) 
 }
 
 func (s *sPaper) PaperPrepareSegments(ctx context.Context, mockPaperID int64) ([]exambo.PaperPrepareSegment, error) {
+	rkey := paperPrepareRedisKey(mockPaperID)
+	if cached := redisGetPrepareJSON(ctx, rkey); cached != "" {
+		var out []exambo.PaperPrepareSegment
+		if err := json.Unmarshal([]byte(cached), &out); err == nil {
+			return out, nil
+		}
+	}
+	v, err, _ := paperPrepareSF.Do(rkey, func() (interface{}, error) {
+		if cached := redisGetPrepareJSON(ctx, rkey); cached != "" {
+			var out []exambo.PaperPrepareSegment
+			if err := json.Unmarshal([]byte(cached), &out); err == nil {
+				return out, nil
+			}
+		}
+		out, err := paperPrepareSegmentsFromDB(ctx, mockPaperID)
+		if err != nil {
+			return nil, err
+		}
+		if b, mErr := json.Marshal(out); mErr == nil {
+			redisSetPrepareJSON(ctx, rkey, string(b))
+		}
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]exambo.PaperPrepareSegment), nil
+}
+
+func paperPrepareSegmentsFromDB(ctx context.Context, mockPaperID int64) ([]exambo.PaperPrepareSegment, error) {
 	var mockPaper mockentity.MockExaminationPaper
 	if err := dao.MockExaminationPaper.Ctx(ctx).
 		Where("id", mockPaperID).

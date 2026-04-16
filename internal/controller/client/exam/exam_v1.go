@@ -7,11 +7,13 @@ import (
 	"exam/internal/consts"
 	"exam/internal/middleware"
 	"exam/internal/model/bo"
+	exambo "exam/internal/model/bo/exam"
 	attemptsvc "exam/internal/service/attempt"
 	papersvc "exam/internal/service/paper"
 	"exam/internal/utility"
 
 	"github.com/gogf/gf/v2/errors/gerror"
+	"golang.org/x/sync/errgroup"
 )
 
 func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq) (res *v1.PaperForExamRes, err error) {
@@ -19,14 +21,27 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 	if data == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
-	d, err := papersvc.Paper().PaperDetailForExamInit(ctx, req.PaperId)
-	if err != nil {
+
+	var (
+		d        *exambo.PaperDetailForExamInitTree
+		segments []exambo.PaperPrepareSegment
+	)
+
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		var e error
+		d, e = papersvc.Paper().PaperDetailForExamInit(egCtx, req.PaperId)
+		return e
+	})
+	eg.Go(func() error {
+		var e error
+		segments, e = papersvc.Paper().PaperPrepareSegments(egCtx, req.PaperId)
+		return e
+	})
+	if err = eg.Wait(); err != nil {
 		return nil, err
 	}
-	segments, err := papersvc.Paper().PaperPrepareSegments(ctx, req.PaperId)
-	if err != nil {
-		return nil, err
-	}
+
 	prepareSegments := make([]v1.PaperForExamSegment, 0, len(segments))
 	for _, seg := range segments {
 		partItems := make([]v1.PaperForExamSegmentPart, 0, len(seg.Parts))
@@ -58,7 +73,7 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 			Parts:         partItems,
 		})
 	}
-	playURL, _, err := papersvc.Paper().IssuePaperHlsPlay(ctx, data.UserId, d.Paper.Id)
+	playURL, _, _ := papersvc.Paper().IssuePaperHlsPlay(ctx, data.UserId, d.Paper.Id)
 	res = &v1.PaperForExamRes{
 		Id:              d.Paper.Id,
 		Level:           d.Paper.Level,
@@ -85,18 +100,7 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 			PartCode:      sec.PartCode,
 			SegmentCode:   sec.SegmentCode,
 			TopicItems:    sec.TopicItemsFile,
-			//TopicJson:     sec.TopicJson,
-			//Blocks: make([]v1.PaperForExamBlockInit, 0, len(sec.Blocks)),
 		}
-		//for _, blk := range sec.Blocks {
-		//	item.Blocks = append(item.Blocks, v1.PaperForExamBlockInit{
-		//		Id:                      blk.Id,
-		//		BlockOrder:              blk.BlockOrder,
-		//		GroupIndex:              blk.GroupIndex,
-		//		QuestionDescriptionJson: blk.QuestionDescriptionJson,
-		//		QuestionCount:           blk.QuestionCount,
-		//	})
-		//}
 		res.Items = append(res.Items, item)
 	}
 	return res, nil

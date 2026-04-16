@@ -17,6 +17,10 @@ database:
   default:
     link: "mysql:admin:Kvma2NlDaxtEBNH64od4@tcp(wohui-staging.cluster-cv3j8xtjauo3.ap-southeast-1.rds.amazonaws.com:3306)/hsk_exam"
     jsonCase: "Snake"
+    debug: true
+    maxIdle: 20
+    maxOpen: 100
+    maxLifetime: "60s"
 
 # https://goframe.org/docs/core/gredis-config
 redis:
