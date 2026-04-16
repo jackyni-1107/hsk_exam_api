@@ -28,23 +28,51 @@ type PaperSectionForExamReq struct {
 }
 
 type PaperForExamPrepare struct {
-	Instruction string `json:"instruction" dc:"准备阶段说明"`
-	AudioFile   string `json:"audio_file" dc:"准备阶段音频文件"`
-	Title       string `json:"title" dc:"准备阶段标题"`
+	Instruction string                `json:"instruction" dc:"准备阶段说明"`
+	AudioFile   string                `json:"audio_file" dc:"准备阶段音频文件"`
+	Title       string                `json:"title" dc:"准备阶段标题"`
+	Segments    []PaperForExamSegment `json:"segments" dc:"考试环节信息"`
+}
+
+type PaperForExamSegment struct {
+	SegmentCode   string                    `json:"segmentCode" dc:"环节编码"`
+	TotalScore    int                       `json:"totalScore" dc:"环节总分"`
+	QuestionCount int                       `json:"questionCount" dc:"题目数量"`
+	Duration      int                       `json:"duration" dc:"环节时长(分钟)"`
+	Seq           int                       `json:"seq" dc:"顺序"`
+	SegmentDesc   string                    `json:"segmentDesc" dc:"环节描述"`
+	Parts         []PaperForExamSegmentPart `json:"parts" dc:"环节下分项"`
+}
+
+type PaperForExamSegmentPart struct {
+	PartCode                int     `json:"partCode" dc:"部分编号"`
+	PartName                string  `json:"part_name" dc:"部分名称"`
+	PartNameTrans           string  `json:"part_name_trans" dc:"部分名称国际化"`
+	PartRate                float64 `json:"part_rate" dc:"部分分值占比"`
+	PartScore               float64 `json:"part_score" dc:"部分分值"`
+	QuestionCount           int     `json:"questionCount" dc:"题目数量"`
+	ObjectiveQuestionCount  int     `json:"objectiveQuestionCount" dc:"客观题数量"`
+	SubjectiveQuestionCount int     `json:"subjectiveQuestionCount" dc:"主观题数量"`
+	PartAnswerTime          int     `json:"part_answer_time" dc:"部分答题时长"`
+	ScoreTotal              float64 `json:"score_total" dc:"已得分"`
+	CorrectCount            int     `json:"correct_count" dc:"答对数量"`
+	CorrectRate             float64 `json:"correct_rate" dc:"正确率"`
+	Practiced               bool    `json:"practiced" dc:"是否练习过"`
+	QuestionType            string  `json:"question_type" dc:"题型"`
 }
 
 // PaperForExamItemInit 初始化用 item 概要（block 无 questions），字段命名与 index.json 对齐。
 type PaperForExamItemInit struct {
-	Id            int64                   `json:"id" dc:"大题ID"`
-	SortOrder     int                     `json:"sort_order" dc:"排序"`
-	TopicTitle    string                  `json:"topic_title" dc:"大题标题"`
-	TopicSubtitle string                  `json:"topic_subtitle" dc:"大题副标题"`
-	TopicType     string                  `json:"topic_type" dc:"题型"`
-	PartCode      int                     `json:"part_code" dc:"部分编号"`
-	SegmentCode   string                  `json:"segment_code" dc:"段落编号"`
-	TopicItems    string                  `json:"topic_items" dc:"题目文件名"`
-	TopicJson     string                  `json:"topic_json" dc:"大题JSON"`
-	Blocks        []PaperForExamBlockInit `json:"blocks" dc:"题块初始化列表"`
+	Id            int64  `json:"id" dc:"大题ID"`
+	SortOrder     int    `json:"sort_order" dc:"排序"`
+	TopicTitle    string `json:"topic_title" dc:"大题标题"`
+	TopicSubtitle string `json:"topic_subtitle" dc:"大题副标题"`
+	TopicType     string `json:"topic_type" dc:"题型"`
+	PartCode      int    `json:"part_code" dc:"部分编号"`
+	SegmentCode   string `json:"segment_code" dc:"段落编号"`
+	TopicItems    string `json:"topic_items" dc:"题目文件名"`
+	//TopicJson     string                  `json:"topic_json" dc:"大题JSON"`
+	//Blocks        []PaperForExamBlockInit `json:"blocks" dc:"题块初始化列表"`
 }
 
 type PaperForExamBlockInit struct {

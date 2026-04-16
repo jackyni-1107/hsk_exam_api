@@ -10,6 +10,7 @@ import (
 	"exam/internal/dao"
 	exambo "exam/internal/model/bo/exam"
 	examentity "exam/internal/model/entity/exam"
+	mockentity "exam/internal/model/entity/mock"
 	"exam/internal/utility/exampaper"
 )
 
@@ -50,6 +51,86 @@ func (s *sPaper) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) 
 	}
 	out := paperDetailForExamInitTreeToBO(t)
 	return &out, nil
+}
+
+func (s *sPaper) PaperPrepareSegments(ctx context.Context, mockPaperID int64) ([]exambo.PaperPrepareSegment, error) {
+	var mockPaper mockentity.MockExaminationPaper
+	if err := dao.MockExaminationPaper.Ctx(ctx).
+		Where("id", mockPaperID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&mockPaper); err != nil {
+		return nil, err
+	}
+	if mockPaper.Id == 0 {
+		return []exambo.PaperPrepareSegment{}, nil
+	}
+
+	segments := make([]mockentity.MockExaminationSegment, 0)
+	if err := dao.MockExaminationSegment.Ctx(ctx).
+		Where("level_id", mockPaper.LevelId).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		OrderAsc("seq,id").
+		Scan(&segments); err != nil {
+		return nil, err
+	}
+	if len(segments) == 0 {
+		return []exambo.PaperPrepareSegment{}, nil
+	}
+
+	segmentIDs := make([]int64, 0, len(segments))
+	partsBySegment := make(map[int64][]mockentity.MockExaminationPart, len(segments))
+	for _, seg := range segments {
+		segmentIDs = append(segmentIDs, seg.Id)
+	}
+
+	parts := make([]mockentity.MockExaminationPart, 0)
+	if err := dao.MockExaminationPart.Ctx(ctx).
+		WhereIn("segment_id", segmentIDs).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		OrderAsc("segment_id,code,id").
+		Scan(&parts); err != nil {
+		return nil, err
+	}
+	for _, part := range parts {
+		partsBySegment[part.SegmentId] = append(partsBySegment[part.SegmentId], part)
+	}
+
+	out := make([]exambo.PaperPrepareSegment, 0, len(segments))
+	for _, seg := range segments {
+		boSeg := exambo.PaperPrepareSegment{
+			SegmentCode:   seg.SegmentCode,
+			TotalScore:    seg.ScoreFull,
+			QuestionCount: seg.QuestionCount,
+			Duration:      seg.Duration,
+			Seq:           seg.Seq,
+			SegmentDesc:   seg.SegmentDesc,
+			Parts:         make([]exambo.PaperPreparePartItem, 0, len(partsBySegment[seg.Id])),
+		}
+		for _, p := range partsBySegment[seg.Id] {
+			partRate := 0.0
+			if seg.ScoreFull > 0 {
+				partRate = p.PartScore / float64(seg.ScoreFull)
+			}
+			boSeg.Parts = append(boSeg.Parts, exambo.PaperPreparePartItem{
+				PartCode:                p.Code,
+				PartName:                p.PartName,
+				PartNameTrans:           p.PartNameTrans,
+				PartRate:                partRate,
+				PartScore:               p.PartScore,
+				QuestionCount:           p.QuestionCount,
+				ObjectiveQuestionCount:  p.ObjectiveQuestionCount,
+				SubjectiveQuestionCount: p.SubjectiveQuestionCount,
+				PartAnswerTime:          p.AnswerTime,
+				ScoreTotal:              0,
+				CorrectCount:            0,
+				CorrectRate:             0,
+				Practiced:               false,
+				QuestionType:            "",
+			})
+		}
+		out = append(out, boSeg)
+	}
+	return out, nil
 }
 
 func (s *sPaper) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionDetailForExamView, error) {

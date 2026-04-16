@@ -121,6 +121,33 @@ type PaperHeadForExamView struct {
 	CreateTime         string `json:"create_time"`
 }
 
+type PaperPrepareSegment struct {
+	SegmentCode   string                 `json:"segmentCode"`
+	TotalScore    int                    `json:"totalScore"`
+	QuestionCount int                    `json:"questionCount"`
+	Duration      int                    `json:"duration"`
+	Seq           int                    `json:"seq"`
+	SegmentDesc   string                 `json:"segmentDesc"`
+	Parts         []PaperPreparePartItem `json:"parts"`
+}
+
+type PaperPreparePartItem struct {
+	PartCode                int     `json:"partCode"`
+	PartName                string  `json:"part_name"`
+	PartNameTrans           string  `json:"part_name_trans"`
+	PartRate                float64 `json:"part_rate"`
+	PartScore               float64 `json:"part_score"`
+	QuestionCount           int     `json:"questionCount"`
+	ObjectiveQuestionCount  int     `json:"objectiveQuestionCount"`
+	SubjectiveQuestionCount int     `json:"subjectiveQuestionCount"`
+	PartAnswerTime          int     `json:"part_answer_time"`
+	ScoreTotal              float64 `json:"score_total"`
+	CorrectCount            int     `json:"correct_count"`
+	CorrectRate             float64 `json:"correct_rate"`
+	Practiced               bool    `json:"practiced"`
+	QuestionType            string  `json:"question_type"`
+}
+
 type SectionDetailForExamView struct {
 	Id             int64                    `json:"id"`
 	SortOrder      int                      `json:"sort_order"`

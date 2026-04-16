@@ -23,6 +23,41 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 	if err != nil {
 		return nil, err
 	}
+	segments, err := papersvc.Paper().PaperPrepareSegments(ctx, req.PaperId)
+	if err != nil {
+		return nil, err
+	}
+	prepareSegments := make([]v1.PaperForExamSegment, 0, len(segments))
+	for _, seg := range segments {
+		partItems := make([]v1.PaperForExamSegmentPart, 0, len(seg.Parts))
+		for _, part := range seg.Parts {
+			partItems = append(partItems, v1.PaperForExamSegmentPart{
+				PartCode:                part.PartCode,
+				PartName:                part.PartName,
+				PartNameTrans:           part.PartNameTrans,
+				PartRate:                part.PartRate,
+				PartScore:               part.PartScore,
+				QuestionCount:           part.QuestionCount,
+				ObjectiveQuestionCount:  part.ObjectiveQuestionCount,
+				SubjectiveQuestionCount: part.SubjectiveQuestionCount,
+				PartAnswerTime:          part.PartAnswerTime,
+				ScoreTotal:              part.ScoreTotal,
+				CorrectCount:            part.CorrectCount,
+				CorrectRate:             part.CorrectRate,
+				Practiced:               part.Practiced,
+				QuestionType:            part.QuestionType,
+			})
+		}
+		prepareSegments = append(prepareSegments, v1.PaperForExamSegment{
+			SegmentCode:   seg.SegmentCode,
+			TotalScore:    seg.TotalScore,
+			QuestionCount: seg.QuestionCount,
+			Duration:      seg.Duration,
+			Seq:           seg.Seq,
+			SegmentDesc:   seg.SegmentDesc,
+			Parts:         partItems,
+		})
+	}
 	playURL, _, err := papersvc.Paper().IssuePaperHlsPlay(ctx, data.UserId, d.Paper.Id)
 	res = &v1.PaperForExamRes{
 		Id:              d.Paper.Id,
@@ -36,6 +71,7 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 			Instruction: d.Paper.PrepareInstruction,
 			AudioFile:   d.Paper.PrepareAudioFile,
 			Title:       d.Paper.PrepareTitle,
+			Segments:    prepareSegments,
 		},
 		Items: make([]v1.PaperForExamItemInit, 0, len(d.Sections)),
 	}
@@ -50,17 +86,17 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 			SegmentCode:   sec.SegmentCode,
 			TopicItems:    sec.TopicItemsFile,
 			//TopicJson:     sec.TopicJson,
-			Blocks: make([]v1.PaperForExamBlockInit, 0, len(sec.Blocks)),
+			//Blocks: make([]v1.PaperForExamBlockInit, 0, len(sec.Blocks)),
 		}
-		for _, blk := range sec.Blocks {
-			item.Blocks = append(item.Blocks, v1.PaperForExamBlockInit{
-				Id:                      blk.Id,
-				BlockOrder:              blk.BlockOrder,
-				GroupIndex:              blk.GroupIndex,
-				QuestionDescriptionJson: blk.QuestionDescriptionJson,
-				QuestionCount:           blk.QuestionCount,
-			})
-		}
+		//for _, blk := range sec.Blocks {
+		//	item.Blocks = append(item.Blocks, v1.PaperForExamBlockInit{
+		//		Id:                      blk.Id,
+		//		BlockOrder:              blk.BlockOrder,
+		//		GroupIndex:              blk.GroupIndex,
+		//		QuestionDescriptionJson: blk.QuestionDescriptionJson,
+		//		QuestionCount:           blk.QuestionCount,
+		//	})
+		//}
 		res.Items = append(res.Items, item)
 	}
 	return res, nil
