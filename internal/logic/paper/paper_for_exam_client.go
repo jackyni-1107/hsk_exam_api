@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -63,7 +64,9 @@ func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64
 			if isYCTPaper {
 				stripYCTItemRenderFields(m)
 			}
-			return m, nil
+			if !topicHasStaleEaid(m) {
+				return m, nil
+			}
 		}
 	}
 	v, err, _ := paperSectionTopicSF.Do(rkey, func() (interface{}, error) {
@@ -73,7 +76,9 @@ func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64
 				if isYCTPaper {
 					stripYCTItemRenderFields(m)
 				}
-				return m, nil
+				if !topicHasStaleEaid(m) {
+					return m, nil
+				}
 			}
 		}
 		m, err := paperSectionTopicFromDB(ctx, paper.Id, sectionId)
@@ -92,6 +97,41 @@ func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64
 		return nil, err
 	}
 	return v.(map[string]interface{}), nil
+}
+
+func topicHasStaleEaid(topic map[string]interface{}) bool {
+	rawItems, ok := topic["items"]
+	if !ok {
+		return false
+	}
+	items, ok := rawItems.([]interface{})
+	if !ok {
+		return false
+	}
+	for _, rawItem := range items {
+		item, ok := rawItem.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		rawAnswers, ok := item["answers"]
+		if !ok {
+			continue
+		}
+		answers, ok := rawAnswers.([]interface{})
+		if !ok || len(answers) == 0 {
+			continue
+		}
+		for _, rawAnswer := range answers {
+			answer, ok := rawAnswer.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if _, hasEAID := answer["eaid"]; !hasEAID {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func isYCTMockPaper(ctx context.Context, mockPaperID int64) (bool, error) {
@@ -192,7 +232,7 @@ func paperSectionTopicFromDB(ctx context.Context, examPaperId int64, sectionId i
 	}
 	var options []examentity.ExamOption
 	if err := dao.ExamOption.Ctx(ctx).
-		Fields("id", "question_id", "sort_order").
+		Fields("id", "question_id", "sort_order", "flag").
 		WhereIn("question_id", questionIDs).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		OrderAsc("question_id,sort_order,id").
@@ -279,7 +319,7 @@ func enrichQuestionWithExamIDs(question map[string]interface{}, q examentity.Exa
 	for _, opt := range options {
 		optionIDBySortOrder[opt.SortOrder] = opt.Id
 		if opt.Flag != "" {
-			optionIDByFlag[opt.Flag] = opt.Id
+			optionIDByFlag[strings.ToUpper(strings.TrimSpace(opt.Flag))] = opt.Id
 		}
 		optionIDByIDString[strconv.FormatInt(opt.Id, 10)] = opt.Id
 	}
@@ -292,7 +332,7 @@ func enrichQuestionWithExamIDs(question map[string]interface{}, q examentity.Exa
 		matched := false
 		if fv, ok := answer["flag"]; ok {
 			if flag, ok := fv.(string); ok && flag != "" {
-				if v, ok := optionIDByFlag[flag]; ok {
+				if v, ok := optionIDByFlag[strings.ToUpper(strings.TrimSpace(flag))]; ok {
 					eaid = v
 					matched = true
 				}
@@ -312,7 +352,7 @@ func enrichQuestionWithExamIDs(question map[string]interface{}, q examentity.Exa
 				}
 			}
 		}
-		if !matched && rawID == "" {
+		if !matched {
 			sortOrder := ai
 			if iv, ok := answer["index"]; ok {
 				if n, ok := iv.(float64); ok {
