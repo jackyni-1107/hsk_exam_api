@@ -52,10 +52,17 @@ func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64
 	if err != nil {
 		return nil, err
 	}
+	isYCTPaper, err := isYCTMockPaper(ctx, mockPaperID)
+	if err != nil {
+		return nil, err
+	}
 	rkey := paperSectionTopicRedisKey(paper.Id, sectionId)
 	if cached := redisGetSectionTopicJSON(ctx, rkey); cached != "" {
 		var m map[string]interface{}
 		if err := json.Unmarshal([]byte(cached), &m); err == nil {
+			if isYCTPaper {
+				stripYCTItemRenderFields(m)
+			}
 			return m, nil
 		}
 	}
@@ -63,12 +70,18 @@ func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64
 		if cached := redisGetSectionTopicJSON(ctx, rkey); cached != "" {
 			var m map[string]interface{}
 			if err := json.Unmarshal([]byte(cached), &m); err == nil {
+				if isYCTPaper {
+					stripYCTItemRenderFields(m)
+				}
 				return m, nil
 			}
 		}
 		m, err := paperSectionTopicFromDB(ctx, paper.Id, sectionId)
 		if err != nil {
 			return nil, err
+		}
+		if isYCTPaper {
+			stripYCTItemRenderFields(m)
 		}
 		if b, mErr := json.Marshal(m); mErr == nil {
 			redisSetSectionTopicJSON(ctx, rkey, string(b))
@@ -79,6 +92,41 @@ func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64
 		return nil, err
 	}
 	return v.(map[string]interface{}), nil
+}
+
+func isYCTMockPaper(ctx context.Context, mockPaperID int64) (bool, error) {
+	mockPaper, err := loadMockPaperByID(ctx, mockPaperID)
+	if err != nil {
+		return false, err
+	}
+	var level mockentity.MockLevels
+	if err := dao.MockLevels.Ctx(ctx).
+		Fields("id", "type_name").
+		Where("id", mockPaper.LevelId).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&level); err != nil {
+		return false, err
+	}
+	return level.Id > 0 && level.TypeName == "YCT", nil
+}
+
+func stripYCTItemRenderFields(topic map[string]interface{}) {
+	rawItems, ok := topic["items"]
+	if !ok {
+		return
+	}
+	items, ok := rawItems.([]interface{})
+	if !ok {
+		return
+	}
+	for _, rawItem := range items {
+		item, ok := rawItem.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		delete(item, "_converter")
+		delete(item, "_element")
+	}
 }
 
 func paperSectionTopicFromDB(ctx context.Context, examPaperId int64, sectionId int64) (map[string]interface{}, error) {
