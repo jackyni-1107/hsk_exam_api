@@ -30,7 +30,7 @@ export interface AuditChangeDetailItem {
   create_time: string
 }
 
-export function fetchAuditLogList(params: {
+export function getAuditLogList(params: {
   page?: number
   size?: number
   username?: string
@@ -56,7 +56,7 @@ export function fetchAuditLogList(params: {
   })
 }
 
-export function fetchAuditChangeDetails(id: number) {
+export function getAuditLogChangeDetails(id: number) {
   return request.get<unknown, { data?: { list?: AuditChangeDetailItem[] } }>(
     `/admin/audit-log/${id}/change-details`
   )

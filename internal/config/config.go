@@ -10,5 +10,5 @@ var Config struct {
 	Login     bo.LoginCfg
 	Password  bo.PasswordCfg
 	Session   bo.SessionCfg
-	MFA       bo.MFACfg
+	SM2       bo.SM2Cfg
 }

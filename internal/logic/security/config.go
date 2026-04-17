@@ -20,8 +20,8 @@ func (s *sSecurity) LoadSessionCfg(ctx context.Context) bo.SessionCfg {
 	return appcfg.Config.Session
 }
 
-func (s *sSecurity) LoadMFACfg(ctx context.Context) bo.MFACfg {
-	return appcfg.Config.MFA
+func (s *sSecurity) LoadSM2Cfg(ctx context.Context) bo.SM2Cfg {
+	return appcfg.Config.SM2
 }
 
 // TokenTTLSeconds 会话 Token 有效期（秒），供服务接口实现使用。

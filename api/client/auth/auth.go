@@ -10,6 +10,7 @@ type IAuth interface {
 	ILogin
 	ILogout
 	ICaptcha
+	IPublicKey
 }
 
 type ILogin interface {
@@ -22,4 +23,8 @@ type ILogout interface {
 
 type ICaptcha interface {
 	Captcha(ctx context.Context, req *v1.CaptchaReq) (res *v1.CaptchaRes, err error)
+}
+
+type IPublicKey interface {
+	PublicKey(ctx context.Context, req *v1.PublicKeyReq) (res *v1.PublicKeyRes, err error)
 }

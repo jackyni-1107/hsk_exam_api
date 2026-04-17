@@ -21,7 +21,11 @@ type (
 		LoadLoginCfg(ctx context.Context) bo.LoginCfg
 		LoadPasswordCfg(ctx context.Context) bo.PasswordCfg
 		LoadSessionCfg(ctx context.Context) bo.SessionCfg
-		LoadMFACfg(ctx context.Context) bo.MFACfg
+		LoadSM2Cfg(ctx context.Context) bo.SM2Cfg
+		// DecryptLoginPassword 将 SM2 密文解密为明文密码（支持 hex/base64 输入）。
+		DecryptLoginPassword(ctx context.Context, encrypted string) (string, error)
+		// LoginEncryptPublicKeyHex 返回前端登录加密用 SM2 公钥（hex）。
+		LoginEncryptPublicKeyHex(ctx context.Context) (string, error)
 		// TokenTTLSeconds 会话 Token 有效期（秒），供服务接口实现使用。
 		TokenTTLSeconds(ctx context.Context) int64
 		// NormalizeLoginName 登录名规范化（用于 Redis 键）
@@ -38,9 +42,6 @@ type (
 		ClearLoginFailure(ctx context.Context, userType int, username string)
 		// UnlockAccount 管理员或到期后解锁（删除锁定键）
 		UnlockAccount(ctx context.Context, userType int, username string)
-		// MFANotImplemented 预留：等保/高安全场景可接入 TOTP、WebAuthn 等。
-		// 配置 security.mfa.enabled 为 true 时，业务侧应在此处实现校验并在登录流程中串联。
-		MFANotImplemented(ctx context.Context) bool
 		// IsPasswordExpired 是否超过口令最长使用期限（maxAgeDays<=0 表示不启用）
 		IsPasswordExpired(ctx context.Context, passwordChangedAt *gtime.Time) bool
 		// ValidatePasswordNotInHistory 新口令不能与近期历史相同

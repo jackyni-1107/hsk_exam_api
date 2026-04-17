@@ -30,9 +30,10 @@
 import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { login } from '@/api/auth'
+import { getLoginPublicKey, login } from '@/api/auth'
 import type { LoginUser } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
+import { encryptPasswordWithSM2 } from '@/utils/sm2'
 
 const route = useRoute()
 const router = useRouter()
@@ -51,9 +52,18 @@ async function onSubmit() {
   }
   loading.value = true
   try {
+    const keyRes = (await getLoginPublicKey()) as {
+      data?: { public_key_hex?: string; algorithm?: string; cipher_mode?: string }
+    }
+    const publicKeyHex = keyRes?.data?.public_key_hex || ''
+    if (!publicKeyHex) {
+      ElMessage.error('登录公钥获取失败')
+      return
+    }
+    const encryptedPassword = encryptPasswordWithSM2(form.password, publicKeyHex)
     const res = (await login({
       username: form.username,
-      password: form.password,
+      password: encryptedPassword,
     })) as { data?: { token?: string; user_info?: LoginUser } }
     const token = res?.data?.token
     const info = res?.data?.user_info
@@ -64,8 +74,11 @@ async function onSubmit() {
     userStore.setSession(token, info ?? null)
     const redirect = (route.query.redirect as string) || '/'
     await router.replace(redirect)
-  } catch {
-    /* 错误已在 request 拦截器提示 */
+  } catch (err) {
+    const message = err instanceof Error ? err.message : ''
+    if (message) {
+      ElMessage.error(message)
+    }
   } finally {
     loading.value = false
   }

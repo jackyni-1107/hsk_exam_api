@@ -57,7 +57,13 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 		auditsvc.Audit().RecordLoginFailure(ctx, u.Id, req.Username, consts.UserTypeClient, ip, userAgent, "user disabled", traceId)
 		return nil, gerror.NewCode(consts.CodeUserDisabled)
 	}
-	if !utility.CheckPassword(u.Password, req.Password) {
+	plainPassword, err := resolveLoginPasswordClient(ctx, req.Password)
+	if err != nil {
+		auditsvc.Audit().RecordLoginFailure(ctx, u.Id, req.Username, consts.UserTypeClient, ip, userAgent, "invalid encrypted password", traceId)
+		secsvc.Security().RecordLoginFailure(ctx, consts.UserTypeClient, req.Username, ip, userAgent, traceId)
+		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
+	}
+	if !utility.CheckPassword(u.Password, plainPassword) {
 		auditsvc.Audit().RecordLoginFailure(ctx, u.Id, req.Username, consts.UserTypeClient, ip, userAgent, "invalid password", traceId)
 		secsvc.Security().RecordLoginFailure(ctx, consts.UserTypeClient, req.Username, ip, userAgent, traceId)
 		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
@@ -88,4 +94,11 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 			Id: u.Id, Username: u.Username, Nickname: u.Nickname,
 		},
 	}, nil
+}
+
+func resolveLoginPasswordClient(ctx context.Context, encryptedPassword string) (string, error) {
+	if strings.TrimSpace(encryptedPassword) == "" {
+		return "", gerror.NewCode(consts.CodeInvalidParams)
+	}
+	return secsvc.Security().DecryptLoginPassword(ctx, encryptedPassword)
 }

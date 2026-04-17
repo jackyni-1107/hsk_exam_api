@@ -48,8 +48,17 @@ security:
   session:
     tokenTTLSeconds: 604800
     maxConcurrentSessions: 5
-  mfa:
-    enabled: false
+  sm2:
+    # 建议通过环境变量覆盖：SECURITY_SM2_PRIVATE_KEY_PEM
+    privateKeyPem: |
+      -----BEGIN PRIVATE KEY-----
+      MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQgx0a4uOn8zqXDY/pv
+      waT3m+/Mlirj5fuacf1dLVbkQMOgCgYIKoEcz1UBgi2hRANCAAS63SMIRLVhYLXm
+      HHGiV29lDqOYQ0hRMjLHregPKFERT2cl8twCz/dkn8Iufx01Xs3Q2ZX0DWE4a7NR
+      Y2d2IbCc
+      -----END PRIVATE KEY-----
+    # 可选：前端加密公钥（hex），不配则由私钥推导
+    publicKeyHex: ""
 
 # 存储配置已迁移至「文件中心-存储配置」管理
 # 通知配置（邮件/短信）已迁移至「通知中心-渠道配置」管理

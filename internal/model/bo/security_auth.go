@@ -29,6 +29,9 @@ type SessionCfg struct {
 	MaxConcurrentSessions int   `json:"MaxConcurrentSessions"`
 }
 
-type MFACfg struct {
-	Enabled bool `json:"enabled"`
+type SM2Cfg struct {
+	// PrivateKeyPem SM2 私钥 PEM（建议通过环境变量注入，不入库）
+	PrivateKeyPem string `json:"privateKeyPem"`
+	// PublicKeyHex 可选：显式配置前端加密公钥（十六进制）；未配置时由私钥推导
+	PublicKeyHex string `json:"publicKeyHex"`
 }

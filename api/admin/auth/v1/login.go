@@ -5,7 +5,7 @@ import "github.com/gogf/gf/v2/frame/g"
 type LoginReq struct {
 	g.Meta        `path:"/auth/login" method:"post" tags:"管理端认证" summary:"管理端登录"`
 	Username      string `json:"username" v:"required#err.invalid_params" dc:"用户名"`
-	Password      string `json:"password" v:"required#err.invalid_params" dc:"密码"`
+	Password      string `json:"password" v:"required#err.invalid_params" dc:"SM2 密文密码（hex 或 base64）"`
 	CaptchaId     string `json:"captcha_id" dc:"验证码ID"`
 	CaptchaAnswer string `json:"captcha_answer" dc:"验证码答案"`
 }

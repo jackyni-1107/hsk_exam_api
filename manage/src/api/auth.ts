@@ -8,6 +8,16 @@ export interface LoginUser {
   roles?: string[]
 }
 
+export interface AuthPublicKey {
+  public_key_hex: string
+  algorithm: string
+  cipher_mode: string
+}
+
+export function getLoginPublicKey() {
+  return request.get<unknown, { data?: AuthPublicKey }>('/admin/auth/public-key')
+}
+
 export function login(payload: {
   username: string
   password: string

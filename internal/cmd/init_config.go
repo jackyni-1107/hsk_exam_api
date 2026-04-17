@@ -33,7 +33,7 @@ func initConfig(ctx context.Context) {
 	if err = g.Cfg().MustGet(ctx, "security.session").Scan(&appcfg.Config.Session); err != nil {
 		panic(err)
 	}
-	if err = g.Cfg().MustGet(ctx, "security.mfa").Scan(&appcfg.Config.MFA); err != nil {
+	if err = g.Cfg().MustGet(ctx, "security.sm2").Scan(&appcfg.Config.SM2); err != nil {
 		panic(err)
 	}
 	var examCfg bo.ExamCfg

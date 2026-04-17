@@ -53,7 +53,13 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 		auditsvc.Audit().RecordLoginFailure(ctx, u.Id, req.Username, consts.UserTypeAdmin, ip, userAgent, "user disabled", traceId)
 		return nil, gerror.NewCode(consts.CodeUserDisabled)
 	}
-	if !utility.CheckPassword(u.Password, req.Password) {
+	plainPassword, err := resolveLoginPassword(ctx, req.Password)
+	if err != nil {
+		auditsvc.Audit().RecordLoginFailure(ctx, u.Id, req.Username, consts.UserTypeAdmin, ip, userAgent, "invalid encrypted password", traceId)
+		secsvc.Security().RecordLoginFailure(ctx, consts.UserTypeAdmin, req.Username, ip, userAgent, traceId)
+		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
+	}
+	if !utility.CheckPassword(u.Password, plainPassword) {
 		auditsvc.Audit().RecordLoginFailure(ctx, u.Id, req.Username, consts.UserTypeAdmin, ip, userAgent, "invalid password", traceId)
 		secsvc.Security().RecordLoginFailure(ctx, consts.UserTypeAdmin, req.Username, ip, userAgent, traceId)
 		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
@@ -89,4 +95,11 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 func bearerToken(r *ghttp.Request) string {
 	raw := strings.TrimSpace(r.Header.Get("Authorization"))
 	return strings.TrimSpace(strings.TrimPrefix(raw, "Bearer "))
+}
+
+func resolveLoginPassword(ctx context.Context, encryptedPassword string) (string, error) {
+	if strings.TrimSpace(encryptedPassword) == "" {
+		return "", gerror.NewCode(consts.CodeInvalidParams)
+	}
+	return secsvc.Security().DecryptLoginPassword(ctx, encryptedPassword)
 }
