@@ -24,8 +24,12 @@ func paperForExamSectionRedisKey(examPaperId, sectionId int64) string {
 	return fmt.Sprintf(consts.ExamPaperSectionCacheKeyFmt, examPaperId, sectionId)
 }
 
+// sectionTopicCacheVersion 用于在不修改 consts 的前提下对 section topic 缓存做版本隔离。
+// 升级读/写路径语义（例如去掉读时的 YCT 剥离与 EAID 兜底扫描）后，bump 本常量可令历史脏缓存整体失效。
+const sectionTopicCacheVersion = "v2"
+
 func paperSectionTopicRedisKey(examPaperId, sectionId int64) string {
-	return fmt.Sprintf(consts.ExamPaperSectionTopicCacheKeyFmt, examPaperId, sectionId)
+	return fmt.Sprintf(consts.ExamPaperSectionTopicCacheKeyFmt, examPaperId, sectionId) + ":" + sectionTopicCacheVersion
 }
 
 func paperPrepareRedisKey(mockPaperID int64) string {
@@ -49,6 +53,7 @@ func InvalidatePaperForExamCache(ctx context.Context, examPaperId int64) {
 	}
 	invalidatePaperSectionExamCachesByPaper(ctx, examPaperId)
 	invalidateByPattern(ctx, fmt.Sprintf(consts.ExamPaperSectionTopicCachePattern, examPaperId))
+	invalidateSectionTopicMemCacheByPaper(examPaperId)
 }
 
 // InvalidatePaperPrepareCache 删除试卷准备阶段缓存。
@@ -71,6 +76,11 @@ func InvalidatePaperSectionForExamCache(ctx context.Context, examPaperId, sectio
 	if _, err := g.Redis().Del(ctx, key); err != nil {
 		g.Log().Warningf(ctx, "paper for-exam redis del section %s: %v", key, err)
 	}
+	topicKey := paperSectionTopicRedisKey(examPaperId, sectionId)
+	if _, err := g.Redis().Del(ctx, topicKey); err != nil {
+		g.Log().Warningf(ctx, "paper for-exam redis del section topic %s: %v", topicKey, err)
+	}
+	invalidateSectionTopicMemCache(examPaperId, sectionId)
 }
 
 func invalidatePaperSectionExamCachesByPaper(ctx context.Context, examPaperId int64) {

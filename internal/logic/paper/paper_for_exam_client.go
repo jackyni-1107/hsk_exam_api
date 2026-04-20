@@ -23,6 +23,11 @@ import (
 
 const mockMetaCacheTTL = 10 * time.Minute
 
+// sectionTopicMemTTL 进程内 SectionTopic 对象缓存的 TTL。
+// 该缓存叠加在 Redis 之上，目的是消除热路径上"Redis GET + 大对象 json.Unmarshal"这两大开销。
+// 写入方（DB miss 路径）和显式 invalidate 调用会同步更新/清理；即便有极端遗漏，30s 后也会自然过期。
+const sectionTopicMemTTL = 30 * time.Second
+
 type cachedMockPaperEntry struct {
 	data     mockentity.MockExaminationPaper
 	cachedAt time.Time
@@ -38,6 +43,16 @@ type cachedPartsEntry struct {
 	cachedAt time.Time
 }
 
+type sectionTopicMemKey struct {
+	paperID   int64
+	sectionID int64
+}
+
+type cachedSectionTopicEntry struct {
+	data     *exambo.SectionTopic
+	cachedAt time.Time
+}
+
 var (
 	mockPaperMetaCache sync.Map
 	mockSegmentsCache  sync.Map
@@ -46,40 +61,78 @@ var (
 	mockPaperMetaSF singleflight.Group
 	mockSegmentsSF  singleflight.Group
 	mockPartsSF     singleflight.Group
+
+	sectionTopicMemCache sync.Map // sectionTopicMemKey -> *cachedSectionTopicEntry
 )
+
+func loadSectionTopicFromMem(paperID, sectionID int64) *exambo.SectionTopic {
+	if v, ok := sectionTopicMemCache.Load(sectionTopicMemKey{paperID: paperID, sectionID: sectionID}); ok {
+		e := v.(*cachedSectionTopicEntry)
+		if time.Since(e.cachedAt) < sectionTopicMemTTL {
+			return e.data
+		}
+		sectionTopicMemCache.Delete(sectionTopicMemKey{paperID: paperID, sectionID: sectionID})
+	}
+	return nil
+}
+
+func storeSectionTopicToMem(paperID, sectionID int64, topic *exambo.SectionTopic) {
+	if topic == nil {
+		return
+	}
+	sectionTopicMemCache.Store(
+		sectionTopicMemKey{paperID: paperID, sectionID: sectionID},
+		&cachedSectionTopicEntry{data: topic, cachedAt: time.Now()},
+	)
+}
+
+func invalidateSectionTopicMemCache(paperID, sectionID int64) {
+	sectionTopicMemCache.Delete(sectionTopicMemKey{paperID: paperID, sectionID: sectionID})
+}
+
+func invalidateSectionTopicMemCacheByPaper(paperID int64) {
+	sectionTopicMemCache.Range(func(k, _ any) bool {
+		if key, ok := k.(sectionTopicMemKey); ok && key.paperID == paperID {
+			sectionTopicMemCache.Delete(key)
+		}
+		return true
+	})
+}
 
 func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionTopic, error) {
 	paper, err := exampaper.ByMockID(ctx, mockPaperID)
 	if err != nil {
 		return nil, err
 	}
-	isYCTPaper, err := isYCTMockPaper(ctx, mockPaperID)
-	if err != nil {
-		return nil, err
+	// L1: 进程内对象缓存。命中即直接返回，绕过 Redis 往返和大对象 JSON 反序列化。
+	if t := loadSectionTopicFromMem(paper.Id, sectionId); t != nil {
+		return t, nil
 	}
 	rkey := paperSectionTopicRedisKey(paper.Id, sectionId)
+	// L2: Redis 缓存。写入前已经做过 YCT 剥离和 EAID 补全，这里无需任何后处理。
 	if cached := redisGetSectionTopicJSON(ctx, rkey); cached != "" {
 		var t exambo.SectionTopic
 		if err := json.Unmarshal([]byte(cached), &t); err == nil {
-			if isYCTPaper {
-				stripYCTItemRenderFields(&t)
-			}
-			if !topicHasStaleEaid(&t) {
-				return &t, nil
-			}
+			storeSectionTopicToMem(paper.Id, sectionId, &t)
+			return &t, nil
 		}
 	}
 	v, err, _ := paperSectionTopicSF.Do(rkey, func() (interface{}, error) {
+		// 单飞组里再检查一次 mem + redis，避免并发请求重复回源。
+		if t := loadSectionTopicFromMem(paper.Id, sectionId); t != nil {
+			return t, nil
+		}
 		if cached := redisGetSectionTopicJSON(ctx, rkey); cached != "" {
 			var t exambo.SectionTopic
 			if err := json.Unmarshal([]byte(cached), &t); err == nil {
-				if isYCTPaper {
-					stripYCTItemRenderFields(&t)
-				}
-				if !topicHasStaleEaid(&t) {
-					return &t, nil
-				}
+				storeSectionTopicToMem(paper.Id, sectionId, &t)
+				return &t, nil
 			}
+		}
+		// 真正的 DB miss 路径。只有这里才需要查一次 level 判断 YCT，读热路径完全不碰 DB。
+		isYCTPaper, yErr := isYCTMockPaper(ctx, mockPaperID)
+		if yErr != nil {
+			return nil, yErr
 		}
 		t, err := paperSectionTopicFromDB(ctx, paper.Id, sectionId)
 		if err != nil {
@@ -91,39 +144,13 @@ func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64
 		if b, mErr := json.Marshal(t); mErr == nil {
 			redisSetSectionTopicJSON(ctx, rkey, string(b))
 		}
+		storeSectionTopicToMem(paper.Id, sectionId, t)
 		return t, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	return v.(*exambo.SectionTopic), nil
-}
-
-func topicHasStaleEaid(topic *exambo.SectionTopic) bool {
-	for i := range topic.Items {
-		item := &topic.Items[i]
-		if hasStaleEaidInAnswers(item.Answers) {
-			return true
-		}
-		for qi := range item.Questions {
-			if hasStaleEaidInAnswers(item.Questions[qi].Answers) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func hasStaleEaidInAnswers(answers []exambo.TopicAnswer) bool {
-	if len(answers) == 0 {
-		return false
-	}
-	for i := range answers {
-		if answers[i].EAID == nil {
-			return true
-		}
-	}
-	return false
 }
 
 func isYCTMockPaper(ctx context.Context, mockPaperID int64) (bool, error) {
