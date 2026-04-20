@@ -209,9 +209,17 @@ func (s *sAttempt) SaveAnswers(ctx context.Context, userID int64, attemptID int6
 	if err := RateLimitSaveAnswers(ctx, attemptID, cfg.SaveAnswersPerSecond); err != nil {
 		return err
 	}
-	_, err := AssertAttemptInProgressByUser(ctx, attemptID, userID)
+	// 先做一次超时自动交卷，避免超时边界继续保存答案。
+	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
+	att, err := LoadAttemptByUser(ctx, attemptID, userID)
 	if err != nil {
 		return err
+	}
+	if att.Status == consts.ExamAttemptSubmitted || att.Status == consts.ExamAttemptEnded {
+		return gerror.NewCode(consts.CodeExamAlreadySubmitted)
+	}
+	if att.Status != consts.ExamAttemptInProgress {
+		return gerror.NewCode(consts.CodeInvalidParams)
 	}
 	if len(items) == 0 {
 		return nil
@@ -257,7 +265,7 @@ func (s *sAttempt) SubmitAttempt(ctx context.Context, userID int64, attemptID in
 		return nil
 	}
 	if att.Status != consts.ExamAttemptInProgress {
-		return gerror.NewCode(consts.CodeExamAlreadySubmitted)
+		return nil
 	}
 	return markSubmitted(ctx, attemptID, false, updaterClient)
 }
