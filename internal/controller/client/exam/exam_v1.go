@@ -7,6 +7,7 @@ import (
 	"exam/internal/consts"
 	"exam/internal/middleware"
 	"exam/internal/model/bo"
+	exambo "exam/internal/model/bo/exam"
 	attemptsvc "exam/internal/service/attempt"
 	papersvc "exam/internal/service/paper"
 	"exam/internal/utility"
@@ -90,7 +91,7 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 	return res, nil
 }
 
-func (c *ControllerV1) PaperSectionForExam(ctx context.Context, req *v1.PaperSectionForExamReq) (res map[string]interface{}, err error) {
+func (c *ControllerV1) PaperSectionForExam(ctx context.Context, req *v1.PaperSectionForExamReq) (res *exambo.SectionTopic, err error) {
 	return papersvc.Paper().PaperSectionTopicForExam(ctx, req.PaperId, req.SectionId)
 }
 

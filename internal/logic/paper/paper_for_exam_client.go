@@ -48,7 +48,7 @@ var (
 	mockPartsSF     singleflight.Group
 )
 
-func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (map[string]interface{}, error) {
+func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionTopic, error) {
 	paper, err := exampaper.ByMockID(ctx, mockPaperID)
 	if err != nil {
 		return nil, err
@@ -59,76 +59,68 @@ func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64
 	}
 	rkey := paperSectionTopicRedisKey(paper.Id, sectionId)
 	if cached := redisGetSectionTopicJSON(ctx, rkey); cached != "" {
-		var m map[string]interface{}
-		if err := json.Unmarshal([]byte(cached), &m); err == nil {
+		var t exambo.SectionTopic
+		if err := json.Unmarshal([]byte(cached), &t); err == nil {
 			if isYCTPaper {
-				stripYCTItemRenderFields(m)
+				stripYCTItemRenderFields(&t)
 			}
-			if !topicHasStaleEaid(m) {
-				return m, nil
+			if !topicHasStaleEaid(&t) {
+				return &t, nil
 			}
 		}
 	}
 	v, err, _ := paperSectionTopicSF.Do(rkey, func() (interface{}, error) {
 		if cached := redisGetSectionTopicJSON(ctx, rkey); cached != "" {
-			var m map[string]interface{}
-			if err := json.Unmarshal([]byte(cached), &m); err == nil {
+			var t exambo.SectionTopic
+			if err := json.Unmarshal([]byte(cached), &t); err == nil {
 				if isYCTPaper {
-					stripYCTItemRenderFields(m)
+					stripYCTItemRenderFields(&t)
 				}
-				if !topicHasStaleEaid(m) {
-					return m, nil
+				if !topicHasStaleEaid(&t) {
+					return &t, nil
 				}
 			}
 		}
-		m, err := paperSectionTopicFromDB(ctx, paper.Id, sectionId)
+		t, err := paperSectionTopicFromDB(ctx, paper.Id, sectionId)
 		if err != nil {
 			return nil, err
 		}
 		if isYCTPaper {
-			stripYCTItemRenderFields(m)
+			stripYCTItemRenderFields(t)
 		}
-		if b, mErr := json.Marshal(m); mErr == nil {
+		if b, mErr := json.Marshal(t); mErr == nil {
 			redisSetSectionTopicJSON(ctx, rkey, string(b))
 		}
-		return m, nil
+		return t, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return v.(map[string]interface{}), nil
+	return v.(*exambo.SectionTopic), nil
 }
 
-func topicHasStaleEaid(topic map[string]interface{}) bool {
-	rawItems, ok := topic["items"]
-	if !ok {
-		return false
-	}
-	items, ok := rawItems.([]interface{})
-	if !ok {
-		return false
-	}
-	for _, rawItem := range items {
-		item, ok := rawItem.(map[string]interface{})
-		if !ok {
-			continue
+func topicHasStaleEaid(topic *exambo.SectionTopic) bool {
+	for i := range topic.Items {
+		item := &topic.Items[i]
+		if hasStaleEaidInAnswers(item.Answers) {
+			return true
 		}
-		rawAnswers, ok := item["answers"]
-		if !ok {
-			continue
-		}
-		answers, ok := rawAnswers.([]interface{})
-		if !ok || len(answers) == 0 {
-			continue
-		}
-		for _, rawAnswer := range answers {
-			answer, ok := rawAnswer.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			if _, hasEAID := answer["eaid"]; !hasEAID {
+		for qi := range item.Questions {
+			if hasStaleEaidInAnswers(item.Questions[qi].Answers) {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+func hasStaleEaidInAnswers(answers []exambo.TopicAnswer) bool {
+	if len(answers) == 0 {
+		return false
+	}
+	for i := range answers {
+		if answers[i].EAID == nil {
+			return true
 		}
 	}
 	return false
@@ -150,26 +142,17 @@ func isYCTMockPaper(ctx context.Context, mockPaperID int64) (bool, error) {
 	return level.Id > 0 && level.TypeName == "YCT", nil
 }
 
-func stripYCTItemRenderFields(topic map[string]interface{}) {
-	rawItems, ok := topic["items"]
-	if !ok {
-		return
-	}
-	items, ok := rawItems.([]interface{})
-	if !ok {
-		return
-	}
-	for _, rawItem := range items {
-		item, ok := rawItem.(map[string]interface{})
-		if !ok {
+func stripYCTItemRenderFields(topic *exambo.SectionTopic) {
+	for i := range topic.Items {
+		if topic.Items[i].Extra == nil {
 			continue
 		}
-		delete(item, "_converter")
-		delete(item, "_element")
+		delete(topic.Items[i].Extra, "_converter")
+		delete(topic.Items[i].Extra, "_element")
 	}
 }
 
-func paperSectionTopicFromDB(ctx context.Context, examPaperId int64, sectionId int64) (map[string]interface{}, error) {
+func paperSectionTopicFromDB(ctx context.Context, examPaperId int64, sectionId int64) (*exambo.SectionTopic, error) {
 	var sec examentity.ExamSection
 	if err := dao.ExamSection.Ctx(ctx).
 		Where("id", sectionId).
@@ -184,8 +167,8 @@ func paperSectionTopicFromDB(ctx context.Context, examPaperId int64, sectionId i
 	if sec.TopicJson == "" {
 		return nil, gerror.NewCode(consts.CodeExamSectionTopicEmpty)
 	}
-	var m map[string]interface{}
-	if err := json.Unmarshal([]byte(sec.TopicJson), &m); err != nil {
+	var t exambo.SectionTopic
+	if err := json.Unmarshal([]byte(sec.TopicJson), &t); err != nil {
 		return nil, err
 	}
 	var blocks []examentity.ExamQuestionBlock
@@ -197,7 +180,8 @@ func paperSectionTopicFromDB(ctx context.Context, examPaperId int64, sectionId i
 		return nil, err
 	}
 	if len(blocks) == 0 {
-		return m, nil
+		stripSensitiveExamFields(&t)
+		return &t, nil
 	}
 	blockIDs := make([]interface{}, 0, len(blocks))
 	for _, b := range blocks {
@@ -214,7 +198,8 @@ func paperSectionTopicFromDB(ctx context.Context, examPaperId int64, sectionId i
 		return nil, err
 	}
 	if len(questions) == 0 {
-		return m, nil
+		stripSensitiveExamFields(&t)
+		return &t, nil
 	}
 	questionsByBlock := make(map[int64][]examentity.ExamQuestion, len(blocks))
 	questionIDs := make([]interface{}, 0, len(questions))
@@ -251,68 +236,46 @@ func paperSectionTopicFromDB(ctx context.Context, examPaperId int64, sectionId i
 			return optionsByQuestion[qid][i].Id < optionsByQuestion[qid][j].Id
 		})
 	}
-	enrichTopicWithExamIDs(m, blocks, questionsByBlock, optionsByQuestion)
-	stripSensitiveExamFields(m)
-	return m, nil
+	enrichTopicWithExamIDs(&t, blocks, questionsByBlock, optionsByQuestion)
+	stripSensitiveExamFields(&t)
+	return &t, nil
 }
 
 func enrichTopicWithExamIDs(
-	topic map[string]interface{},
+	topic *exambo.SectionTopic,
 	blocks []examentity.ExamQuestionBlock,
 	questionsByBlock map[int64][]examentity.ExamQuestion,
 	optionsByQuestion map[int64][]examentity.ExamOption,
 ) {
-	rawItems, ok := topic["items"]
-	if !ok {
-		return
-	}
-	items, ok := rawItems.([]interface{})
-	if !ok {
-		return
-	}
-	for i, rawItem := range items {
+	for i := range topic.Items {
 		if i >= len(blocks) {
 			return
 		}
-		item, ok := rawItem.(map[string]interface{})
-		if !ok {
-			continue
-		}
+		item := &topic.Items[i]
 		blockQs := questionsByBlock[blocks[i].Id]
 		if len(blockQs) == 0 {
 			continue
 		}
-		if rawQuestions, ok := item["questions"]; ok {
-			questions, ok := rawQuestions.([]interface{})
-			if !ok {
-				continue
-			}
-			for qi, rawQuestion := range questions {
+		if len(item.Questions) > 0 {
+			for qi := range item.Questions {
 				if qi >= len(blockQs) {
 					break
 				}
-				question, ok := rawQuestion.(map[string]interface{})
-				if !ok {
-					continue
-				}
-				enrichQuestionWithExamIDs(question, blockQs[qi], optionsByQuestion[blockQs[qi].Id])
+				enrichQuestionWithExamIDs(&item.Questions[qi], blockQs[qi], optionsByQuestion[blockQs[qi].Id])
 			}
 			continue
 		}
-		enrichQuestionWithExamIDs(item, blockQs[0], optionsByQuestion[blockQs[0].Id])
+		item.Eqid = &blockQs[0].Id
+		enrichAnswersWithExamIDs(item.Answers, optionsByQuestion[blockQs[0].Id])
 	}
 }
 
-func enrichQuestionWithExamIDs(question map[string]interface{}, q examentity.ExamQuestion, options []examentity.ExamOption) {
-	question["eqid"] = q.Id
-	rawAnswers, ok := question["answers"]
-	if !ok {
-		return
-	}
-	answers, ok := rawAnswers.([]interface{})
-	if !ok {
-		return
-	}
+func enrichQuestionWithExamIDs(question *exambo.TopicQuestion, q examentity.ExamQuestion, options []examentity.ExamOption) {
+	question.Eqid = &q.Id
+	enrichAnswersWithExamIDs(question.Answers, options)
+}
+
+func enrichAnswersWithExamIDs(answers []exambo.TopicAnswer, options []examentity.ExamOption) {
 	optionIDBySortOrder := make(map[int]int64, len(options))
 	optionIDByFlag := make(map[string]int64, len(options))
 	optionIDByIDString := make(map[string]int64, len(options))
@@ -323,41 +286,28 @@ func enrichQuestionWithExamIDs(question map[string]interface{}, q examentity.Exa
 		}
 		optionIDByIDString[strconv.FormatInt(opt.Id, 10)] = opt.Id
 	}
-	for ai, rawAnswer := range answers {
-		answer, ok := rawAnswer.(map[string]interface{})
-		if !ok {
-			continue
-		}
+	for ai := range answers {
+		answer := &answers[ai]
 		var eaid int64
 		matched := false
-		if fv, ok := answer["flag"]; ok {
-			if flag, ok := fv.(string); ok && flag != "" {
-				if v, ok := optionIDByFlag[strings.ToUpper(strings.TrimSpace(flag))]; ok {
+		if answer.Flag != "" {
+			if v, ok := optionIDByFlag[strings.ToUpper(strings.TrimSpace(answer.Flag))]; ok {
+				eaid = v
+				matched = true
+			}
+		}
+		if !matched {
+			if rawID, ok := exambo.RawString(answer.Id); ok && rawID != "" {
+				if v, ok := optionIDByIDString[rawID]; ok {
 					eaid = v
 					matched = true
 				}
 			}
 		}
-		rawID := ""
-		if !matched {
-			if iv, ok := answer["id"]; ok {
-				if idStr, ok := iv.(string); ok {
-					rawID = idStr
-				}
-				if rawID != "" {
-					if v, ok := optionIDByIDString[rawID]; ok {
-						eaid = v
-						matched = true
-					}
-				}
-			}
-		}
 		if !matched {
 			sortOrder := ai
-			if iv, ok := answer["index"]; ok {
-				if n, ok := iv.(float64); ok {
-					sortOrder = int(n)
-				}
+			if n, ok := exambo.RawInt(answer.Index); ok {
+				sortOrder = n
 			}
 			if v, ok := optionIDBySortOrder[sortOrder]; ok {
 				eaid = v
@@ -369,36 +319,51 @@ func enrichQuestionWithExamIDs(question map[string]interface{}, q examentity.Exa
 			}
 		}
 		if matched {
-			answer["eaid"] = eaid
+			answer.EAID = &eaid
 		}
 	}
 }
 
-func stripSensitiveExamFields(node interface{}) {
-	switch v := node.(type) {
-	case map[string]interface{}:
-		// 移除正确答案与分数相关字段，避免考试前泄露答案或计分信息。
+func stripSensitiveExamFields(topic *exambo.SectionTopic) {
+	rootIsExample := exambo.RawTruthy(topic.IsExample)
+	stripSensitiveFieldsOnExtra(topic.Extra, rootIsExample)
+	for i := range topic.Items {
+		item := &topic.Items[i]
+		itemIsExample := rootIsExample || exambo.RawTruthy(item.IsExample)
+		stripSensitiveFieldsOnExtra(item.Extra, itemIsExample)
+		for qi := range item.Questions {
+			q := &item.Questions[qi]
+			qIsExample := itemIsExample || exambo.RawTruthy(q.IsExample)
+			stripSensitiveFieldsOnExtra(q.Extra, qIsExample)
+			for ai := range q.Answers {
+				stripSensitiveFieldsOnExtra(q.Answers[ai].Extra, qIsExample)
+			}
+		}
+		for ai := range item.Answers {
+			stripSensitiveFieldsOnExtra(item.Answers[ai].Extra, itemIsExample)
+		}
+	}
+}
+
+func stripSensitiveFieldsOnExtra(v map[string]json.RawMessage, isExample bool) {
+	if v == nil {
+		return
+	}
+	if !isExample {
 		delete(v, "correct_answer")
 		delete(v, "correct")
 		delete(v, "answer")
-		delete(v, "score")
-		delete(v, "total_score")
-		delete(v, "score_total")
-		delete(v, "question_score")
-		delete(v, "part_score")
-		delete(v, "part_rate")
-		delete(v, "objective_score")
-		delete(v, "subjective_score")
-		delete(v, "correct_count")
-		delete(v, "correct_rate")
-		for _, child := range v {
-			stripSensitiveExamFields(child)
-		}
-	case []interface{}:
-		for _, child := range v {
-			stripSensitiveExamFields(child)
-		}
 	}
+	delete(v, "score")
+	delete(v, "total_score")
+	delete(v, "score_total")
+	delete(v, "question_score")
+	delete(v, "part_score")
+	delete(v, "part_rate")
+	delete(v, "objective_score")
+	delete(v, "subjective_score")
+	delete(v, "correct_count")
+	delete(v, "correct_rate")
 }
 
 func (s *sPaper) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, error) {
