@@ -9,11 +9,11 @@ import (
 func TestScoreObjective_AllCorrect(t *testing.T) {
 	qs := []bo.QuestionScoreMeta{
 		{QuestionID: 1, IsExample: 0, IsSubjective: 0, Score: 5, CorrectOptIDs: []int64{10}},
-		{QuestionID: 2, IsExample: 0, IsSubjective: 0, Score: 3, CorrectOptIDs: []int64{20, 21}},
+		{QuestionID: 2, IsExample: 0, IsSubjective: 0, Score: 3, CorrectOptIDs: []int64{20}},
 	}
 	ans := map[int64]bo.AnswerPayload{
-		1: {SelectedOptionIDs: []int64{10}},
-		2: {SelectedOptionIDs: []int64{21, 20}},
+		1: {OptionID: 10},
+		2: {OptionID: 20},
 	}
 	obj, hasSubj := ScoreObjective(qs, ans)
 	if hasSubj {
@@ -31,9 +31,9 @@ func TestScoreObjective_SkipsExampleAndSubjective(t *testing.T) {
 		{QuestionID: 3, IsExample: 0, IsSubjective: 0, Score: 2, CorrectOptIDs: []int64{3}},
 	}
 	ans := map[int64]bo.AnswerPayload{
-		1: {SelectedOptionIDs: []int64{999}},
-		2: {SelectedOptionIDs: []int64{2}},
-		3: {SelectedOptionIDs: []int64{3}},
+		1: {OptionID: 999},
+		2: {OptionID: 2},
+		3: {OptionID: 3},
 	}
 	obj, hasSubj := ScoreObjective(qs, ans)
 	if !hasSubj {
@@ -67,12 +67,43 @@ func TestEmptyAnswerRowsForPaper(t *testing.T) {
 }
 
 func TestParseAnswerPayload(t *testing.T) {
-	p := ParseAnswerPayload(`{"selected_option_ids":[2,1],"text":"x"}`)
-	if len(p.SelectedOptionIDs) != 2 || p.Text != "x" {
+	p := ParseAnswerPayload(`{"o_id":42}`)
+	if p.OptionID != 42 || p.Text != "" {
 		t.Fatalf("%+v", p)
 	}
-	p2 := ParseAnswerPayload(`{"option_id":42}`)
-	if len(p2.SelectedOptionIDs) != 1 || p2.SelectedOptionIDs[0] != 42 {
+	p2 := ParseAnswerPayload(`{"text":"x"}`)
+	if p2.OptionID != 0 || p2.Text != "x" {
 		t.Fatalf("%+v", p2)
+	}
+	p3 := ParseAnswerPayload("")
+	if p3.OptionID != 0 || p3.Text != "" {
+		t.Fatalf("%+v", p3)
+	}
+}
+
+func TestMarshalAnswerPayload(t *testing.T) {
+	if got := MarshalAnswerPayload(bo.AnswerPayload{OptionID: 559}); got != `{"o_id":559}` {
+		t.Fatalf("option got %s", got)
+	}
+	if got := MarshalAnswerPayload(bo.AnswerPayload{Text: "hello"}); got != `{"text":"hello"}` {
+		t.Fatalf("text got %s", got)
+	}
+	if got := MarshalAnswerPayload(bo.AnswerPayload{}); got != "" {
+		t.Fatalf("empty got %s", got)
+	}
+}
+
+func TestObjectiveAnswerCorrect(t *testing.T) {
+	if !ObjectiveAnswerCorrect([]int64{10}, 10) {
+		t.Fatal("should be correct")
+	}
+	if ObjectiveAnswerCorrect([]int64{10}, 11) {
+		t.Fatal("should be wrong")
+	}
+	if ObjectiveAnswerCorrect([]int64{10}, 0) {
+		t.Fatal("zero should be wrong")
+	}
+	if ObjectiveAnswerCorrect(nil, 10) {
+		t.Fatal("empty correct ids should be wrong")
 	}
 }

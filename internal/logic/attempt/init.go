@@ -228,27 +228,6 @@ func loadOptionsByQuestion(ctx context.Context, qIDs []interface{}) map[int64][]
 	return out
 }
 
-func answerPayloadToClientAnswer(p bo.AnswerPayload) any {
-	hasText := p.Text != ""
-	n := len(p.SelectedOptionIDs)
-	if hasText && n == 0 {
-		return p.Text
-	}
-	if n == 1 && !hasText {
-		return p.SelectedOptionIDs[0]
-	}
-	if n > 1 {
-		return append([]int64(nil), p.SelectedOptionIDs...)
-	}
-	if n == 1 && hasText {
-		return map[string]interface{}{
-			"selected_option_ids": append([]int64(nil), p.SelectedOptionIDs...),
-			"text":                p.Text,
-		}
-	}
-	return nil
-}
-
 func loadSegmentDurationSeconds(ctx context.Context, levelID int64, segmentCode string) int {
 	if levelID <= 0 || segmentCode == "" {
 		return 0

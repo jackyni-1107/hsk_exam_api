@@ -183,7 +183,7 @@ func (s *sAttempt) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo
 		}
 		if q.Id != 0 && q.IsExample == 0 && q.IsSubjective == 0 {
 			payload := examutil.ParseAnswerPayload(ar.AnswerJson)
-			ok := examutil.ObjectiveAnswerCorrect(correctByQ[q.Id], payload.SelectedOptionIDs)
+			ok := examutil.ObjectiveAnswerCorrect(correctByQ[q.Id], payload.OptionID)
 			row.ObjectiveCorrect = boolPtr(ok)
 		}
 		out.Answers = append(out.Answers, row)

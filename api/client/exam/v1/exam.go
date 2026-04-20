@@ -142,9 +142,11 @@ type AttemptSaveAnswersReq struct {
 	Items       []AttemptAnswerItem `json:"items" dc:"答案列表"`
 }
 
+// AttemptAnswerItem 单题答案。客观题传 option_id，主观题/填空传 text，两者互斥；未作答时均为零值。
 type AttemptAnswerItem struct {
-	QuestionId int64 `json:"question_id" v:"required" dc:"题目ID"`
-	Answer     any   `json:"answer" dc:"客观题传选项ID；写作题传文本"`
+	QuestionId int64  `json:"question_id" v:"required|min:1" dc:"题目ID"`
+	OptionID   int64  `json:"option_id,omitempty" dc:"客观题：所选选项ID（与 text 互斥）"`
+	Text       string `json:"text,omitempty" dc:"主观题/填空：文本（与 option_id 互斥）"`
 }
 
 type AttemptSaveAnswersRes struct{}

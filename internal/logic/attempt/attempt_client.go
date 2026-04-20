@@ -189,12 +189,15 @@ func (s *sAttempt) GetAttemptAnswers(ctx context.Context, userID int64, attemptI
 	}
 	out := make([]bo.AttemptAnswerClientItem, 0, len(byQ))
 	for qid, jsonStr := range byQ {
-		payload := examutil.ParseAnswerPayload(jsonStr)
-		ans := answerPayloadToClientAnswer(payload)
-		if ans == nil {
+		p := examutil.ParseAnswerPayload(jsonStr)
+		if p.OptionID == 0 && p.Text == "" {
 			continue
 		}
-		out = append(out, bo.AttemptAnswerClientItem{QuestionID: qid, Answer: ans})
+		out = append(out, bo.AttemptAnswerClientItem{
+			QuestionID: qid,
+			OptionID:   p.OptionID,
+			Text:       p.Text,
+		})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].QuestionID < out[j].QuestionID })
 	return out, nil
@@ -216,13 +219,23 @@ func (s *sAttempt) SaveAnswers(ctx context.Context, userID int64, attemptID int6
 	data := make(map[string]interface{})
 	now := gtime.Now()
 	for _, it := range items {
+		answerJSON := examutil.MarshalAnswerPayload(bo.AnswerPayload{
+			OptionID: it.OptionID,
+			Text:     it.Text,
+		})
+		if answerJSON == "" {
+			continue
+		}
 		val := g.Map{
 			"q": it.QuestionID,
-			"a": it.AnswerJSON,
+			"a": answerJSON,
 			"v": it.ExpectedVersion,
 			"t": now.Timestamp(),
 		}
 		data[gconv.String(it.QuestionID)] = val
+	}
+	if len(data) == 0 {
+		return nil
 	}
 	if err := RedisSaveAnswerDrafts(ctx, attemptID, data); err != nil {
 		return err

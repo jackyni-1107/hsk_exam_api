@@ -27,35 +27,19 @@ func ScoreObjective(questions []bo.QuestionScoreMeta, answers map[int64]bo.Answe
 			continue
 		}
 		ans := answers[q.QuestionID]
-		if objectiveQuestionCorrect(q.CorrectOptIDs, ans.SelectedOptionIDs) {
+		if ObjectiveAnswerCorrect(q.CorrectOptIDs, ans.OptionID) {
 			objective += q.Score
 		}
 	}
 	return objective, paperHasSubjective
 }
 
-// ObjectiveAnswerCorrect 客观题是否选对（多选需与正确选项 id 集合完全一致，顺序无关）。
-func ObjectiveAnswerCorrect(correctIDs, selected []int64) bool {
-	return objectiveQuestionCorrect(correctIDs, selected)
-}
-
-func objectiveQuestionCorrect(correctIDs, selected []int64) bool {
-	if len(correctIDs) == 0 {
+// ObjectiveAnswerCorrect 单选客观题是否选对：正确选项集合唯一且与用户选项一致。
+func ObjectiveAnswerCorrect(correctIDs []int64, optionID int64) bool {
+	if optionID <= 0 || len(correctIDs) != 1 {
 		return false
 	}
-	a := append([]int64(nil), correctIDs...)
-	b := append([]int64(nil), selected...)
-	sort.Slice(a, func(i, j int) bool { return a[i] < a[j] })
-	sort.Slice(b, func(i, j int) bool { return b[i] < b[j] })
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
+	return correctIDs[0] == optionID
 }
 
 // EmptyAnswerRowsForPaper 根据试卷全部小题 ID 生成「空答题行」描述（供单测与客户端初始化占位）。

@@ -2,7 +2,6 @@ package exam
 
 import (
 	"context"
-	"encoding/json"
 	v1 "exam/api/client/exam/v1"
 	"exam/internal/consts"
 	"exam/internal/middleware"
@@ -168,7 +167,8 @@ func (c *ControllerV1) AttemptAnswersGet(ctx context.Context, req *v1.AttemptAns
 	for _, r := range rows {
 		items = append(items, v1.AttemptAnswerItem{
 			QuestionId: r.QuestionID,
-			Answer:     r.Answer,
+			OptionID:   r.OptionID,
+			Text:       r.Text,
 		})
 	}
 	return &v1.AttemptAnswersGetRes{Items: items}, nil
@@ -181,34 +181,10 @@ func (c *ControllerV1) AttemptSaveAnswers(ctx context.Context, req *v1.AttemptSa
 	}
 	items := make([]bo.SaveAnswerItem, 0, len(req.Items))
 	for _, it := range req.Items {
-		payload := make(map[string]interface{}, 1)
-		switch v := it.Answer.(type) {
-		case float64:
-			if v > 0 {
-				id := int64(v)
-				payload["option_id"] = id
-			}
-		case json.Number:
-			if id, err := v.Int64(); err == nil && id > 0 {
-				payload["option_id"] = id
-			}
-		case int:
-			if v > 0 {
-				id := int64(v)
-				payload["option_id"] = id
-			}
-		case int64:
-			if v > 0 {
-				id := v
-				payload["option_id"] = id
-			}
-		case string:
-			payload["text"] = v
-		}
-		raw, _ := json.Marshal(payload)
 		items = append(items, bo.SaveAnswerItem{
 			QuestionID: it.QuestionId,
-			AnswerJSON: string(raw),
+			OptionID:   it.OptionID,
+			Text:       it.Text,
 		})
 	}
 	err = attemptsvc.Attempt().SaveAnswers(ctx, ctxData.UserId, req.Id, req.SegmentCode, items)
@@ -243,7 +219,8 @@ func (c *ControllerV1) AttemptRandomAnswers(ctx context.Context, req *v1.Attempt
 	for _, d := range drafts {
 		items = append(items, v1.AttemptAnswerItem{
 			QuestionId: d.QuestionID,
-			Answer:     d.Answer,
+			OptionID:   d.OptionID,
+			Text:       d.Text,
 		})
 	}
 	return &v1.AttemptRandomAnswersRes{

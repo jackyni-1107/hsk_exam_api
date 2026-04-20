@@ -57,7 +57,7 @@ func (s *sPaper) RandomFillAnswersForTest(ctx context.Context, userID int64, moc
 		if q.IsSubjective != 0 {
 			out = append(out, bo.RandomAnswerDraftItem{
 				QuestionID: q.Id,
-				Answer:     fmt.Sprintf("test-rand-%d-%016x", gtime.Now().TimestampMilli(), rand.Uint64()),
+				Text:       fmt.Sprintf("test-rand-%d-%016x", gtime.Now().TimestampMilli(), rand.Uint64()),
 			})
 			continue
 		}
@@ -69,7 +69,7 @@ func (s *sPaper) RandomFillAnswersForTest(ctx context.Context, userID int64, moc
 			ids[i] = o.Id
 		}
 		picked := ids[rand.IntN(len(ids))]
-		out = append(out, bo.RandomAnswerDraftItem{QuestionID: q.Id, Answer: picked})
+		out = append(out, bo.RandomAnswerDraftItem{QuestionID: q.Id, OptionID: picked})
 	}
 	return out, nil
 }

@@ -2,10 +2,11 @@ package bo
 
 import examentity "exam/internal/model/entity/exam"
 
-// SaveAnswerItem 批量保存中的一题。
+// SaveAnswerItem 批量保存中的一题。OptionID 与 Text 互斥：客观题传 OptionID，主观题/填空传 Text。
 type SaveAnswerItem struct {
 	QuestionID      int64
-	AnswerJSON      string
+	OptionID        int64
+	Text            string
 	ExpectedVersion *int
 }
 
@@ -18,10 +19,10 @@ type AttemptView struct {
 	RemainingSeconds *int // 当前 segment_code 对应环节剩余时间（秒）
 }
 
-// AnswerPayload 客户端答题 JSON。
+// AnswerPayload 客户端答题 JSON 存储载荷。OptionID 与 Text 互斥，零值表示未作答。
 type AnswerPayload struct {
-	SelectedOptionIDs []int64 `json:"selected_option_ids"`
-	Text              string  `json:"text"`
+	OptionID int64  `json:"o_id,omitempty"`
+	Text     string `json:"text,omitempty"`
 }
 
 // QuestionScoreMeta 阅卷用题目元数据。
@@ -33,14 +34,16 @@ type QuestionScoreMeta struct {
 	CorrectOptIDs []int64
 }
 
-// RandomAnswerDraftItem 随机填答案草稿（不入库）。Answer 与 PUT …/answers 的 items[].answer 一致：客观题为选项 id（数字），主观题为文本字符串。
+// RandomAnswerDraftItem 随机填答案草稿（不入库）。OptionID 与 Text 互斥。
 type RandomAnswerDraftItem struct {
 	QuestionID int64
-	Answer     any
+	OptionID   int64
+	Text       string
 }
 
 // AttemptAnswerClientItem GET /exam/attempts/{id}/answers 单条，与保存接口 items 元素语义一致。
 type AttemptAnswerClientItem struct {
 	QuestionID int64
-	Answer     any
+	OptionID   int64
+	Text       string
 }
