@@ -294,6 +294,27 @@ func maybeAutoSubmitIfOverdue(ctx context.Context, userID int64, attemptID int64
 	return markSubmitted(ctx, attemptID, true, updaterClient)
 }
 
+func isExamBatchExpired(ctx context.Context, batchID int64, now *gtime.Time) (bool, error) {
+	if batchID <= 0 {
+		return false, nil
+	}
+	var row struct {
+		ExamEndAt *gtime.Time `orm:"exam_end_at"`
+	}
+	if err := dao.ExamBatch.Ctx(ctx).
+		Fields("exam_end_at").
+		Where("id", batchID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Limit(1).
+		Scan(&row); err != nil {
+		return false, err
+	}
+	if row.ExamEndAt == nil {
+		return false, nil
+	}
+	return row.ExamEndAt.Before(now), nil
+}
+
 func markSubmitted(ctx context.Context, attemptID int64, onlyIfOverdue bool, updater string) error {
 	ok, err := TryAcquireSubmitLock(ctx, attemptID)
 	if err != nil {

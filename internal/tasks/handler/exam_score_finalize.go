@@ -61,22 +61,19 @@ func (examScoreFinalizeHandler) Execute(ctx context.Context, taskID int64, param
 		return nil
 	}
 
-	var firstErr error
 	failN := 0
 	for _, row := range rows {
 		if err := attemptsvc.Attempt().FinalizeAttempt(ctx, row.Id); err != nil {
 			failN++
-			if firstErr == nil {
-				firstErr = err
-			}
 			g.Log().Warningf(ctx, "[ExamScoreFinalizeHandler] task_id=%d attempt_id=%d finalize error: %v", taskID, row.Id, err)
 		}
 	}
 	okN := len(rows) - failN
 	g.Log().Infof(ctx, "[ExamScoreFinalizeHandler] task_id=%d done ok=%d fail=%d (scanned=%d limit=%d exam_batch_id=%d)",
 		taskID, okN, failN, len(rows), limit, p.ExamBatchID)
-	if firstErr != nil {
-		return gerror.Wrapf(firstErr, "ExamScoreFinalizeHandler: %d of %d attempts failed", failN, len(rows))
+	if failN > 0 {
+		g.Log().Warningf(ctx, "[ExamScoreFinalizeHandler] task_id=%d partial failed=%d total=%d; skipped failed items and continue",
+			taskID, failN, len(rows))
 	}
 	return nil
 }

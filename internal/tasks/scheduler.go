@@ -35,6 +35,7 @@ func triggerHandlerInit() error {
 	// 触发 handler 包加载，确保内置 Handler 已注册
 	_ = handler.Get(handler.DemoHandlerName)
 	_ = handler.Get(handler.ExamScoreFinalizeHandlerName)
+	_ = handler.Get(handler.ExamBatchExpireHandlerName)
 	return nil
 }
 

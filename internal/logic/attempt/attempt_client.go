@@ -111,6 +111,13 @@ func (s *sAttempt) StartAttempt(ctx context.Context, userID int64, attemptID int
 	if att.Id == 0 {
 		return gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
+	expired, err := isExamBatchExpired(ctx, att.ExamBatchId, gtime.Now())
+	if err != nil {
+		return err
+	}
+	if expired {
+		return gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
+	}
 	if att.Status != consts.ExamAttemptNotStarted {
 		return gerror.NewCode(consts.CodeInvalidParams)
 	}
@@ -215,6 +222,14 @@ func (s *sAttempt) SaveAnswers(ctx context.Context, userID int64, attemptID int6
 	if err != nil {
 		return err
 	}
+	expired, err := isExamBatchExpired(ctx, att.ExamBatchId, gtime.Now())
+	if err != nil {
+		return err
+	}
+	if expired {
+		_ = markSubmitted(ctx, attemptID, false, updaterTask)
+		return gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
+	}
 	if att.Status == consts.ExamAttemptSubmitted || att.Status == consts.ExamAttemptEnded {
 		return gerror.NewCode(consts.CodeExamAlreadySubmitted)
 	}
@@ -258,6 +273,14 @@ func (s *sAttempt) SubmitAttempt(ctx context.Context, userID int64, attemptID in
 	if err != nil {
 		return err
 	}
+	expired, err := isExamBatchExpired(ctx, att.ExamBatchId, gtime.Now())
+	if err != nil {
+		return err
+	}
+	if expired {
+		_ = markSubmitted(ctx, attemptID, false, updaterTask)
+		return gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
+	}
 	if att.Status == consts.ExamAttemptEnded {
 		return nil
 	}
@@ -273,6 +296,11 @@ func (s *sAttempt) SubmitAttempt(ctx context.Context, userID int64, attemptID in
 // MarkSubmittedIfOverdue 供定时任务：超时未操作会话标记为已交卷（待算分，不校验用户）。算分由 ExamScoreFinalizeHandler 执行。
 func (s *sAttempt) MarkSubmittedIfOverdue(ctx context.Context, attemptID int64) error {
 	return markSubmitted(ctx, attemptID, true, updaterTask)
+}
+
+// MarkSubmittedByBatchExpired 供定时任务：批次过期后进行中会话标记为已交卷（待算分，不校验用户）。
+func (s *sAttempt) MarkSubmittedByBatchExpired(ctx context.Context, attemptID int64) error {
+	return markSubmitted(ctx, attemptID, false, updaterTask)
 }
 
 // FinalizeAttempt 对已交卷（待算分）会话计算客观分并置为已结束，写入 exam_result。仅应由 ExamScoreFinalizeHandler（sys_task）调用。

@@ -35,11 +35,13 @@ type (
 		SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error
 		// MarkSubmittedIfOverdue 供定时任务：超时未操作会话标记为已交卷（待算分，不校验用户）。算分由 ExamScoreFinalizeHandler 执行。
 		MarkSubmittedIfOverdue(ctx context.Context, attemptID int64) error
+		// MarkSubmittedByBatchExpired 供定时任务：批次过期后进行中会话标记为已交卷（待算分，不校验用户）。
+		MarkSubmittedByBatchExpired(ctx context.Context, attemptID int64) error
 		// FinalizeAttempt 对已交卷（待算分）会话计算客观分并置为已结束，写入 exam_result。仅应由 ExamScoreFinalizeHandler（sys_task）调用。
 		FinalizeAttempt(ctx context.Context, attemptID int64) error
 		// GetAttemptByID 获取答题会话详情
 		GetAttemptByID(ctx context.Context, id int64) (*examentity.ExamAttempt, error)
-		// IsWindowOpen 判断考试窗口是否开启
+		// IsWindowOpen 判断考试窗口是否开启（含起止边界时刻）。
 		IsWindowOpen(now *gtime.Time, start *gtime.Time, end *gtime.Time) bool
 	}
 )
