@@ -83,36 +83,36 @@ func TestEnrichAnswersWithExamIDs(t *testing.T) {
 
 	enrichAnswersWithExamIDs(answers, options)
 
-	if answers[0].EAID == nil || *answers[0].EAID != 102 {
-		t.Fatalf("flag match failed, got %+v", answers[0].EAID)
+	if answers[0].EOID == nil || *answers[0].EOID != 102 {
+		t.Fatalf("flag match failed, got %+v", answers[0].EOID)
 	}
-	if answers[1].EAID == nil || *answers[1].EAID != 103 {
-		t.Fatalf("id match failed, got %+v", answers[1].EAID)
+	if answers[1].EOID == nil || *answers[1].EOID != 103 {
+		t.Fatalf("id match failed, got %+v", answers[1].EOID)
 	}
-	if answers[2].EAID == nil || *answers[2].EAID != 101 {
-		t.Fatalf("index match failed, got %+v", answers[2].EAID)
+	if answers[2].EOID == nil || *answers[2].EOID != 101 {
+		t.Fatalf("index match failed, got %+v", answers[2].EOID)
 	}
 }
 
-func TestTopicHasStaleEaid(t *testing.T) {
+func TestTopicHasStaleEoid(t *testing.T) {
 	okID := int64(1)
 	topic := &exambo.SectionTopic{
 		Items: []exambo.TopicItem{
 			{
 				Questions: []exambo.TopicQuestion{
 					{
-						Answers: []exambo.TopicAnswer{{EAID: &okID}, {}},
+						Answers: []exambo.TopicAnswer{{EOID: &okID}, {}},
 					},
 				},
 			},
 		},
 	}
-	if !topicHasStaleEaid(topic) {
-		t.Fatalf("expected stale eaid to be detected")
+	if !topicHasStaleEoid(topic) {
+		t.Fatalf("expected stale eoid to be detected")
 	}
-	topic.Items[0].Questions[0].Answers[1].EAID = &okID
-	if topicHasStaleEaid(topic) {
-		t.Fatalf("did not expect stale eaid")
+	topic.Items[0].Questions[0].Answers[1].EOID = &okID
+	if topicHasStaleEoid(topic) {
+		t.Fatalf("did not expect stale eoid")
 	}
 }
 

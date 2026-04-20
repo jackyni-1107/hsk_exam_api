@@ -109,7 +109,7 @@ func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64
 		return t, nil
 	}
 	rkey := paperSectionTopicRedisKey(paper.Id, sectionId)
-	// L2: Redis 缓存。写入前已经做过 YCT 剥离和 EAID 补全，这里无需任何后处理。
+	// L2: Redis 缓存。写入前已经做过 YCT 剥离和 EOID 补全，这里无需任何后处理。
 	if cached := redisGetSectionTopicJSON(ctx, rkey); cached != "" {
 		var t exambo.SectionTopic
 		if err := json.Unmarshal([]byte(cached), &t); err == nil {
@@ -315,18 +315,18 @@ func enrichAnswersWithExamIDs(answers []exambo.TopicAnswer, options []examentity
 	}
 	for ai := range answers {
 		answer := &answers[ai]
-		var eaid int64
+		var eoid int64
 		matched := false
 		if answer.Flag != "" {
 			if v, ok := optionIDByFlag[strings.ToUpper(strings.TrimSpace(answer.Flag))]; ok {
-				eaid = v
+				eoid = v
 				matched = true
 			}
 		}
 		if !matched {
 			if rawID, ok := exambo.RawString(answer.Id); ok && rawID != "" {
 				if v, ok := optionIDByIDString[rawID]; ok {
-					eaid = v
+					eoid = v
 					matched = true
 				}
 			}
@@ -337,18 +337,55 @@ func enrichAnswersWithExamIDs(answers []exambo.TopicAnswer, options []examentity
 				sortOrder = n
 			}
 			if v, ok := optionIDBySortOrder[sortOrder]; ok {
-				eaid = v
+				eoid = v
 				matched = true
 			} else if v, ok := optionIDBySortOrder[sortOrder+1]; ok {
 				// 兼容 index 起点与 DB sort_order 的 0/1 差异。
-				eaid = v
+				eoid = v
 				matched = true
 			}
 		}
 		if matched {
-			answer.EAID = &eaid
+			answer.EOID = &eoid
 		}
 	}
+}
+
+func topicHasStaleEoid(topic *exambo.SectionTopic) bool {
+	if topic == nil {
+		return false
+	}
+	for i := range topic.Items {
+		item := &topic.Items[i]
+		if answersHaveMixedEOID(item.Answers) {
+			return true
+		}
+		for qi := range item.Questions {
+			if answersHaveMixedEOID(item.Questions[qi].Answers) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func answersHaveMixedEOID(answers []exambo.TopicAnswer) bool {
+	if len(answers) <= 1 {
+		return false
+	}
+	hasEOID := false
+	hasMissingEOID := false
+	for i := range answers {
+		if answers[i].EOID != nil {
+			hasEOID = true
+		} else {
+			hasMissingEOID = true
+		}
+		if hasEOID && hasMissingEOID {
+			return true
+		}
+	}
+	return false
 }
 
 func stripSensitiveExamFields(topic *exambo.SectionTopic) {

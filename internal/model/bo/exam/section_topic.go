@@ -34,7 +34,7 @@ type TopicAnswer struct {
 	Flag  string                     `json:"flag,omitempty"`
 	Id    json.RawMessage            `json:"id,omitempty"`
 	Index json.RawMessage            `json:"index,omitempty"`
-	EAID  *int64                     `json:"eaid,omitempty"`
+	EOID  *int64                     `json:"eoid,omitempty"`
 	Extra map[string]json.RawMessage `json:"-"`
 }
 
@@ -150,8 +150,8 @@ func (s TopicAnswer) MarshalJSON() ([]byte, error) {
 	}
 	putRawMessage(m, "id", s.Id)
 	putRawMessage(m, "index", s.Index)
-	if s.EAID != nil {
-		putRaw(m, "eaid", *s.EAID)
+	if s.EOID != nil {
+		putRaw(m, "eoid", *s.EOID)
 	}
 	return json.Marshal(m)
 }
@@ -173,12 +173,12 @@ func (s *TopicAnswer) UnmarshalJSON(data []byte) error {
 		s.Index = cloneRaw(v)
 		delete(raw, "index")
 	}
-	if v, ok := raw["eaid"]; ok {
-		var eaid int64
-		if err := json.Unmarshal(v, &eaid); err == nil {
-			s.EAID = &eaid
+	if v, ok := raw["eoid"]; ok {
+		var eoid int64
+		if err := json.Unmarshal(v, &eoid); err == nil {
+			s.EOID = &eoid
 		}
-		delete(raw, "eaid")
+		delete(raw, "eoid")
 	}
 	s.Extra = raw
 	return nil

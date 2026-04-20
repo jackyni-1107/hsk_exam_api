@@ -25,7 +25,7 @@ func paperForExamSectionRedisKey(examPaperId, sectionId int64) string {
 }
 
 // sectionTopicCacheVersion 用于在不修改 consts 的前提下对 section topic 缓存做版本隔离。
-// 升级读/写路径语义（例如去掉读时的 YCT 剥离与 EAID 兜底扫描）后，bump 本常量可令历史脏缓存整体失效。
+// 升级读/写路径语义（例如去掉读时的 YCT 剥离与 EOID 兜底扫描）后，bump 本常量可令历史脏缓存整体失效。
 const sectionTopicCacheVersion = "v2"
 
 func paperSectionTopicRedisKey(examPaperId, sectionId int64) string {
