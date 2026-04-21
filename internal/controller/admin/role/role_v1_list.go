@@ -13,6 +13,18 @@ func (c *ControllerV1) RoleList(ctx context.Context, req *v1.RoleListReq) (res *
 	if err != nil {
 		return nil, err
 	}
+	if len(roles) == 0 {
+		return &v1.RoleListRes{List: []*v1.RoleItem{}, Total: total}, nil
+	}
+
+	roleIDs := make([]int64, len(roles))
+	for i := range roles {
+		roleIDs[i] = roles[i].Id
+	}
+	menuIDsByRole, err := rolesvc.SysRole().RoleMenuIDsByRoleIDs(ctx, roleIDs)
+	if err != nil {
+		return nil, err
+	}
 
 	list := make([]*v1.RoleItem, 0, len(roles))
 	for _, r := range roles {
@@ -28,8 +40,7 @@ func (c *ControllerV1) RoleList(ctx context.Context, req *v1.RoleListReq) (res *
 		if r.CreateTime != nil {
 			item.CreateTime = utility.ToRFC3339UTC(r.CreateTime)
 		}
-		menuIds, _ := rolesvc.SysRole().RoleMenuIds(ctx, r.Id)
-		item.MenuIds = menuIds
+		item.MenuIds = menuIDsByRole[r.Id]
 		list = append(list, item)
 	}
 

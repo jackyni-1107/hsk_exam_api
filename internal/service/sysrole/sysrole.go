@@ -14,7 +14,10 @@ type (
 	ISysRole interface {
 		RoleList(ctx context.Context, page int, size int, name string, status int) ([]sysentity.SysRole, int, error)
 		RoleMenuIds(ctx context.Context, roleId int64) ([]int64, error)
+		RoleMenuIDsByRoleIDs(ctx context.Context, roleIDs []int64) (map[int64][]int64, error)
 		RoleCreate(ctx context.Context, name string, code string, remark string, creator string, status int, sort int, typ int) (int64, error)
+		PermissionCodesByUser(ctx context.Context, userId int64) ([]string, error)
+		MenuIDsByUser(ctx context.Context, userId int64) ([]int64, error)
 		RoleUpdate(ctx context.Context, id int64, name string, code string, remark string, updater string, status int, sort int, typ int) error
 		RoleDelete(ctx context.Context, id int64, updater string) error
 		RoleMenuAssign(ctx context.Context, roleId int64, menuIds []int64, creator string) error

@@ -8,6 +8,7 @@ import (
 	"exam/internal/dao"
 	sysdo "exam/internal/model/do/sys"
 	sysentity "exam/internal/model/entity/sys"
+	rolesvc "exam/internal/service/sysrole"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -107,28 +108,13 @@ func (s *sSysMenu) MenuDelete(ctx context.Context, id int64, updater string) err
 }
 
 func (s *sSysMenu) MenuIdsForUser(ctx context.Context, userId int64) (map[int64]struct{}, error) {
-	var userRoles []sysentity.SysUserRole
-	err := dao.SystemUserRole.Ctx(ctx).
-		Where("user_id", userId).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&userRoles)
+	menuIDs, err := rolesvc.SysRole().MenuIDsByUser(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
-
 	result := make(map[int64]struct{})
-	for _, ur := range userRoles {
-		var roleMenus []sysentity.SysRoleMenu
-		err = dao.SystemRoleMenu.Ctx(ctx).
-			Where("role_id", ur.RoleId).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Scan(&roleMenus)
-		if err != nil {
-			return nil, err
-		}
-		for _, rm := range roleMenus {
-			result[rm.MenuId] = struct{}{}
-		}
+	for _, menuID := range menuIDs {
+		result[menuID] = struct{}{}
 	}
 	return result, nil
 }
