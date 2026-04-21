@@ -36,17 +36,9 @@ func (c *ControllerV1) Menus(ctx context.Context, req *v1.MenusReq) (res *v1.Men
 		byID[m.Id] = m
 	}
 
-	var allowed map[int64]struct{}
-	if d.UserId == consts.SuperAdminUserId {
-		allowed = make(map[int64]struct{}, len(active))
-		for _, m := range active {
-			allowed[m.Id] = struct{}{}
-		}
-	} else {
-		allowed, err = menusvc.SysMenu().MenuIdsForUser(ctx, d.UserId)
-		if err != nil {
-			return nil, err
-		}
+	allowed, err := menusvc.SysMenu().MenuIdsForUser(ctx, d.UserId)
+	if err != nil {
+		return nil, err
 	}
 
 	visible := make(map[int64]struct{})

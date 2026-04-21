@@ -9,7 +9,6 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/service/audit"
-	menusvc "exam/internal/service/sysmenu"
 	rolesvc "exam/internal/service/sysrole"
 )
 
@@ -28,11 +27,6 @@ func RBAC(permission string) ghttp.HandlerFunc {
 		}
 
 		if ctxData.UserType == consts.UserTypeClient {
-			r.Middleware.Next()
-			return
-		}
-
-		if ctxData.UserId == consts.SuperAdminUserId {
 			r.Middleware.Next()
 			return
 		}
@@ -60,19 +54,6 @@ func getUserPermissions(ctx context.Context, userId int64) ([]string, error) {
 }
 
 func GetUserMenuIds(ctx context.Context, userId int64) ([]int64, error) {
-	if userId == consts.SuperAdminUserId {
-		menus, err := menusvc.SysMenu().MenuTree(ctx)
-		if err != nil {
-			return nil, err
-		}
-		ids := make([]int64, 0, len(menus))
-		for _, menu := range menus {
-			if menu.Status == consts.StatusNormal {
-				ids = append(ids, menu.Id)
-			}
-		}
-		return ids, nil
-	}
 	return rolesvc.SysRole().MenuIDsByUser(ctx, userId)
 }
 

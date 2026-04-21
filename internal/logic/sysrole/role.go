@@ -429,6 +429,10 @@ func bestEffortClearUserPermissionCaches(ctx context.Context, userIDs []int64) {
 }
 
 func activeMenusByUser(ctx context.Context, userId int64) ([]sysentity.SysMenu, error) {
+	if userId == consts.SuperAdminUserId {
+		return activeMenusForSuperAdmin(ctx)
+	}
+
 	roleIDs, err := activeRoleIDsByUser(ctx, userId)
 	if err != nil {
 		return nil, err
@@ -463,6 +467,19 @@ func activeMenusByUser(ctx context.Context, userId int64) ([]sysentity.SysMenu, 
 		WhereIn("id", menuIDs).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Where("status", consts.StatusNormal).
+		Scan(&menus); err != nil {
+		return nil, err
+	}
+	return menus, nil
+}
+
+func activeMenusForSuperAdmin(ctx context.Context) ([]sysentity.SysMenu, error) {
+	var menus []sysentity.SysMenu
+	if err := dao.SystemMenu.Ctx(ctx).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Where("status", consts.StatusNormal).
+		OrderAsc("sort").
+		OrderAsc("id").
 		Scan(&menus); err != nil {
 		return nil, err
 	}
