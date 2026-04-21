@@ -99,6 +99,9 @@ var (
 	CodeExamBatchPaperNotInBatch           = gcode.New(11122, "err.exam_batch_paper_not_in_batch", nil)
 	CodeExamBatchPaperHasMembers           = gcode.New(11123, "err.exam_batch_paper_has_members", nil)
 	CodeExamPaperIdRequiredForBatchAttempt = gcode.New(11124, "err.exam_paper_id_required_for_batch_attempt", nil)
+	CodeExamPaperPurgeConfirmInvalid       = gcode.New(11125, "err.exam_paper_purge_confirm_invalid", nil)
+	CodeExamPaperPurgeHasAttempts          = gcode.New(11126, "err.exam_paper_purge_has_attempts", nil)
+	CodeExamPaperPurgeHasBatchBinding      = gcode.New(11127, "err.exam_paper_purge_has_batch_binding", nil)
 	// Mock 模拟卷（11201-11299）
 	CodeMockExamPaperNotFound   = gcode.New(11201, "err.mock_exam_paper_not_found", nil)
 	CodeMockLevelNotFound       = gcode.New(11202, "err.mock_level_not_found", nil)

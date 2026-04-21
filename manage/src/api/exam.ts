@@ -137,6 +137,11 @@ export function editExamPaperMeta(data: {
   return request.post<any, { data: Record<string, never> }>('/admin/exam/paper/edit', data)
 }
 
+/** 物理删除 exam_paper（仅超级管理员；confirm_text 须为 `DELETE:${exam_paper_id}`） */
+export function purgeExamPaper(data: { exam_paper_id: number; confirm_text: string }) {
+  return request.post<any, { data: Record<string, never> }>('/admin/exam/paper/purge', data)
+}
+
 /** --- 考试批次（/admin/exam/batch） --- */
 
 export interface ExamBatchListItem {

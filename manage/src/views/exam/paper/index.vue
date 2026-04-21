@@ -76,6 +76,12 @@
             <el-button link type="primary" @click="openSettings(row)"
               >听力 HLS</el-button
             >
+            <el-button
+              link
+              type="danger"
+              @click="openPurge(row)"
+              >物理删除</el-button
+            >
           </template>
         </el-table-column>
       </el-table>
@@ -408,6 +414,43 @@
         />
       </div>
     </el-drawer>
+
+    <!-- 物理删除（超级管理员） -->
+    <el-dialog
+      v-model="purgeDlg"
+      title="物理删除试卷（不可恢复）"
+      width="520px"
+      destroy-on-close
+      @closed="onPurgeClosed"
+    >
+      <el-alert type="error" :closable="false" show-icon class="mb">
+        <template #title>
+          将永久删除数据库中的 exam_paper 及全部大题、小题与选项。若该卷仍挂在考试批次或已有答题记录，操作将失败。
+        </template>
+      </el-alert>
+      <p v-if="purgeTarget" class="purge-hint">
+        试卷 ID：<strong>{{ purgeTarget.id }}</strong> · {{ purgeTarget.title || "（无标题）" }}
+      </p>
+      <p class="purge-hint">
+        请在下方输入确认口令（区分大小写）：<code class="purge-code">{{ purgeExpectedPhrase }}</code>
+      </p>
+      <el-input
+        v-model="purgeConfirmInput"
+        placeholder="输入确认口令"
+        clearable
+        autocomplete="off"
+      />
+      <template #footer>
+        <el-button @click="purgeDlg = false">取消</el-button>
+        <el-button
+          type="danger"
+          :loading="purgeSubmitting"
+          :disabled="!purgeConfirmOk"
+          @click="submitPurge"
+          >确认永久删除</el-button
+        >
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -420,9 +463,11 @@ import {
   importExamPaper,
   updateExamPaper,
   editExamPaperMeta,
+  purgeExamPaper,
   type ExamPaperDetail,
   type ExamPaperItem,
 } from "@/api/exam";
+import { useUserStore } from "@/stores/user";
 import {
   getMockLevelsList,
   getMockExaminationPapers,
@@ -430,6 +475,15 @@ import {
   type MockExaminationPaperItem,
 } from "@/api/mockAdmin";
 import { formatUtcText } from "@/utils/datetime";
+
+/** 与后端 sys_menu.permission、试卷物理删除接口一致 */
+const PERM_EXAM_PAPER_PURGE = "exam:paper:purge";
+
+const userStore = useUserStore();
+const canPurgeExamPaper = computed(() =>
+    console.log(userStore.userInfo)
+  (userStore.userInfo?.permissions ?? []).includes(PERM_EXAM_PAPER_PURGE)
+);
 
 const loading = ref(false);
 const rows = ref<ExamPaperItem[]>([]);
@@ -516,6 +570,54 @@ const detailDrawer = ref(false);
 const detailLoading = ref(false);
 const detailLoaded = ref(false);
 const examDetail = ref<ExamPaperDetail | null>(null);
+
+const purgeDlg = ref(false);
+const purgeSubmitting = ref(false);
+const purgeTarget = ref<ExamPaperItem | null>(null);
+const purgeConfirmInput = ref("");
+
+const purgeExpectedPhrase = computed(() =>
+  purgeTarget.value ? `DELETE:${purgeTarget.value.id}` : ""
+);
+
+const purgeConfirmOk = computed(
+  () =>
+    !!purgeTarget.value &&
+    purgeConfirmInput.value === purgeExpectedPhrase.value
+);
+
+function openPurge(row: ExamPaperItem) {
+  purgeTarget.value = row;
+  purgeConfirmInput.value = "";
+  purgeDlg.value = true;
+}
+
+function onPurgeClosed() {
+  purgeTarget.value = null;
+  purgeConfirmInput.value = "";
+}
+
+async function submitPurge() {
+  const row = purgeTarget.value;
+  if (!row || purgeConfirmInput.value !== `DELETE:${row.id}`) {
+    ElMessage.warning("确认口令不正确");
+    return;
+  }
+  purgeSubmitting.value = true;
+  try {
+    await purgeExamPaper({
+      exam_paper_id: row.id,
+      confirm_text: purgeConfirmInput.value.trim(),
+    });
+    ElMessage.success("已物理删除");
+    purgeDlg.value = false;
+    await loadList();
+  } catch {
+    /* 错误由 request 拦截器提示 */
+  } finally {
+    purgeSubmitting.value = false;
+  }
+}
 
 function truncate(s: string, max: number) {
   if (!s) return "";
@@ -835,5 +937,20 @@ onMounted(async () => {
 }
 .mt {
   margin-top: 16px;
+}
+.mb {
+  margin-bottom: 12px;
+}
+.purge-hint {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 8px;
+  color: var(--el-text-color-regular);
+}
+.purge-code {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--el-fill-color-light);
+  font-size: 13px;
 }
 </style>

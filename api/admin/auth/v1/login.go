@@ -16,9 +16,10 @@ type LoginRes struct {
 }
 
 type LoginUser struct {
-	Id       int64    `json:"id" dc:"用户ID"`
-	Username string   `json:"username" dc:"用户名"`
-	Nickname string   `json:"nickname" dc:"昵称"`
-	Avatar   string   `json:"avatar" dc:"头像"`
-	Roles    []string `json:"roles,omitempty" dc:"角色列表"`
+	Id          int64    `json:"id" dc:"用户ID"`
+	Username    string   `json:"username" dc:"用户名"`
+	Nickname    string   `json:"nickname" dc:"昵称"`
+	Avatar      string   `json:"avatar" dc:"头像"`
+	Roles       []string `json:"roles,omitempty" dc:"角色列表"`
+	Permissions []string `json:"permissions,omitempty" dc:"菜单 permission 列表（按钮显隐）"`
 }

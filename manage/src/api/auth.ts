@@ -6,6 +6,8 @@ export interface LoginUser {
   nickname: string
   avatar: string
   roles?: string[]
+  /** 与 sys_menu.permission 一致，用于按钮显隐（如 exam:paper:purge） */
+  permissions?: string[]
 }
 
 export interface AuthPublicKey {

@@ -79,6 +79,15 @@ type PaperEditReq struct {
 
 type PaperEditRes struct{}
 
+// PaperPurgeReq 物理删除 exam_paper（不可恢复）。confirm_text 须与「DELETE:{exam_paper_id}」完全一致（含大小写与冒号）。
+type PaperPurgeReq struct {
+	g.Meta      `path:"/exam/paper/purge" method:"post" tags:"试卷管理" summary:"物理删除试卷（超级管理员，不可恢复）"`
+	ExamPaperId int64  `json:"exam_paper_id" v:"required|min:1#err.invalid_params" dc:"exam_paper.id"`
+	ConfirmText string `json:"confirm_text" v:"required#err.invalid_params" dc:"二次确认，须为 DELETE:试卷主键"`
+}
+
+type PaperPurgeRes struct{}
+
 type PaperDetailReq struct {
 	g.Meta `path:"/exam/paper/{id}" method:"get" tags:"试卷管理" summary:"试卷详情（大题/题块/试题）；path id 为 exam_paper.id，未找到 code=11114"`
 	Id     int64 `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"exam_paper.id"`

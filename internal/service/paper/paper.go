@@ -33,6 +33,8 @@ type (
 		UpdatePaperSettings(ctx context.Context, examPaperId int64, in exambo.PaperHlsExamAdminUpdate, updater string) error
 		// UpdatePaperMeta 管理端修改试卷元数据（不含 HLS、题目树）。
 		UpdatePaperMeta(ctx context.Context, examPaperId int64, in exambo.PaperMetaAdminUpdate, updater string) error
+		// PaperPurgePhysical 永久删除 exam_paper 及题目树（需二次确认口令，见管理端文档）。
+		PaperPurgePhysical(ctx context.Context, examPaperId int64, confirmText string) error
 		// RandomFillAnswersForTest 仅返回随机答案草稿列表，不写库。若需生成并保存，使用 RandomFillAndSaveAnswers。paperId 为 exam_paper.id。
 		RandomFillAnswersForTest(ctx context.Context, userID int64, examPaperID int64, attemptID int64) ([]bo.RandomAnswerDraftItem, error)
 		PaperSectionTopicForExam(ctx context.Context, examPaperID int64, sectionId int64) (*exambo.SectionTopic, error)

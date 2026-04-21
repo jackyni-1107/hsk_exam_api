@@ -84,10 +84,16 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 	secsvc.Security().ClearLoginFailure(ctx, consts.UserTypeAdmin, req.Username)
 	auditsvc.Audit().RecordLoginSuccess(ctx, u.Id, u.Username, consts.UserTypeAdmin, ip, userAgent, traceId)
 
+	var perms []string
+	if p, perr := middleware.GetUserPermissions(ctx, u.Id); perr == nil {
+		perms = p
+	}
+
 	return &v1.LoginRes{
 		Token: token,
 		UserInfo: &v1.LoginUser{
 			Id: u.Id, Username: u.Username, Nickname: u.Nickname, Avatar: u.Avatar,
+			Permissions: perms,
 		},
 	}, nil
 }

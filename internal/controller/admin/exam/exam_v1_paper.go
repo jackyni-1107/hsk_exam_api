@@ -8,9 +8,12 @@ import (
 	"github.com/gogf/gf/v2/util/gconv"
 
 	v1 "exam/api/admin/exam/v1"
+	"exam/internal/consts"
 	"exam/internal/middleware"
 	papersvc "exam/internal/service/paper"
 	"exam/internal/utility"
+
+	"github.com/gogf/gf/v2/errors/gerror"
 )
 
 func (c *ControllerV1) PaperList(ctx context.Context, req *v1.PaperListReq) (res *v1.PaperListRes, err error) {
@@ -93,6 +96,24 @@ func (c *ControllerV1) PaperEdit(ctx context.Context, req *v1.PaperEditReq) (res
 		return nil, err
 	}
 	return &v1.PaperEditRes{}, nil
+}
+
+func (c *ControllerV1) PaperPurge(ctx context.Context, req *v1.PaperPurgeReq) (res *v1.PaperPurgeRes, err error) {
+	d := middleware.GetCtxData(ctx)
+	if d == nil {
+		return nil, gerror.NewCode(consts.CodeTokenRequired)
+	}
+	ok, err := middleware.UserHasActiveRoleCode(ctx, d.UserId, consts.RoleCodeSuperAdmin)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, gerror.NewCode(consts.CodePermissionDenied)
+	}
+	if err := papersvc.Paper().PaperPurgePhysical(ctx, req.ExamPaperId, req.ConfirmText); err != nil {
+		return nil, err
+	}
+	return &v1.PaperPurgeRes{}, nil
 }
 
 func (c *ControllerV1) PaperUpdate(ctx context.Context, req *v1.PaperUpdateReq) (res *v1.PaperUpdateRes, err error) {

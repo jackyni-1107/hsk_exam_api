@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"sort"
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -126,6 +127,56 @@ func getUserPermissions(ctx context.Context, userId int64) ([]string, error) {
 	return perms, nil
 }
 
+// GetUserPermissions 返回用户拥有的 permission 标识（用于登录返回与前端按钮显隐）。
+// 超级管理员为库内全部启用且未删除菜单的非空 permission。
+func GetUserPermissions(ctx context.Context, userId int64) ([]string, error) {
+	if userId == consts.SuperAdminUserId {
+		return allDistinctMenuPermissions(ctx)
+	}
+	return getUserPermissions(ctx, userId)
+}
+
+func allDistinctMenuPermissions(ctx context.Context) ([]string, error) {
+	var menus []sysentity.SysMenu
+	if err := dao.SystemMenu.Ctx(ctx).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Where("status", consts.StatusNormal).
+		Scan(&menus); err != nil {
+		return nil, err
+	}
+	set := make(map[string]struct{})
+	for _, m := range menus {
+		if m.Permission != "" {
+			set[m.Permission] = struct{}{}
+		}
+	}
+	out := make([]string, 0, len(set))
+	for p := range set {
+		out = append(out, p)
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
+// UserHasActiveRoleCode 判断用户是否绑定指定 code 的启用且未删除角色（sys_role.code）。
+func UserHasActiveRoleCode(ctx context.Context, userId int64, roleCode string) (bool, error) {
+	if userId <= 0 || strings.TrimSpace(roleCode) == "" {
+		return false, nil
+	}
+	n, err := dao.SystemUserRole.Ctx(ctx).As("ur").
+		InnerJoin(dao.SystemRole.Table()+" r", "ur.role_id = r.id").
+		Where("ur.user_id", userId).
+		Where("ur.delete_flag", consts.DeleteFlagNotDeleted).
+		Where("r.delete_flag", consts.DeleteFlagNotDeleted).
+		Where("r.status", consts.StatusNormal).
+		Where("r.code", roleCode).
+		Count()
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
+}
+
 // GetUserMenuIds 获取用户有权限的菜单 ID 列表（用于动态菜单）
 // 超级管理员返回所有菜单 ID；普通用户从 user->roles->role_menu 查询
 func GetUserMenuIds(ctx context.Context, userId int64) ([]int64, error) {
@@ -212,6 +263,10 @@ func inferPermission(path, method string) string {
 	// admin/exam/paper/import -> exam:import（与列表 exam:list 区分）
 	if resource == "exam" && len(parts) >= 4 && parts[2] == "paper" && parts[3] == "import" {
 		return "exam:import"
+	}
+	// admin/exam/paper/purge -> exam:paper:purge（按钮权限；另需 sys_role.code=super_admin 见控制器）
+	if resource == "exam" && len(parts) >= 4 && parts[2] == "paper" && parts[3] == "purge" && method == "POST" {
+		return "exam:paper:purge"
 	}
 	// admin/exam/attempt/list 与 admin/exam/attempt/{id} -> exam:result:list
 	if resource == "exam" && len(parts) >= 3 && parts[2] == "attempt" && method == "GET" {
