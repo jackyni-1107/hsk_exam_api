@@ -18,7 +18,7 @@ func (c *ControllerV1) ExaminationPaperList(ctx context.Context, req *v1.Examina
 	items := make([]*v1.ExaminationPaperItem, 0, len(list))
 	for _, e := range list {
 		items = append(items, &v1.ExaminationPaperItem{
-			Id: e.Id, LevelId: e.LevelId, Name: e.Name, ScoreFull: e.ScoreFull,
+			Id: e.Id, LevelId: e.LevelId, Name: e.Name, ResourceUrl: e.ResourceUrl, ScoreFull: e.ScoreFull,
 			TimeFull: e.TimeFull, Status: e.Status, PaperType: e.PaperType, MockType: e.MockType,
 			Imported: e.Imported,
 		})
@@ -36,7 +36,7 @@ func (c *ControllerV1) ExaminationPaperDetail(ctx context.Context, req *v1.Exami
 	}
 	return &v1.ExaminationPaperDetailRes{
 		Paper: &v1.ExaminationPaperItem{
-			Id: e.Id, LevelId: e.LevelId, Name: e.Name, ScoreFull: e.ScoreFull,
+			Id: e.Id, LevelId: e.LevelId, Name: e.Name, ResourceUrl: e.ResourceUrl, ScoreFull: e.ScoreFull,
 			TimeFull: e.TimeFull, Status: e.Status, PaperType: e.PaperType, MockType: e.MockType,
 			Imported: e.Imported,
 		},

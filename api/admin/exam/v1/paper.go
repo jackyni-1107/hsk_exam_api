@@ -5,7 +5,7 @@ import (
 )
 
 type PaperListReq struct {
-	g.Meta `path:"/exam/paper/list" method:"get" tags:"试卷管理" summary:"试卷列表"`
+	g.Meta `path:"/exam/paper/list" method:"get" tags:"试卷管理" summary:"exam_paper 试卷列表"`
 	Level  string `json:"level" dc:"级别筛选，如 hsk1"`
 	Page   int    `json:"page" dc:"页码"`
 	Size   int    `json:"size" dc:"每页条数"`
@@ -17,7 +17,8 @@ type PaperListRes struct {
 }
 
 type PaperListItem struct {
-	Id                      int64   `json:"id" dc:"mock_examination_paper.id"`
+	Id                      int64   `json:"id" dc:"exam_paper.id"`
+	MockExaminationPaperId  int64   `json:"mock_examination_paper_id" dc:"mock_examination_paper.id"`
 	Level                   string  `json:"level" dc:"试卷级别"`
 	PaperId                 string  `json:"paper_id" dc:"远程试卷ID"`
 	Title                   string  `json:"title" dc:"试卷标题"`
@@ -32,18 +33,12 @@ type PaperListItem struct {
 }
 
 type PaperImportReq struct {
-	g.Meta                 `path:"/exam/paper/import" method:"post" tags:"试卷管理" summary:"从远程 index.json 导入试卷"`
-	MockExaminationPaperId int64 `json:"mock_examination_paper_id" v:"required|min:1#err.invalid_params" dc:"mock 卷 id，业务主键"`
-	// 二选一：index_url 拉取；或 index_json 粘贴（需同时传 level、paper_id、source_base_url）
-	IndexUrl       string `json:"index_url" dc:"完整 index.json URL"`
-	IndexJson      string `json:"index_json" dc:"可选，直接传 index.json 字符串"`
-	Level          string `json:"level" dc:"粘贴 index_json 时必填"`
-	PaperId        string `json:"paper_id" dc:"粘贴 index_json 时必填"`
-	SourceBaseUrl  string `json:"source_base_url" dc:"粘贴 index_json 时必填，以 / 结尾的基址"`
-	AudioHlsPrefix string `json:"audio_hls_prefix" dc:"听力 HLS 目录前缀（无首尾/），动态 m3u8 拼接时使用"`
-	// fail：已存在则返回 conflict；overwrite：覆盖；new_copy：使用 new_paper_id 作为新试卷
-	ConflictMode string `json:"conflict_mode" dc:"fail|overwrite|new_copy，默认 fail"`
-	NewPaperId   string `json:"new_paper_id" dc:"new_copy 时新的远程 paper_id"`
+	g.Meta                 `path:"/exam/paper/import" method:"post" tags:"试卷管理" summary:"从 Mock 卷 resource_url 推导 index.json 并导入"`
+	MockExaminationPaperId int64  `json:"mock_examination_paper_id" v:"required|min:1#err.invalid_params" dc:"mock 卷 id，业务主键"`
+	Title                  string `json:"title" dc:"可选，试卷名称；填写则写入 exam_paper.title，否则用 mock 卷 name"`
+	AudioHlsPrefix         string `json:"audio_hls_prefix" dc:"听力 HLS 目录前缀（无首尾/），动态 m3u8 拼接时使用"`
+	// fail：已存在则返回 conflict；overwrite / new：伪删旧题目树后在原 exam_paper 上全量更新（二者实现一致，见 docs）
+	ConflictMode string `json:"conflict_mode" dc:"fail|overwrite|new，默认 fail；兼容 new_copy 等同于 new"`
 }
 
 type PaperImportRes struct {
@@ -68,6 +63,22 @@ type PaperUpdateReq struct {
 
 type PaperUpdateRes struct{}
 
+type PaperEditReq struct {
+	g.Meta `path:"/exam/paper/edit" method:"post" tags:"试卷管理" summary:"编辑试卷元数据（exam_paper）"`
+	// exam_paper.id，与列表项 id 一致
+	ExamPaperId int64  `json:"exam_paper_id" v:"required|min:1#err.invalid_params" dc:"exam_paper.id"`
+	Title       string `json:"title" dc:"试卷标题"`
+	// 考前：与 index prepare 对应
+	PrepareTitle       string `json:"prepare_title" dc:"考前标题"`
+	PrepareInstruction string `json:"prepare_instruction" dc:"考前说明"`
+	PrepareAudioFile   string `json:"prepare_audio_file" dc:"考前音频"`
+	SourceBaseUrl      string `json:"source_base_url" dc:"资源基址，建议以 / 结尾"`
+	// 0 表示使用系统默认 exam.defaultDurationSeconds
+	DurationSeconds int `json:"duration_seconds" v:"min:0#err.invalid_params" dc:"考试时长秒"`
+}
+
+type PaperEditRes struct{}
+
 type PaperDetailReq struct {
 	g.Meta `path:"/exam/paper/{id}" method:"get" tags:"试卷管理" summary:"试卷详情（大题/题块/试题）；path id 为 mock_examination_paper.id。未导入时 code=11114，mock 不存在时 code=11201"`
 	Id     int64 `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"mock_examination_paper.id"`
@@ -79,6 +90,7 @@ type PaperDetailRes struct {
 }
 
 type PaperDetailPaper struct {
+	ExamPaperId             int64   `json:"exam_paper_id" dc:"exam_paper.id"`
 	Id                      int64   `json:"id" dc:"mock_examination_paper.id"`
 	Level                   string  `json:"level" dc:"试卷级别"`
 	PaperId                 string  `json:"paper_id" dc:"远程试卷ID"`
@@ -95,6 +107,7 @@ type PaperDetailPaper struct {
 	AudioHlsIvHex           string  `json:"audio_hls_iv_hex" dc:"AES-128 IV 十六进制"`
 	AudioHlsSegmentDuration float64 `json:"audio_hls_segment_duration" dc:"HLS 分片时长(秒)"`
 	IndexJson               string  `json:"index_json" dc:"原始 index.json 内容"`
+	DurationSeconds         int     `json:"duration_seconds" dc:"考试时长秒，0 为系统默认"`
 	CreateTime              string  `json:"create_time" dc:"创建时间"`
 }
 

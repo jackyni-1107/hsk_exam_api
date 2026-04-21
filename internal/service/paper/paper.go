@@ -21,7 +21,7 @@ type (
 		IssuePaperHlsPlay(ctx context.Context, userID int64, paperID int64) (playURL string, expiresAt string, err error)
 		// BuildHlsM3U8Playlist 校验 Redis 票据并生成 m3u8（内嵌 presigned URL）。
 		BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte, error)
-		// ImportFromIndex 拉取或解析 index.json，写入 exam_* 表。
+		// ImportFromIndex 根据 mock_examination_paper.resource_url 推导 index.json 地址并导入到 exam_* 表。
 		ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*exambo.ImportResult, error)
 		// PaperList 分页试卷列表（管理端）
 		PaperList(ctx context.Context, page int, size int, level string) (list []examentity.ExamPaper, total int, err error)
@@ -31,6 +31,8 @@ type (
 		PaperDetail(ctx context.Context, examPaperId int64) (*exambo.PaperDetailTree, error)
 		// UpdatePaperSettings 修改试卷听力 HLS 配置（答题时长以 mock_examination_paper 为准）。
 		UpdatePaperSettings(ctx context.Context, examPaperId int64, in exambo.PaperHlsExamAdminUpdate, updater string) error
+		// UpdatePaperMeta 管理端修改试卷元数据（不含 HLS、题目树）。
+		UpdatePaperMeta(ctx context.Context, examPaperId int64, in exambo.PaperMetaAdminUpdate, updater string) error
 		// RandomFillAnswersForTest 仅返回随机答案草稿列表，不写库。若需生成并保存，使用 RandomFillAndSaveAnswers。
 		RandomFillAnswersForTest(ctx context.Context, userID int64, mockPaperID int64, attemptID int64) ([]bo.RandomAnswerDraftItem, error)
 		PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionTopic, error)

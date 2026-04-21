@@ -3,6 +3,7 @@ package exam
 import (
 	"context"
 	exambo "exam/internal/model/bo/exam"
+	"strings"
 
 	"github.com/gogf/gf/v2/util/gconv"
 
@@ -21,7 +22,8 @@ func (c *ControllerV1) PaperList(ctx context.Context, req *v1.PaperListReq) (res
 	out := make([]*v1.PaperListItem, 0, len(list))
 	for _, p := range list {
 		item := &v1.PaperListItem{
-			Id:                      p.MockExaminationPaperId,
+			Id:                      p.Id,
+			MockExaminationPaperId:  p.MockExaminationPaperId,
 			Level:                   p.Level,
 			PaperId:                 p.PaperId,
 			Title:                   p.Title,
@@ -62,14 +64,9 @@ func (c *ControllerV1) PaperImport(ctx context.Context, req *v1.PaperImportReq) 
 	}
 	r, err := papersvc.Paper().ImportFromIndex(ctx, exambo.ImportParams{
 		MockExaminationPaperId: req.MockExaminationPaperId,
-		IndexURL:               req.IndexUrl,
-		IndexJSON:              req.IndexJson,
-		Level:                  req.Level,
-		PaperID:                req.PaperId,
-		SourceBaseURL:          req.SourceBaseUrl,
+		Title:                  req.Title,
 		AudioHlsPrefix:         req.AudioHlsPrefix,
 		ConflictMode:           req.ConflictMode,
-		NewPaperID:             req.NewPaperId,
 		Creator:                creator,
 	})
 	if err != nil {
@@ -82,6 +79,25 @@ func (c *ControllerV1) PaperImport(ctx context.Context, req *v1.PaperImportReq) 
 		SectionCount:               r.SectionCount,
 		QuestionCount:              r.QuestionCount,
 	}, nil
+}
+
+func (c *ControllerV1) PaperEdit(ctx context.Context, req *v1.PaperEditReq) (res *v1.PaperEditRes, err error) {
+	updater := ""
+	if d := middleware.GetCtxData(ctx); d != nil {
+		updater = d.Username
+	}
+	err = papersvc.Paper().UpdatePaperMeta(ctx, req.ExamPaperId, exambo.PaperMetaAdminUpdate{
+		Title:              strings.TrimSpace(req.Title),
+		PrepareTitle:       strings.TrimSpace(req.PrepareTitle),
+		PrepareInstruction: strings.TrimSpace(req.PrepareInstruction),
+		PrepareAudioFile:   strings.TrimSpace(req.PrepareAudioFile),
+		SourceBaseURL:      strings.TrimSpace(req.SourceBaseUrl),
+		DurationSeconds:    req.DurationSeconds,
+	}, updater)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.PaperEditRes{}, nil
 }
 
 func (c *ControllerV1) PaperUpdate(ctx context.Context, req *v1.PaperUpdateReq) (res *v1.PaperUpdateRes, err error) {

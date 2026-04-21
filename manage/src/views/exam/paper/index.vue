@@ -3,95 +3,76 @@
     <el-card shadow="never">
       <template #header>
         <div class="head">
-          <span>试卷管理（Mock 卷）</span>
+          <span>试卷管理（exam_paper）</span>
           <el-button type="primary" @click="openImport">导入试卷</el-button>
         </div>
       </template>
       <el-form :inline="true" class="filter" @submit.prevent="loadList">
-        <el-form-item label="等级">
-          <el-select
-            v-model="query.levelId"
+        <el-form-item label="级别">
+          <el-input
+            v-model="query.level"
             clearable
-            placeholder="全部等级"
-            style="width: 200px"
+            placeholder="如 hsk1、new1"
+            style="width: 180px"
             @clear="loadList"
-          >
-            <el-option
-              v-for="lv in filterLevels"
-              :key="lv.id"
-              :label="
-                lv.level_name || lv.app_level_name || `level_id=${lv.level_id}`
-              "
-              :value="lv.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="导入状态">
-          <el-select
-            v-model="query.importStatus"
-            placeholder="全部"
-            clearable
-            style="width: 160px"
-            @clear="loadList"
-          >
-            <el-option label="全部" value="" />
-            <el-option label="已导入考试内容" value="imported" />
-            <el-option label="未导入" value="not_imported" />
-          </el-select>
+          />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="loadList">查询</el-button>
           <el-button @click="resetQuery">重置</el-button>
         </el-form-item>
       </el-form>
-      <el-table
-        v-loading="loading"
-        :data="rows"
-        border
-        stripe
-        :row-class-name="tableRowClassName"
-      >
+      <el-table v-loading="loading" :data="rows" border stripe>
+        <el-table-column prop="id" label="试卷ID" width="88" fixed="left" />
         <el-table-column
-          label="导入状态"
-          width="132"
-          align="center"
-          fixed="left"
-        >
-          <template #default="{ row }">
-            <el-tag
-              :type="row.imported ? 'success' : 'warning'"
-              effect="dark"
-              size="large"
-              class="import-status-tag"
-            >
-              {{ row.imported ? "已导入" : "未导入" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="id" label="Mock卷ID" width="100" />
-        <el-table-column prop="level_id" label="等级ID" width="88" />
+          prop="mock_examination_paper_id"
+          label="Mock卷ID"
+          width="100"
+        />
+        <el-table-column prop="level" label="级别" width="88" />
         <el-table-column
-          prop="name"
-          label="试卷名称"
-          min-width="180"
+          prop="paper_id"
+          label="远程目录"
+          min-width="120"
           show-overflow-tooltip
         />
-        <el-table-column prop="score_full" label="满分" width="72" />
-        <el-table-column prop="time_full" label="时长(分)" width="96" />
-        <el-table-column label="状态" width="80">
+        <el-table-column
+          prop="title"
+          label="标题"
+          min-width="160"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          label="资源基址"
+          min-width="200"
+          show-overflow-tooltip
+        >
           <template #default="{ row }">
-            <el-tag size="small" :type="row.status === 1 ? 'success' : 'info'">
-              {{ row.status === 1 ? "发布" : "未发布" }}
-            </el-tag>
+            {{ row.source_base_url }}
           </template>
         </el-table-column>
-        <el-table-column prop="paper_type" label="类型" width="88" />
-        <el-table-column prop="mock_type" label="Mock类型" width="96" />
-        <el-table-column label="操作" width="240" fixed="right">
+        <el-table-column
+          prop="audio_hls_prefix"
+          label="HLS前缀"
+          min-width="120"
+          show-overflow-tooltip
+        />
+        <el-table-column label="分片数" width="80" align="right">
+          <template #default="{ row }">
+            {{ row.audio_hls_segment_count }}
+          </template>
+        </el-table-column>
+        <el-table-column label="创建时间" width="168">
+          <template #default="{ row }">
+            {{ formatUtcText(row.create_time) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openDetail(row)"
               >详情</el-button
             >
+            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button link type="primary" @click="openImportForRow(row)"
               >导入</el-button
             >
@@ -109,8 +90,8 @@
           :page-sizes="[10, 20, 50]"
           layout="total, sizes, prev, pager, next"
           background
-          @size-change="applyPage"
-          @current-change="applyPage"
+          @size-change="loadList"
+          @current-change="loadList"
         />
       </div>
     </el-card>
@@ -118,7 +99,7 @@
     <!-- 导入 -->
     <el-dialog
       v-model="importDlg"
-      title="从 index.json 导入"
+      title="导入试卷"
       width="640px"
       destroy-on-close
       @open="onImportOpen"
@@ -165,44 +146,21 @@
             />
           </div>
         </el-form-item>
-        <el-form-item label="导入方式">
-          <el-radio-group v-model="importMode">
-            <el-radio label="url">index.json URL</el-radio>
-            <el-radio label="json">粘贴 JSON</el-radio>
-          </el-radio-group>
+        <el-form-item label="试卷名称">
+          <el-input
+            v-model="importForm.title"
+            clearable
+            placeholder="可选；不填则使用 Mock 卷名称"
+          />
         </el-form-item>
-        <template v-if="importMode === 'url'">
-          <el-form-item label="index_url" required>
-            <el-input
-              v-model="importForm.index_url"
-              type="textarea"
-              :rows="2"
-              placeholder="完整 index.json 地址"
-            />
-          </el-form-item>
-        </template>
-        <template v-else>
-          <el-form-item label="level" required>
-            <el-input v-model="importForm.level" placeholder="如 hsk1" />
-          </el-form-item>
-          <el-form-item label="paper_id" required>
-            <el-input v-model="importForm.paper_id" placeholder="远程目录 ID" />
-          </el-form-item>
-          <el-form-item label="source_base_url" required>
-            <el-input
-              v-model="importForm.source_base_url"
-              placeholder="以 / 结尾"
-            />
-          </el-form-item>
-          <el-form-item label="index_json" required>
-            <el-input
-              v-model="importForm.index_json"
-              type="textarea"
-              :rows="6"
-              placeholder="index.json 全文"
-            />
-          </el-form-item>
-        </template>
+        <el-form-item v-if="derivedImportIndexUrl" label="index 地址">
+          <el-input
+            :model-value="derivedImportIndexUrl"
+            type="textarea"
+            :rows="2"
+            readonly
+          />
+        </el-form-item>
         <el-form-item label="听力 HLS 前缀">
           <el-input
             v-model="importForm.audio_hls_prefix"
@@ -211,26 +169,69 @@
         </el-form-item>
         <el-form-item label="冲突策略">
           <el-radio-group v-model="importForm.conflict_mode">
-            <el-radio label="fail">失败（已存在则拒绝）</el-radio>
+            <el-radio label="fail">已存在则拒绝</el-radio>
             <el-radio label="overwrite">覆盖</el-radio>
-            <el-radio label="new_copy">新远程目录</el-radio>
+            <el-radio label="new">新试卷</el-radio>
           </el-radio-group>
-        </el-form-item>
-        <el-form-item
-          v-if="importForm.conflict_mode === 'new_copy'"
-          label="new_paper_id"
-          required
-        >
-          <el-input
-            v-model="importForm.new_paper_id"
-            placeholder="新的远程 paper_id"
-          />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="importDlg = false">取消</el-button>
         <el-button type="primary" :loading="importing" @click="submitImport"
           >开始导入</el-button
+        >
+      </template>
+    </el-dialog>
+
+    <!-- 编辑试卷元数据 -->
+    <el-dialog
+      v-model="editDlg"
+      title="编辑试卷"
+      width="600px"
+      destroy-on-close
+    >
+      <el-form
+        v-loading="editLoading"
+        label-width="120px"
+        class="edit-paper-form"
+      >
+        <el-form-item label="试卷ID">
+          <span>{{ editForm.exam_paper_id }}</span>
+        </el-form-item>
+        <el-form-item label="标题" required>
+          <el-input v-model="editForm.title" placeholder="试卷标题" />
+        </el-form-item>
+        <el-form-item label="考前标题">
+          <el-input v-model="editForm.prepare_title" />
+        </el-form-item>
+        <el-form-item label="考前说明">
+          <el-input v-model="editForm.prepare_instruction" type="textarea" :rows="3" />
+        </el-form-item>
+        <el-form-item label="考前音频">
+          <el-input v-model="editForm.prepare_audio_file" placeholder="文件名或 URL" />
+        </el-form-item>
+        <el-form-item label="资源基址" required>
+          <el-input
+            v-model="editForm.source_base_url"
+            type="textarea"
+            :rows="2"
+            placeholder="以 / 结尾"
+          />
+        </el-form-item>
+        <el-form-item label="考试时长(秒)">
+          <el-input-number
+            v-model="editForm.duration_seconds"
+            :min="0"
+            :controls="false"
+            style="width: 100%"
+          />
+          <div class="hint">0 表示使用系统默认时长</div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDlg = false">取消</el-button>
+        <el-button type="primary" :loading="editSaving" @click="submitEdit"
+          >保存</el-button
         >
       </template>
     </el-dialog>
@@ -304,7 +305,7 @@
       </template>
     </el-dialog>
 
-    <!-- 详情：Mock + 已导入的考试内容 -->
+    <!-- 详情：以 exam_paper 为主，附 Mock 元数据 -->
     <el-drawer
       v-model="detailDrawer"
       title="试卷详情"
@@ -312,48 +313,12 @@
       destroy-on-close
     >
       <div v-loading="detailLoading" class="detail-wrap">
-        <template v-if="mockDetailPaper">
-          <h4 class="sec-title">Mock 卷信息</h4>
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="ID">{{
-              mockDetailPaper.id
-            }}</el-descriptions-item>
-            <el-descriptions-item label="等级ID">{{
-              mockDetailPaper.level_id
-            }}</el-descriptions-item>
-            <el-descriptions-item label="名称" :span="2">{{
-              mockDetailPaper.name
-            }}</el-descriptions-item>
-            <el-descriptions-item label="满分">{{
-              mockDetailPaper.score_full
-            }}</el-descriptions-item>
-            <el-descriptions-item label="时长(分)">{{
-              mockDetailPaper.time_full
-            }}</el-descriptions-item>
-            <el-descriptions-item label="状态">{{
-              mockDetailPaper.status
-            }}</el-descriptions-item>
-            <el-descriptions-item label="试卷类型">{{
-              mockDetailPaper.paper_type
-            }}</el-descriptions-item>
-            <el-descriptions-item label="Mock类型">{{
-              mockDetailPaper.mock_type
-            }}</el-descriptions-item>
-            <el-descriptions-item label="考试内容导入" :span="2">
-              <el-tag
-                :type="mockDetailPaper.imported ? 'success' : 'warning'"
-                effect="dark"
-                size="large"
-              >
-                {{ mockDetailPaper.imported ? "已导入 exam" : "未导入" }}
-              </el-tag>
-            </el-descriptions-item>
-          </el-descriptions>
-        </template>
-
         <template v-if="examDetail">
-          <h4 class="sec-title">已导入的考试内容</h4>
+          <h4 class="sec-title">考试试卷（exam_paper）</h4>
           <el-descriptions :column="2" border>
+            <el-descriptions-item label="试卷ID">{{
+              examDetail.paper.exam_paper_id
+            }}</el-descriptions-item>
             <el-descriptions-item label="Mock卷ID">{{
               examDetail.paper.id
             }}</el-descriptions-item>
@@ -365,6 +330,9 @@
             }}</el-descriptions-item>
             <el-descriptions-item label="标题">{{
               examDetail.paper.title
+            }}</el-descriptions-item>
+            <el-descriptions-item label="考试时长(秒)">{{
+              examDetail.paper.duration_seconds
             }}</el-descriptions-item>
             <el-descriptions-item label="创建时间">{{
               formatUtcText(examDetail.paper.create_time)
@@ -395,6 +363,9 @@
             }}</el-descriptions-item>
             <el-descriptions-item label="考前说明" :span="2">{{
               examDetail.paper.prepare_instruction
+            }}</el-descriptions-item>
+            <el-descriptions-item label="考前音频" :span="2">{{
+              examDetail.paper.prepare_audio_file
             }}</el-descriptions-item>
           </el-descriptions>
           <h4 class="sec-title">index.json</h4>
@@ -430,13 +401,44 @@
             </el-collapse-item>
           </el-collapse>
         </template>
+
+        <template v-if="mockDetailPaper">
+          <h4 class="sec-title">Mock 卷信息</h4>
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="ID">{{
+              mockDetailPaper.id
+            }}</el-descriptions-item>
+            <el-descriptions-item label="等级ID">{{
+              mockDetailPaper.level_id
+            }}</el-descriptions-item>
+            <el-descriptions-item label="名称" :span="2">{{
+              mockDetailPaper.name
+            }}</el-descriptions-item>
+            <el-descriptions-item label="满分">{{
+              mockDetailPaper.score_full
+            }}</el-descriptions-item>
+            <el-descriptions-item label="时长(分)">{{
+              mockDetailPaper.time_full
+            }}</el-descriptions-item>
+            <el-descriptions-item label="状态">{{
+              mockDetailPaper.status
+            }}</el-descriptions-item>
+            <el-descriptions-item label="试卷类型">{{
+              mockDetailPaper.paper_type
+            }}</el-descriptions-item>
+            <el-descriptions-item label="Mock类型">{{
+              mockDetailPaper.mock_type
+            }}</el-descriptions-item>
+          </el-descriptions>
+        </template>
+
         <el-alert
           v-else-if="detailLoaded && !examDetail"
           type="info"
           :closable="false"
           show-icon
           class="mt"
-          title="该 Mock 卷尚未导入考试内容，可使用「导入」从 index.json 写入。"
+          title="未加载到考试内容。"
         />
       </div>
     </el-drawer>
@@ -444,13 +446,16 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from "vue";
+import { reactive, ref, onMounted, computed } from "vue";
 import { ElMessage } from "element-plus";
 import {
+  getExamPaperList,
   getExamPaperDetail,
   importExamPaper,
   updateExamPaper,
+  editExamPaperMeta,
   type ExamPaperDetail,
+  type ExamPaperItem,
 } from "@/api/exam";
 import {
   getMockLevelsList,
@@ -458,44 +463,73 @@ import {
   getMockExaminationPaperDetail,
   type MockLevelItem,
   type MockExaminationPaperItem,
-  type MockPaperImportStatusFilter,
 } from "@/api/mockAdmin";
 import { formatUtcText } from "@/utils/datetime";
 
 const loading = ref(false);
-/** 当前页表格数据（Mock 卷） */
-const rows = ref<MockExaminationPaperItem[]>([]);
-/** 接口返回的全量列表（当前筛选条件下） */
-const fullList = ref<MockExaminationPaperItem[]>([]);
+const rows = ref<ExamPaperItem[]>([]);
 const total = ref(0);
 const query = reactive({
   page: 1,
   size: 10,
-  /** 与 mock examination-paper 的 level_id 一致；空表示全部 */
-  levelId: undefined as number | undefined,
-  /** 空：全部；imported / not_imported */
-  importStatus: "" as MockPaperImportStatusFilter,
+  /** exam_paper.level，空表示全部 */
+  level: "",
 });
-const filterLevels = ref<MockLevelItem[]>([]);
+
+const editDlg = ref(false);
+const editLoading = ref(false);
+const editSaving = ref(false);
+const editForm = reactive({
+  exam_paper_id: 0,
+  title: "",
+  prepare_title: "",
+  prepare_instruction: "",
+  prepare_audio_file: "",
+  source_base_url: "",
+  duration_seconds: 0,
+});
 
 const importDlg = ref(false);
-/** 从表格「导入」打开时预填 Mock 卷（在 onImportOpen 末尾应用，避免被重置清掉） */
-const importPreset = ref<{ id: number; level_id: number } | null>(null);
+/** 从表格「导入」打开时预填 Mock 卷 id（在 onImportOpen 末尾应用） */
+const importPreset = ref<{ mockId: number } | null>(null);
 const importing = ref(false);
-const importMode = ref<"url" | "json">("url");
 const mockLevels = ref<MockLevelItem[]>([]);
 const mockPapers = ref<MockExaminationPaperItem[]>([]);
 const importForm = reactive({
   levelFilter: undefined as number | undefined,
   mock_examination_paper_id: undefined as number | undefined,
-  index_url: "",
-  index_json: "",
-  level: "",
-  paper_id: "",
-  source_base_url: "",
+  title: "",
   audio_hls_prefix: "",
-  conflict_mode: "fail" as "fail" | "overwrite" | "new_copy",
-  new_paper_id: "",
+  conflict_mode: "fail" as "fail" | "overwrite" | "new",
+});
+
+function derivedIndexUrlFromResource(resource: string): string {
+  const s = (resource || "").trim();
+  if (!s) return "";
+  try {
+    const u = new URL(s);
+    let path = u.pathname;
+    const lp = path.toLowerCase();
+    if (lp.endsWith(".zip")) {
+      path = path.slice(0, -4) + "/index.json";
+    } else if (!lp.endsWith("/index.json")) {
+      path = path.replace(/\/$/, "") + "/index.json";
+    }
+    u.pathname = path;
+    u.search = "";
+    u.hash = "";
+    return u.toString();
+  } catch {
+    return "";
+  }
+}
+
+const derivedImportIndexUrl = computed(() => {
+  const mid = importForm.mock_examination_paper_id;
+  if (!mid) return "";
+  const row = mockPapers.value.find((p) => p.id === mid);
+  if (row?.resource_url) return derivedIndexUrlFromResource(row.resource_url);
+  return "";
 });
 
 /** 听力 HLS 表单默认值（新建或未配置时展示/回填） */
@@ -524,77 +558,34 @@ function truncate(s: string, max: number) {
   return s.length <= max ? s : s.slice(0, max) + "\n…（已截断）";
 }
 
-function tableRowClassName({ row }: { row: MockExaminationPaperItem }) {
-  return row.imported ? "row-paper-imported" : "row-paper-not-imported";
-}
-
-function applyPage() {
-  const start = (query.page - 1) * query.size;
-  rows.value = fullList.value.slice(start, start + query.size);
-}
-
 async function loadList() {
   loading.value = true;
   try {
-    const params: {
-      level_id?: number;
-      import_status?: MockPaperImportStatusFilter;
-    } = {};
-    if (query.levelId !== undefined && query.levelId !== null) {
-      params.level_id = query.levelId;
-    }
-    if (
-      query.importStatus === "imported" ||
-      query.importStatus === "not_imported"
-    ) {
-      params.import_status = query.importStatus;
-    }
-    const res = (await getMockExaminationPapers(
-      Object.keys(params).length > 0 ? params : undefined,
-    )) as {
-      data?: { list?: MockExaminationPaperItem[] };
-    };
-    fullList.value = res?.data?.list ?? [];
-    total.value = fullList.value.length;
-    const maxPage = Math.max(1, Math.ceil(total.value / query.size) || 1);
-    if (query.page > maxPage) query.page = maxPage;
-    applyPage();
+    const res = (await getExamPaperList({
+      page: query.page,
+      size: query.size,
+      level: query.level.trim() || undefined,
+    })) as { data?: { list?: ExamPaperItem[]; total?: number } };
+    rows.value = res?.data?.list ?? [];
+    total.value = res?.data?.total ?? 0;
   } finally {
     loading.value = false;
-  }
-}
-
-async function loadFilterLevels() {
-  try {
-    const res = (await getMockLevelsList()) as {
-      data?: { list?: MockLevelItem[] };
-    };
-    filterLevels.value = res?.data?.list ?? [];
-  } catch {
-    filterLevels.value = [];
   }
 }
 
 function resetQuery() {
   query.page = 1;
   query.size = 10;
-  query.levelId = undefined;
-  query.importStatus = "";
+  query.level = "";
   loadList();
 }
 
 async function onImportOpen() {
   importForm.levelFilter = undefined;
   importForm.mock_examination_paper_id = undefined;
-  importForm.index_url = "";
-  importForm.index_json = "";
-  importForm.level = "";
-  importForm.paper_id = "";
-  importForm.source_base_url = "";
+  importForm.title = "";
   importForm.audio_hls_prefix = "";
   importForm.conflict_mode = "fail";
-  importForm.new_paper_id = "";
-  importMode.value = "url";
   try {
     const res = (await getMockLevelsList()) as {
       data?: { list?: MockLevelItem[] };
@@ -605,11 +596,9 @@ async function onImportOpen() {
   }
   mockPapers.value = [];
   if (importPreset.value) {
-    const p = importPreset.value;
+    const { mockId } = importPreset.value;
     importPreset.value = null;
-    importForm.levelFilter = p.level_id;
-    await onImportLevelChange();
-    importForm.mock_examination_paper_id = p.id;
+    importForm.mock_examination_paper_id = mockId;
   }
 }
 
@@ -635,8 +624,66 @@ function openImport() {
   importDlg.value = true;
 }
 
-function openImportForRow(row: MockExaminationPaperItem) {
-  importPreset.value = { id: row.id, level_id: row.level_id };
+async function openEdit(row: ExamPaperItem) {
+  editForm.exam_paper_id = row.id;
+  editDlg.value = true;
+  editLoading.value = true;
+  try {
+    const res = (await getExamPaperDetail(row.mock_examination_paper_id)) as {
+      data?: ExamPaperDetail;
+    };
+    const p = res?.data?.paper;
+    if (!p) {
+      ElMessage.warning("无法加载试卷详情");
+      editDlg.value = false;
+      return;
+    }
+    editForm.title = p.title ?? "";
+    editForm.prepare_title = p.prepare_title ?? "";
+    editForm.prepare_instruction = p.prepare_instruction ?? "";
+    editForm.prepare_audio_file = p.prepare_audio_file ?? "";
+    editForm.source_base_url = p.source_base_url ?? "";
+    editForm.duration_seconds = p.duration_seconds ?? 0;
+  } catch {
+    ElMessage.warning("无法加载试卷详情");
+    editDlg.value = false;
+  } finally {
+    editLoading.value = false;
+  }
+}
+
+async function submitEdit() {
+  if (!editForm.exam_paper_id || !editForm.title.trim()) {
+    ElMessage.warning("请填写试卷标题");
+    return;
+  }
+  if (!editForm.source_base_url.trim()) {
+    ElMessage.warning("请填写资源基址");
+    return;
+  }
+  editSaving.value = true;
+  try {
+    await editExamPaperMeta({
+      exam_paper_id: editForm.exam_paper_id,
+      title: editForm.title.trim(),
+      prepare_title: editForm.prepare_title.trim(),
+      prepare_instruction: editForm.prepare_instruction.trim(),
+      prepare_audio_file: editForm.prepare_audio_file.trim(),
+      source_base_url: editForm.source_base_url.trim(),
+      duration_seconds: editForm.duration_seconds,
+    });
+    ElMessage.success("已保存");
+    editDlg.value = false;
+    await loadList();
+  } catch {
+    /* */
+  } finally {
+    editSaving.value = false;
+  }
+}
+
+function openImportForRow(row: ExamPaperItem) {
+  importPreset.value = { mockId: row.mock_examination_paper_id };
   importDlg.value = true;
 }
 
@@ -646,46 +693,14 @@ async function submitImport() {
     ElMessage.warning("请选择或填写 Mock 卷 ID");
     return;
   }
-  if (importMode.value === "url" && !importForm.index_url.trim()) {
-    ElMessage.warning("请填写 index_url");
-    return;
-  }
-  if (importMode.value === "json") {
-    if (
-      !importForm.level ||
-      !importForm.paper_id ||
-      !importForm.source_base_url ||
-      !importForm.index_json.trim()
-    ) {
-      ElMessage.warning(
-        "请完整填写 level、paper_id、source_base_url、index_json",
-      );
-      return;
-    }
-  }
-  if (
-    importForm.conflict_mode === "new_copy" &&
-    !importForm.new_paper_id.trim()
-  ) {
-    ElMessage.warning("new_copy 时请填写 new_paper_id");
-    return;
-  }
   importing.value = true;
   try {
     const payload: Parameters<typeof importExamPaper>[0] = {
       mock_examination_paper_id: mid,
       conflict_mode: importForm.conflict_mode,
       audio_hls_prefix: importForm.audio_hls_prefix || undefined,
-      new_paper_id: importForm.new_paper_id || undefined,
+      title: importForm.title.trim() || undefined,
     };
-    if (importMode.value === "url") {
-      payload.index_url = importForm.index_url.trim();
-    } else {
-      payload.index_json = importForm.index_json;
-      payload.level = importForm.level;
-      payload.paper_id = importForm.paper_id;
-      payload.source_base_url = importForm.source_base_url;
-    }
     const res = (await importExamPaper(payload)) as {
       data?: {
         conflict?: boolean;
@@ -697,7 +712,7 @@ async function submitImport() {
     const d = res?.data;
     if (d?.conflict) {
       ElMessage.warning(
-        `该 Mock 卷已存在导入记录（mock id=${d.existing_examination_paper_id ?? mid}），未写入。可改用覆盖或新目录。`,
+        `该 Mock 卷已存在导入记录（mock id=${d.existing_examination_paper_id ?? mid}），未写入。可改用覆盖或新试卷。`,
       );
       return;
     }
@@ -713,17 +728,17 @@ async function submitImport() {
   }
 }
 
-async function openSettings(row: MockExaminationPaperItem) {
+async function openSettings(row: ExamPaperItem) {
   try {
-    const res = (await getExamPaperDetail(row.id)) as {
+    const res = (await getExamPaperDetail(row.mock_examination_paper_id)) as {
       data?: ExamPaperDetail;
     };
     const d = res?.data;
     if (!d?.paper) {
-      ElMessage.warning("该 Mock 卷尚未导入考试内容，请先做「导入」");
+      ElMessage.warning("无法加载该试卷详情");
       return;
     }
-    settingsPaperId.value = row.id;
+    settingsPaperId.value = row.mock_examination_paper_id;
     const p = d.paper;
     settingsForm.audio_hls_prefix =
       p.audio_hls_prefix?.trim() || HLS_FORM_DEFAULTS.audio_hls_prefix;
@@ -745,7 +760,7 @@ async function openSettings(row: MockExaminationPaperItem) {
     }
     settingsDlg.value = true;
   } catch {
-    ElMessage.warning("该 Mock 卷尚未导入考试内容，请先做「导入」");
+    ElMessage.warning("无法加载该试卷详情");
   }
 }
 
@@ -770,24 +785,28 @@ async function submitSettings() {
   }
 }
 
-async function openDetail(row: MockExaminationPaperItem) {
+async function openDetail(row: ExamPaperItem) {
   mockDetailPaper.value = null;
   examDetail.value = null;
   detailLoaded.value = false;
   detailDrawer.value = true;
   detailLoading.value = true;
   try {
-    const mockRes = (await getMockExaminationPaperDetail(row.id)) as {
-      data?: { paper?: MockExaminationPaperItem };
-    };
-    mockDetailPaper.value = mockRes?.data?.paper ?? null;
     try {
-      const examRes = (await getExamPaperDetail(row.id)) as {
-        data?: ExamPaperDetail;
-      };
+      const examRes = (await getExamPaperDetail(
+        row.mock_examination_paper_id,
+      )) as { data?: ExamPaperDetail };
       examDetail.value = examRes?.data ?? null;
     } catch {
       examDetail.value = null;
+    }
+    try {
+      const mockRes = (await getMockExaminationPaperDetail(
+        row.mock_examination_paper_id,
+      )) as { data?: { paper?: MockExaminationPaperItem } };
+      mockDetailPaper.value = mockRes?.data?.paper ?? null;
+    } catch {
+      mockDetailPaper.value = null;
     }
   } finally {
     detailLoading.value = false;
@@ -796,7 +815,6 @@ async function openDetail(row: MockExaminationPaperItem) {
 }
 
 onMounted(async () => {
-  await loadFilterLevels();
   await loadList();
 });
 </script>
@@ -864,22 +882,5 @@ onMounted(async () => {
 }
 .mt {
   margin-top: 16px;
-}
-.import-status-tag {
-  font-weight: 600;
-  min-width: 4.5em;
-  justify-content: center;
-}
-:deep(.el-table .row-paper-imported > td) {
-  background-color: var(--el-color-success-light-9) !important;
-}
-:deep(.el-table .row-paper-not-imported > td) {
-  background-color: var(--el-color-warning-light-9) !important;
-}
-:deep(.el-table .el-table__body tr.row-paper-imported:hover > td) {
-  background-color: var(--el-color-success-light-8) !important;
-}
-:deep(.el-table .el-table__body tr.row-paper-not-imported:hover > td) {
-  background-color: var(--el-color-warning-light-8) !important;
 }
 </style>

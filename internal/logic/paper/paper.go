@@ -16,6 +16,7 @@ import (
 	examentity "exam/internal/model/entity/exam"
 	mockentity "exam/internal/model/entity/mock"
 	"exam/internal/utility"
+	"exam/internal/utility/exampaper"
 )
 
 // PaperDetail 返回试卷及嵌套大题、题块、小题、选项（只读查看）。
@@ -231,8 +232,53 @@ func (s *sPaper) UpdatePaperSettings(ctx context.Context, examPaperId int64, in 
 	return nil
 }
 
+// UpdatePaperMeta 管理端修改试卷元数据（不含 HLS、题目树）。
+func (s *sPaper) UpdatePaperMeta(ctx context.Context, examPaperId int64, in exambo.PaperMetaAdminUpdate, updater string) error {
+	if examPaperId <= 0 {
+		return gerror.NewCode(consts.CodeInvalidParams)
+	}
+	if in.DurationSeconds < 0 {
+		return gerror.NewCode(consts.CodeInvalidParams)
+	}
+	var paper examentity.ExamPaper
+	if err := examdao.ExamPaper.Ctx(ctx).
+		Where("id", examPaperId).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&paper); err != nil {
+		return err
+	}
+	if paper.Id == 0 {
+		return gerror.NewCode(consts.CodeExamPaperNotFound)
+	}
+	baseURL := strings.TrimSpace(in.SourceBaseURL)
+	if baseURL != "" {
+		baseURL = strings.TrimRight(baseURL, "/") + "/"
+	}
+	_, err := examdao.ExamPaper.Ctx(ctx).
+		Data(examdo.ExamPaper{
+			Title:              in.Title,
+			PrepareTitle:       in.PrepareTitle,
+			PrepareInstruction: in.PrepareInstruction,
+			PrepareAudioFile:   in.PrepareAudioFile,
+			SourceBaseUrl:      baseURL,
+			DurationSeconds:    in.DurationSeconds,
+			Updater:            updater,
+			UpdateTime:         gtime.Now(),
+		}).
+		Where("id", examPaperId).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Update()
+	if err != nil {
+		return err
+	}
+	s.InvalidatePaperForExamCache(ctx, examPaperId)
+	exampaper.InvalidateByMockIDCache(paper.MockExaminationPaperId)
+	return nil
+}
+
 func examPaperEntityToBOHead(p examentity.ExamPaper, name string) exambo.PaperHeadView {
 	v := exambo.PaperHeadView{
+		ExamPaperId:             p.Id,
 		Id:                      p.MockExaminationPaperId,
 		Level:                   p.Level,
 		PaperId:                 p.PaperId,
@@ -249,6 +295,7 @@ func examPaperEntityToBOHead(p examentity.ExamPaper, name string) exambo.PaperHe
 		AudioHlsIvHex:           p.AudioHlsIvHex,
 		AudioHlsSegmentDuration: p.AudioHlsSegmentDuration,
 		IndexJson:               p.IndexJson,
+		DurationSeconds:         p.DurationSeconds,
 	}
 	v.CreateTime = utility.ToRFC3339UTC(p.CreateTime)
 	return v

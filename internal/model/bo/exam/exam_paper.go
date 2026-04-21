@@ -6,6 +6,7 @@ type PaperDetailTree struct {
 }
 
 type PaperHeadView struct {
+	ExamPaperId             int64   `json:"exam_paper_id"`
 	Id                      int64   `json:"id"`
 	Level                   string  `json:"level"`
 	PaperId                 string  `json:"paper_id"`
@@ -22,6 +23,7 @@ type PaperHeadView struct {
 	AudioHlsIvHex           string  `json:"audio_hls_iv_hex"`
 	AudioHlsSegmentDuration float64 `json:"audio_hls_segment_duration"`
 	IndexJson               string  `json:"index_json"`
+	DurationSeconds         int     `json:"duration_seconds"`
 	CreateTime              string  `json:"create_time"`
 }
 
@@ -33,6 +35,16 @@ type PaperHlsExamAdminUpdate struct {
 	AudioHlsKeyObject       string
 	AudioHlsIvHex           string
 	AudioHlsSegmentDuration float64
+}
+
+// PaperMetaAdminUpdate 管理端试卷元数据（不含 HLS、不含题目树）。
+type PaperMetaAdminUpdate struct {
+	Title              string
+	PrepareTitle       string
+	PrepareInstruction string
+	PrepareAudioFile   string
+	SourceBaseURL      string
+	DurationSeconds    int
 }
 
 type SectionDetailView struct {

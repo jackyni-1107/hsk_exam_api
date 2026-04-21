@@ -1,8 +1,9 @@
 import request from './request'
 
 export interface ExamPaperItem {
-  /** mock_examination_paper.id */
+  /** exam_paper.id */
   id: number
+  mock_examination_paper_id: number
   level: string
   paper_id: string
   title: string
@@ -24,6 +25,7 @@ export function getExamPaperList(params: { level?: string; page?: number; size?:
 
 export interface ExamPaperDetail {
   paper: {
+    exam_paper_id: number
     /** mock_examination_paper.id */
     id: number
     level: string
@@ -33,6 +35,7 @@ export interface ExamPaperDetail {
     prepare_instruction: string
     prepare_audio_file: string
     source_base_url: string
+    duration_seconds: number
     audio_hls_prefix: string
     audio_hls_segment_count: number
     audio_hls_segment_pattern: string
@@ -89,14 +92,10 @@ export function getExamPaperDetail(id: number) {
 
 export function importExamPaper(data: {
   mock_examination_paper_id: number
-  index_url?: string
-  index_json?: string
-  level?: string
-  paper_id?: string
-  source_base_url?: string
+  /** 可选，写入 exam_paper.title；不传则用 mock 卷名称 */
+  title?: string
   audio_hls_prefix?: string
   conflict_mode?: string
-  new_paper_id?: string
 }) {
   return request.post<
     any,
@@ -123,6 +122,19 @@ export function updateExamPaper(data: {
   audio_hls_segment_duration?: number
 }) {
   return request.post<any, { data: Record<string, never> }>('/admin/exam/paper/update', data)
+}
+
+/** 编辑试卷元数据（exam_paper 主键） */
+export function editExamPaperMeta(data: {
+  exam_paper_id: number
+  title: string
+  prepare_title: string
+  prepare_instruction: string
+  prepare_audio_file: string
+  source_base_url: string
+  duration_seconds: number
+}) {
+  return request.post<any, { data: Record<string, never> }>('/admin/exam/paper/edit', data)
 }
 
 /** --- 考试批次（/admin/exam/batch） --- */

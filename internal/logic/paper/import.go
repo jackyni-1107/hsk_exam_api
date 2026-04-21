@@ -12,6 +12,7 @@ import (
 	exambo "exam/internal/model/bo/exam"
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
+	mockentity "exam/internal/model/entity/mock"
 	"exam/internal/utility/exampaper"
 
 	"github.com/gogf/gf/v2/database/gdb"
@@ -22,34 +23,45 @@ import (
 	"github.com/gogf/gf/v2/os/gtime"
 )
 
-// ImportFromIndex 拉取或解析 index.json，写入 exam_* 表。
+// ImportFromIndex 根据 mock_examination_paper.resource_url 推导 index.json 地址并导入到 exam_* 表。
 func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*exambo.ImportResult, error) {
 	res := &exambo.ImportResult{}
-	if err := exampaper.EnsureMockExaminationPaper(ctx, p.MockExaminationPaperId); err != nil {
+	var mockPaper mockentity.MockExaminationPaper
+	if err := dao.MockExaminationPaper.Ctx(ctx).
+		Where(dao.MockExaminationPaper.Columns().Id, p.MockExaminationPaperId).
+		Where(dao.MockExaminationPaper.Columns().DeleteFlag, consts.DeleteFlagNotDeleted).
+		Scan(&mockPaper); err != nil {
 		return nil, err
 	}
-	indexStr, baseURL, level, paperID, err := resolveIndexPayload(ctx, p)
+	if mockPaper.Id == 0 {
+		return nil, gerror.NewCode(consts.CodeMockExamPaperNotFound)
+	}
+	indexURL, err := indexJSONURLFromMockResourceURL(mockPaper.ResourceUrl)
 	if err != nil {
 		return nil, err
 	}
-	if p.SourceBaseURL != "" {
-		baseURL = strings.TrimRight(p.SourceBaseURL, "/") + "/"
+	indexStr, err := fetchRemote(ctx, indexURL)
+	if err != nil {
+		return nil, err
+	}
+	baseURL, level, paperID, err := parseIndexURL(indexURL)
+	if err != nil {
+		return nil, err
 	}
 	audioHlsPrefix := strings.Trim(p.AudioHlsPrefix, "/")
-	if p.Level != "" {
-		level = p.Level
-	}
-	if p.PaperID != "" {
-		paperID = p.PaperID
-	}
-
-	mode := p.ConflictMode
-	if mode == "" {
-		mode = consts.ExamImportConflictFail
+	mode, err := normalizeExamImportConflictMode(p.ConflictMode)
+	if err != nil {
+		return nil, err
 	}
 
 	idx := gjson.New(indexStr)
-	title := idx.Get("title").String()
+	title := strings.TrimSpace(p.Title)
+	if title == "" {
+		title = strings.TrimSpace(mockPaper.Name)
+	}
+	if title == "" {
+		title = strings.TrimSpace(idx.Get("title").String())
+	}
 	prepareTitle := idx.Get("prepare.title").String()
 	if prepareTitle == "" {
 		prepareTitle = idx.Get("prepare_title").String()
@@ -65,35 +77,23 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 
 	mockID := p.MockExaminationPaperId
 	var exist examentity.ExamPaper
-	count, err := dao.ExamPaper.Ctx(ctx).
+	if err := dao.ExamPaper.Ctx(ctx).
 		Where("mock_examination_paper_id", mockID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Count()
-	if count > 0 {
+		Scan(&exist); err != nil {
+		return nil, err
+	}
+
+	overwritePaperID := int64(0)
+	if exist.Id > 0 {
 		switch mode {
 		case consts.ExamImportConflictFail:
 			res.Conflict = true
 			res.ExistingExaminationPaperID = mockID
 			return res, nil
-		case consts.ExamImportConflictOverwrite:
-			// 子树伪删除 + 原地更新 exam_paper，在下方事务中执行
-		case consts.ExamImportConflictNewCopy:
-			if p.NewPaperID == "" {
-				return nil, gerror.NewCode(consts.CodeExamNewPaperIdRequired)
-			}
-			paperID = p.NewPaperID
-			var dup examentity.ExamPaper
-			if err := dao.ExamPaper.Ctx(ctx).
-				Where("level", level).
-				Where("paper_id", paperID).
-				Where("delete_flag", consts.DeleteFlagNotDeleted).
-				WhereNot("id", exist.Id).
-				Scan(&dup); err != nil {
-				return nil, err
-			}
-			if dup.Id > 0 {
-				return nil, gerror.NewCode(consts.CodeExamNewPaperIdExists)
-			}
+		case consts.ExamImportConflictOverwrite, consts.ExamImportConflictNew:
+			// 与「覆盖」相同实现，见 docs/exam-paper-import.md。
+			overwritePaperID = exist.Id
 		default:
 			return nil, gerror.NewCode(consts.CodeExamConflictModeInvalid)
 		}
@@ -101,24 +101,20 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 
 	indexSnapshot := gjson.New(indexStr).MustToJsonString()
 
-	overwritePaperId := int64(0)
-	if exist.Id > 0 && mode == consts.ExamImportConflictOverwrite {
-		overwritePaperId = exist.Id
-	}
-	// 覆盖且未传 HLS 前缀时保留库内原值（与「伪删除保留历史」一致）
+	// 覆盖 / 替换且未传 HLS 前缀时保留库内原值（与「伪删除保留历史」一致）
 	audioHlsForPaper := audioHlsPrefix
-	if overwritePaperId > 0 && strings.TrimSpace(p.AudioHlsPrefix) == "" {
+	if exist.Id > 0 && strings.TrimSpace(p.AudioHlsPrefix) == "" {
 		audioHlsForPaper = strings.Trim(exist.AudioHlsPrefix, "/")
 	}
 
 	var invalidatePaperPK int64
 	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		var pid int64
-		if overwritePaperId > 0 {
-			if err := softDeletePaperTreeTx(ctx, tx, overwritePaperId, p.Creator); err != nil {
+		if overwritePaperID > 0 {
+			if err := softDeletePaperTreeTx(ctx, tx, overwritePaperID, p.Creator); err != nil {
 				return err
 			}
-			_, err := tx.Model(dao.ExamPaper.Table()).Ctx(ctx).Where("id", overwritePaperId).Data(examdo.ExamPaper{
+			_, err := tx.Model(dao.ExamPaper.Table()).Ctx(ctx).Where("id", overwritePaperID).Data(examdo.ExamPaper{
 				Level:                   level,
 				PaperId:                 paperID,
 				MockExaminationPaperId:  mockID,
@@ -142,7 +138,7 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 			if err != nil {
 				return err
 			}
-			pid = overwritePaperId
+			pid = overwritePaperID
 		} else {
 			paperDO := examdo.ExamPaper{
 				Level:                  level,
@@ -225,33 +221,55 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 	if invalidatePaperPK > 0 {
 		s.InvalidatePaperForExamCache(ctx, invalidatePaperPK)
 	}
+	exampaper.InvalidateByMockIDCache(mockID)
 	return res, nil
 }
 
-func resolveIndexPayload(ctx context.Context, p exambo.ImportParams) (indexStr, baseURL, level, paperID string, err error) {
-	if p.IndexJSON != "" {
-		indexStr = p.IndexJSON
-		if p.Level == "" || p.PaperID == "" {
-			return "", "", "", "", gerror.NewCode(consts.CodeExamIndexMetaRequired)
-		}
-		baseURL = p.SourceBaseURL
-		if baseURL == "" {
-			return "", "", "", "", gerror.NewCode(consts.CodeExamSourceBaseRequired)
-		}
-		return indexStr, baseURL, p.Level, p.PaperID, nil
+func normalizeExamImportConflictMode(mode string) (string, error) {
+	m := strings.ToLower(strings.TrimSpace(mode))
+	if m == "" {
+		return consts.ExamImportConflictFail, nil
 	}
-	if p.IndexURL == "" {
-		return "", "", "", "", gerror.NewCode(consts.CodeExamIndexUrlRequired)
+	if m == "new_copy" {
+		m = consts.ExamImportConflictNew
 	}
-	baseURL, level, paperID, err = parseIndexURL(p.IndexURL)
+	switch m {
+	case consts.ExamImportConflictFail, consts.ExamImportConflictOverwrite, consts.ExamImportConflictNew:
+		return m, nil
+	default:
+		return "", gerror.NewCode(consts.CodeExamConflictModeInvalid)
+	}
+}
+
+func indexJSONURLFromMockResourceURL(resource string) (string, error) {
+	s := strings.TrimSpace(resource)
+	if s == "" {
+		return "", gerror.NewCode(consts.CodeInvalidParams)
+	}
+	parsed, err := url.Parse(s)
 	if err != nil {
-		return "", "", "", "", err
+		return "", err
 	}
-	indexStr, err = fetchRemote(ctx, p.IndexURL)
-	if err != nil {
-		return "", "", "", "", err
+	if parsed.Scheme == "" {
+		parsed.Scheme = "https"
 	}
-	return indexStr, baseURL, level, paperID, nil
+	path := parsed.Path
+	lp := strings.ToLower(path)
+	switch {
+	case strings.HasSuffix(lp, ".zip"):
+		parsed.Path = path[:len(path)-len(".zip")] + "/index.json"
+	case strings.HasSuffix(lp, "/index.json"):
+		// keep
+	default:
+		parsed.Path = strings.TrimSuffix(path, "/") + "/index.json"
+	}
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	out := parsed.String()
+	if out == "" {
+		return "", gerror.NewCode(consts.CodeInvalidParams)
+	}
+	return out, nil
 }
 
 func parseIndexURL(raw string) (baseURL, level, paperID string, err error) {

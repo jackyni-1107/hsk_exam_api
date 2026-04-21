@@ -19,6 +19,8 @@ export interface MockExaminationPaperItem {
   id: number
   level_id: number
   name: string
+  /** 资源包 .zip，导入时服务端替换为 /index.json */
+  resource_url?: string
   score_full: number
   time_full: number
   status: number
