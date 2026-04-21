@@ -10,6 +10,7 @@ type PaperHeadView struct {
 	Level                   string  `json:"level"`
 	PaperId                 string  `json:"paper_id"`
 	Title                   string  `json:"title"`
+	Name                    string  `json:"name"`
 	PrepareTitle            string  `json:"prepare_title"`
 	PrepareInstruction      string  `json:"prepare_instruction"`
 	PrepareAudioFile        string  `json:"prepare_audio_file"`

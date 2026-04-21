@@ -10,9 +10,11 @@ import (
 
 	"exam/internal/consts"
 	examdao "exam/internal/dao/exam"
+	mockdao "exam/internal/dao/mock"
 	exambo "exam/internal/model/bo/exam"
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
+	mockentity "exam/internal/model/entity/mock"
 	"exam/internal/utility"
 )
 
@@ -28,6 +30,14 @@ func (s *sPaper) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.Pa
 	}
 	if paper.Id == 0 {
 		return nil, gerror.NewCode(consts.CodeExamPaperNotFound)
+	}
+	var mockPaper mockentity.MockExaminationPaper
+	if err := mockdao.MockExaminationPaper.Ctx(ctx).
+		Fields(mockdao.MockExaminationPaper.Columns().Id, mockdao.MockExaminationPaper.Columns().Name).
+		Where(mockdao.MockExaminationPaper.Columns().Id, paper.MockExaminationPaperId).
+		Where(mockdao.MockExaminationPaper.Columns().DeleteFlag, consts.DeleteFlagNotDeleted).
+		Scan(&mockPaper); err != nil {
+		return nil, err
 	}
 
 	var sections []examentity.ExamSection
@@ -124,7 +134,7 @@ func (s *sPaper) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.Pa
 	}
 
 	out := &exambo.PaperDetailTree{
-		Paper: examPaperEntityToBOHead(paper),
+		Paper: examPaperEntityToBOHead(paper, mockPaper.Name),
 	}
 
 	for _, sec := range sections {
@@ -221,12 +231,13 @@ func (s *sPaper) UpdatePaperSettings(ctx context.Context, examPaperId int64, in 
 	return nil
 }
 
-func examPaperEntityToBOHead(p examentity.ExamPaper) exambo.PaperHeadView {
+func examPaperEntityToBOHead(p examentity.ExamPaper, name string) exambo.PaperHeadView {
 	v := exambo.PaperHeadView{
 		Id:                      p.MockExaminationPaperId,
 		Level:                   p.Level,
 		PaperId:                 p.PaperId,
 		Title:                   p.Title,
+		Name:                    name,
 		PrepareTitle:            p.PrepareTitle,
 		PrepareInstruction:      p.PrepareInstruction,
 		PrepareAudioFile:        p.PrepareAudioFile,
