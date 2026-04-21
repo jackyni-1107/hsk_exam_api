@@ -5,6 +5,7 @@ import (
 
 	v1 "exam/api/admin/menu/v1"
 	"exam/internal/middleware"
+	"exam/internal/model/bo"
 	menusvc "exam/internal/service/sysmenu"
 )
 
@@ -13,11 +14,21 @@ func (c *ControllerV1) MenuUpdate(ctx context.Context, req *v1.MenuUpdateReq) (r
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = menusvc.SysMenu().MenuUpdate(ctx,
-		req.Id, req.Name, req.Permission, req.Path, req.Icon, req.Component, req.ComponentName, updater,
-		req.Type, req.Sort, req.ParentId, req.Status,
-		boolToInt(req.Visible), boolToInt(req.KeepAlive), boolToInt(req.AlwaysShow),
-	)
+	err = menusvc.SysMenu().MenuUpdate(ctx, req.Id, bo.MenuUpdateInput{
+		Name:          req.Name,
+		Permission:    req.Permission,
+		Type:          req.Type,
+		Sort:          req.Sort,
+		ParentID:      req.ParentId,
+		Path:          req.Path,
+		Icon:          req.Icon,
+		Component:     req.Component,
+		ComponentName: req.ComponentName,
+		Status:        req.Status,
+		Visible:       req.Visible,
+		KeepAlive:     req.KeepAlive,
+		AlwaysShow:    req.AlwaysShow,
+	}, updater)
 	if err != nil {
 		return nil, err
 	}

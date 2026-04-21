@@ -14,7 +14,7 @@ type MenuTreeNode struct {
 	Id            int64           `json:"id" dc:"菜单ID"`
 	Name          string          `json:"name" dc:"菜单名称"`
 	Permission    string          `json:"permission" dc:"权限标识"`
-	Type          int             `json:"type" dc:"菜单类型：0目录 1菜单 2按钮"`
+	Type          int             `json:"type" dc:"菜单类型：1目录 2菜单 3按钮"`
 	Sort          int             `json:"sort" dc:"排序值"`
 	ParentId      int64           `json:"parent_id" dc:"父级ID"`
 	Path          string          `json:"path" dc:"路由路径"`
@@ -32,7 +32,7 @@ type MenuCreateReq struct {
 	g.Meta        `path:"/menu" method:"post" tags:"菜单" summary:"新增菜单"`
 	Name          string `json:"name" v:"required#err.invalid_params" dc:"菜单名称"`
 	Permission    string `json:"permission" dc:"权限标识"`
-	Type          int    `json:"type" dc:"菜单类型：0目录 1菜单 2按钮"`
+	Type          int    `json:"type" dc:"菜单类型：1目录 2菜单 3按钮"`
 	Sort          int    `json:"sort" dc:"排序值"`
 	ParentId      int64  `json:"parent_id" dc:"父级ID"`
 	Path          string `json:"path" dc:"路由路径"`
@@ -51,20 +51,20 @@ type MenuCreateRes struct {
 
 type MenuUpdateReq struct {
 	g.Meta        `path:"/menu/{id}" method:"put" tags:"菜单" summary:"更新菜单"`
-	Id            int64  `json:"id" in:"path" v:"required#err.invalid_params" dc:"菜单ID"`
-	Name          string `json:"name" dc:"菜单名称"`
-	Permission    string `json:"permission" dc:"权限标识"`
-	Type          int    `json:"type" dc:"菜单类型：0目录 1菜单 2按钮"`
-	Sort          int    `json:"sort" dc:"排序值"`
-	ParentId      int64  `json:"parent_id" dc:"父级ID"`
-	Path          string `json:"path" dc:"路由路径"`
-	Icon          string `json:"icon" dc:"图标"`
-	Component     string `json:"component" dc:"组件路径"`
-	ComponentName string `json:"component_name" dc:"组件名称"`
-	Status        int    `json:"status" dc:"状态：0正常 1停用"`
-	Visible       bool   `json:"visible" dc:"是否可见"`
-	KeepAlive     bool   `json:"keep_alive" dc:"是否缓存"`
-	AlwaysShow    bool   `json:"always_show" dc:"是否总是显示"`
+	Id            int64   `json:"id" in:"path" v:"required#err.invalid_params" dc:"菜单ID"`
+	Name          *string `json:"name" dc:"菜单名称"`
+	Permission    *string `json:"permission" dc:"权限标识"`
+	Type          *int    `json:"type" dc:"菜单类型：1目录 2菜单 3按钮"`
+	Sort          *int    `json:"sort" dc:"排序值"`
+	ParentId      *int64  `json:"parent_id" dc:"父级ID"`
+	Path          *string `json:"path" dc:"路由路径"`
+	Icon          *string `json:"icon" dc:"图标"`
+	Component     *string `json:"component" dc:"组件路径"`
+	ComponentName *string `json:"component_name" dc:"组件名称"`
+	Status        *int    `json:"status" dc:"状态：0正常 1停用"`
+	Visible       *bool   `json:"visible" dc:"是否可见"`
+	KeepAlive     *bool   `json:"keep_alive" dc:"是否缓存"`
+	AlwaysShow    *bool   `json:"always_show" dc:"是否总是显示"`
 }
 
 type MenuUpdateRes struct{}
