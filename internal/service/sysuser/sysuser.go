@@ -14,6 +14,7 @@ type (
 	ISysUser interface {
 		UserList(ctx context.Context, page int, size int, username string, status int) ([]sysentity.SysUser, int, error)
 		UserRoleIds(ctx context.Context, userId int64) ([]int64, error)
+		UserRoleIDsByUserIDs(ctx context.Context, userIDs []int64) (map[int64][]int64, error)
 		UserCreate(ctx context.Context, username string, password string, nickname string, email string, mobile string, creator string, status int, roleIds []int64) (int64, error)
 		UserUpdate(ctx context.Context, id int64, password string, nickname string, email string, mobile string, updater string, status int) error
 		UserDelete(ctx context.Context, id int64, updater string) error

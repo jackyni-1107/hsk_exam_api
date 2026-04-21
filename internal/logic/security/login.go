@@ -20,7 +20,7 @@ func userTypeTag(ut int) string {
 
 // NormalizeLoginName 登录名规范化（用于 Redis 键）
 func (s *sSecurity) NormalizeLoginName(name string) string {
-	return strings.TrimSpace(strings.ToLower(name))
+	return strings.TrimSpace(name)
 }
 
 // CheckIPLoginRateLimit 单 IP 每分钟尝试次数，超限返回 true

@@ -13,6 +13,14 @@ func (c *ControllerV1) UserList(ctx context.Context, req *v1.UserListReq) (res *
 	if err != nil {
 		return nil, err
 	}
+	userIDs := make([]int64, len(users))
+	for i := range users {
+		userIDs[i] = users[i].Id
+	}
+	roleIDsByUser, err := usersvc.SysUser().UserRoleIDsByUserIDs(ctx, userIDs)
+	if err != nil {
+		return nil, err
+	}
 
 	list := make([]*v1.UserItem, 0, len(users))
 	for _, u := range users {
@@ -27,8 +35,7 @@ func (c *ControllerV1) UserList(ctx context.Context, req *v1.UserListReq) (res *
 		if u.CreateTime != nil {
 			item.CreateTime = utility.ToRFC3339UTC(u.CreateTime)
 		}
-		roleIds, _ := usersvc.SysUser().UserRoleIds(ctx, u.Id)
-		item.RoleIds = roleIds
+		item.RoleIds = roleIDsByUser[u.Id]
 		list = append(list, item)
 	}
 
