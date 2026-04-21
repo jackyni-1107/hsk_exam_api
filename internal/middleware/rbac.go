@@ -195,52 +195,25 @@ func RBACFromPath(r *ghttp.Request) {
 }
 
 func inferPermission(path, method string) string {
-	path = strings.Trim(path, "/")
-	parts := strings.Split(path, "/")
-	if len(parts) > 0 && parts[0] == "api" {
-		parts = parts[1:]
-	}
-	// admin/<resource>/...
-	if len(parts) < 2 || parts[0] != "admin" {
+	route, ok := parseAdminRoute(path)
+	if !ok {
 		return ""
 	}
-	resource := parts[1]
-	// 当前用户自身接口（菜单树等）：仅需已登录，不按菜单 permission 推断
+	resource := route.module()
 	if resource == "me" {
 		return ""
 	}
-	// admin/exam/paper/import -> exam:import（与列表 exam:list 区分）
-	if resource == "exam" && len(parts) >= 4 && parts[2] == "paper" && parts[3] == "import" {
-		return "exam:import"
+	if perm, ok := matchPermissionRule(method, route); ok {
+		return perm
 	}
-	// admin/exam/attempt/list 与 admin/exam/attempt/{id} -> exam:result:list
-	if resource == "exam" && len(parts) >= 3 && parts[2] == "attempt" && method == "GET" {
-		return "exam:result:list"
-	}
-	// admin/exam/attempt/{id}/subjective-scores -> exam:result:grade
-	if resource == "exam" && len(parts) >= 5 && parts[2] == "attempt" && parts[4] == "subjective-scores" && method == "PUT" {
-		return "exam:result:grade"
-	}
-	// admin/file/upload 与文件列表共用 file:list，避免单独授权 file:create
-	if resource == "file" && len(parts) >= 4 && parts[3] == "upload" && method == "POST" {
-		return "file:list"
-	}
-	// admin/task/run -> task:run, admin/task/log -> task:log
-	if resource == "task" && len(parts) >= 3 {
-		if parts[2] == "run" {
-			return "task:run"
-		}
-		if parts[2] == "log" {
-			return "task:log"
-		}
-	}
+	return inferResourcePermission(resource, method)
+}
+
+func inferResourcePermission(resource, method string) string {
 	switch method {
 	case "GET":
 		return resource + ":list"
 	case "POST":
-		if resource == "user" && len(parts) >= 4 && parts[3] == "kick-sessions" {
-			return "user:update"
-		}
 		return resource + ":create"
 	case "PUT", "PATCH":
 		return resource + ":update"

@@ -132,9 +132,11 @@ func inferAction(r *ghttp.Request) string {
 }
 
 func inferModule(path string) string {
-	// 从路径提取模块：/api/admin/user -> user
+	if route, ok := parseAdminRoute(path); ok {
+		return route.module()
+	}
 	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) >= 3 {
+	if len(parts) > 0 {
 		return parts[len(parts)-1]
 	}
 	return ""
