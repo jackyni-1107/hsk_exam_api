@@ -73,9 +73,6 @@
               >详情</el-button
             >
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="primary" @click="openImportForRow(row)"
-              >导入</el-button
-            >
             <el-button link type="primary" @click="openSettings(row)"
               >听力 HLS</el-button
             >
