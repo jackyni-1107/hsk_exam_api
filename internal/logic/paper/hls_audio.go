@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"exam/internal/logic/attempt"
 	"fmt"
 	"math"
 	"strings"
@@ -19,6 +18,7 @@ import (
 	"exam/internal/consts"
 	"exam/internal/dao"
 	examentity "exam/internal/model/entity/exam"
+	attemptsvc "exam/internal/service/attempt"
 	"exam/internal/utility/storage"
 )
 
@@ -164,7 +164,7 @@ func (s *sPaper) pickExamPaperHLS(ctx context.Context, column string, value int6
 }
 
 func (s *sPaper) assertAttemptInProgress(ctx context.Context, userID, attemptID int64) (*examentity.ExamAttempt, error) {
-	return attempt.AssertAttemptInProgressByUser(ctx, attemptID, userID)
+	return attemptsvc.Attempt().AssertAttemptInProgressByUser(ctx, attemptID, userID)
 }
 
 func (s *sPaper) loadQuestionHLS(ctx context.Context, paperID, questionID int64) (*examentity.ExamQuestion, error) {

@@ -56,6 +56,18 @@ func (s *sAttempt) GetAttemptByID(ctx context.Context, id int64) (*examentity.Ex
 	return out, nil
 }
 
+func (s *sAttempt) LoadAttemptByUser(ctx context.Context, attemptID int64, userID int64) (*examentity.ExamAttempt, error) {
+	att, err := LoadAttemptByUser(ctx, attemptID, userID)
+	if err != nil {
+		return nil, err
+	}
+	return &att, nil
+}
+
+func (s *sAttempt) AssertAttemptInProgressByUser(ctx context.Context, attemptID int64, userID int64) (*examentity.ExamAttempt, error) {
+	return AssertAttemptInProgressByUser(ctx, attemptID, userID)
+}
+
 // IsWindowOpen 判断考试窗口是否开启（含起止边界时刻）。
 func (s *sAttempt) IsWindowOpen(now, start, end *gtime.Time) bool {
 	if start == nil || end == nil {

@@ -41,6 +41,8 @@ type (
 		FinalizeAttempt(ctx context.Context, attemptID int64) error
 		// GetAttemptByID 获取答题会话详情
 		GetAttemptByID(ctx context.Context, id int64) (*examentity.ExamAttempt, error)
+		LoadAttemptByUser(ctx context.Context, attemptID int64, userID int64) (*examentity.ExamAttempt, error)
+		AssertAttemptInProgressByUser(ctx context.Context, attemptID int64, userID int64) (*examentity.ExamAttempt, error)
 		// IsWindowOpen 判断考试窗口是否开启（含起止边界时刻）。
 		IsWindowOpen(now *gtime.Time, start *gtime.Time, end *gtime.Time) bool
 	}

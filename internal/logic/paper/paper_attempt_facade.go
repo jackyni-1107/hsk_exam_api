@@ -10,9 +10,9 @@ import (
 
 	"exam/internal/consts"
 	"exam/internal/dao"
-	"exam/internal/logic/attempt"
 	"exam/internal/model/bo"
 	examentity "exam/internal/model/entity/exam"
+	attemptsvc "exam/internal/service/attempt"
 )
 
 // RandomFillAnswersForTest 仅返回随机答案草稿列表，不写库。若需生成并保存，使用 RandomFillAndSaveAnswers。
@@ -21,7 +21,7 @@ func (s *sPaper) RandomFillAnswersForTest(ctx context.Context, userID int64, moc
 	if !cfg.EnableRandomAnswerHelper {
 		return nil, gerror.NewCode(consts.CodeExamTestHelperDisabled)
 	}
-	att, err := attempt.LoadAttemptByUser(ctx, attemptID, userID)
+	att, err := attemptsvc.Attempt().LoadAttemptByUser(ctx, attemptID, userID)
 	if err != nil {
 		return nil, err
 	}
