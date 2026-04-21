@@ -1,6 +1,8 @@
 package v1
 
-import "github.com/gogf/gf/v2/frame/g"
+import (
+	"github.com/gogf/gf/v2/frame/g"
+)
 
 type PaperListReq struct {
 	g.Meta `path:"/exam/paper/list" method:"get" tags:"试卷管理" summary:"试卷列表"`
@@ -80,7 +82,8 @@ type PaperDetailPaper struct {
 	Id                      int64   `json:"id" dc:"mock_examination_paper.id"`
 	Level                   string  `json:"level" dc:"试卷级别"`
 	PaperId                 string  `json:"paper_id" dc:"远程试卷ID"`
-	Title                   string  `json:"title" dc:"试卷标题"`
+	Title                   string  `json:"title" dc:"废弃 试卷标题"`
+	Name                    string  `json:"name" dc:"试卷标题"`
 	PrepareTitle            string  `json:"prepare_title" dc:"准备阶段标题"`
 	PrepareInstruction      string  `json:"prepare_instruction" dc:"准备阶段说明"`
 	PrepareAudioFile        string  `json:"prepare_audio_file" dc:"准备阶段音频文件"`

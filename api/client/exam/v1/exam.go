@@ -32,6 +32,7 @@ type PaperForExamPrepare struct {
 	Instruction string                `json:"instruction" dc:"准备阶段说明"`
 	AudioFile   string                `json:"audio_file" dc:"准备阶段音频文件"`
 	Title       string                `json:"title" dc:"准备阶段标题"`
+	Name        string                `json:"name" dc:"试卷标题"`
 	Segments    []PaperForExamSegment `json:"segments" dc:"考试环节信息"`
 }
 

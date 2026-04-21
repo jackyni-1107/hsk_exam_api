@@ -20,7 +20,7 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
 
-	d, segments, err := papersvc.Paper().PaperBootstrapForExam(ctx, req.PaperId)
+	d, segments, mock, err := papersvc.Paper().PaperBootstrapForExam(ctx, req.PaperId)
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +70,7 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 			Instruction: d.Paper.PrepareInstruction,
 			AudioFile:   d.Paper.PrepareAudioFile,
 			Title:       d.Paper.PrepareTitle,
+			Name:        mock.Name,
 			Segments:    prepareSegments,
 		},
 		Items: make([]v1.PaperForExamItemInit, 0, len(d.Sections)),

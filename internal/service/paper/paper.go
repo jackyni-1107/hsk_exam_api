@@ -10,6 +10,7 @@ import (
 	"exam/internal/model/bo"
 	exambo "exam/internal/model/bo/exam"
 	examentity "exam/internal/model/entity/exam"
+	mockentity "exam/internal/model/entity/mock"
 )
 
 type (
@@ -34,7 +35,7 @@ type (
 		RandomFillAnswersForTest(ctx context.Context, userID int64, mockPaperID int64, attemptID int64) ([]bo.RandomAnswerDraftItem, error)
 		PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionTopic, error)
 		PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, error)
-		PaperBootstrapForExam(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, []exambo.PaperPrepareSegment, error)
+		PaperBootstrapForExam(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, []exambo.PaperPrepareSegment, *mockentity.MockExaminationPaper, error)
 		PaperPrepareSegments(ctx context.Context, mockPaperID int64) ([]exambo.PaperPrepareSegment, error)
 		PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionDetailForExamView, error)
 	}

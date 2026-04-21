@@ -448,27 +448,27 @@ func (s *sPaper) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) 
 	return &out, nil
 }
 
-func (s *sPaper) PaperBootstrapForExam(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, []exambo.PaperPrepareSegment, error) {
+func (s *sPaper) PaperBootstrapForExam(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, []exambo.PaperPrepareSegment, *mockentity.MockExaminationPaper, error) {
 	paper, err := exampaper.ByMockID(ctx, mockPaperID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	mockPaper, err := loadMockPaperByID(ctx, mockPaperID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	t, err := PaperDetailForExamInit(ctx, paper.Id)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	detail := paperDetailForExamInitTreeToBO(t)
 	detail.Paper.ListenReviewDuration = mockPaper.ListenReviewDuration
 
 	segments, err := paperPrepareSegmentsByLevelID(ctx, mockPaper.LevelId)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return &detail, segments, nil
+	return &detail, segments, &mockPaper, nil
 }
 
 func (s *sPaper) PaperPrepareSegments(ctx context.Context, mockPaperID int64) ([]exambo.PaperPrepareSegment, error) {
