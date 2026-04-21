@@ -21,8 +21,8 @@ type (
 		AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.AttemptAdminDetailView, error)
 		// AttemptAdminSaveSubjectiveScores 写入主观题人工分并汇总 subjective_score、total_score（允许部分题目已评）。
 		AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, items []bo.SubjectiveScoreItem) (subjectiveSum float64, totalScore float64, err error)
-		// CreateAttemptForBatch 按批次与 Mock 卷创建会话（未开始）；每用户每批次每卷仅允许一条未删除记录。
-		CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64) (int64, error)
+		// CreateAttemptForBatch 按批次创建会话（未开始）；examPaperID 为多卷批次必选（见 exam_batch_member.exam_paper_id）；单卷批次可传 0。
+		CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, examPaperID int64) (int64, error)
 		// StartAttempt 开考：进入进行中并写入截止时间。
 		StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDurationSeconds int) error
 		// GetAttempt 查询会话；若已超时仍进行中则自动交卷并计分。

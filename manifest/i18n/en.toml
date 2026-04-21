@@ -51,6 +51,7 @@
 "err.exam_attempt_exists_for_batch" = "An attempt already exists for this batch"
 "err.exam_batch_paper_not_in_batch" = "This mock paper is not part of the batch"
 "err.exam_batch_paper_has_members" = "Cannot remove a mock paper that still has members; update members first"
+"err.exam_paper_id_required_for_batch_attempt" = "You have multiple papers in this batch; please pass exam_paper_id when creating an attempt"
 
 "err.mock_exam_paper_not_found" = "Mock exam paper not found"
 "err.mock_level_not_found" = "Mock level not found"

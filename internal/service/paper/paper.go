@@ -17,7 +17,7 @@ type (
 	IPaper interface {
 		// IssueAudioHlsPlay 签发短期播放票据，返回相对 play_url（以 / 开头）。
 		IssueAudioHlsPlay(ctx context.Context, userID int64, attemptID int64, questionID int64) (playURL string, expiresAt string, err error)
-		// IssuePaperHlsPlay 基于试卷级 HLS 配置签发短期播放票据，返回相对 play_url（以 / 开头）。
+		// IssuePaperHlsPlay 基于试卷级 HLS 配置签发短期播放票据，返回相对 play_url（以 / 开头）；paperID 为 exam_paper.id。
 		IssuePaperHlsPlay(ctx context.Context, userID int64, paperID int64) (playURL string, expiresAt string, err error)
 		// BuildHlsM3U8Playlist 校验 Redis 票据并生成 m3u8（内嵌 presigned URL）。
 		BuildHlsM3U8Playlist(ctx context.Context, ticket string) ([]byte, error)
@@ -33,13 +33,13 @@ type (
 		UpdatePaperSettings(ctx context.Context, examPaperId int64, in exambo.PaperHlsExamAdminUpdate, updater string) error
 		// UpdatePaperMeta 管理端修改试卷元数据（不含 HLS、题目树）。
 		UpdatePaperMeta(ctx context.Context, examPaperId int64, in exambo.PaperMetaAdminUpdate, updater string) error
-		// RandomFillAnswersForTest 仅返回随机答案草稿列表，不写库。若需生成并保存，使用 RandomFillAndSaveAnswers。
-		RandomFillAnswersForTest(ctx context.Context, userID int64, mockPaperID int64, attemptID int64) ([]bo.RandomAnswerDraftItem, error)
-		PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionTopic, error)
-		PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, error)
-		PaperBootstrapForExam(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, []exambo.PaperPrepareSegment, *mockentity.MockExaminationPaper, error)
-		PaperPrepareSegments(ctx context.Context, mockPaperID int64) ([]exambo.PaperPrepareSegment, error)
-		PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionDetailForExamView, error)
+		// RandomFillAnswersForTest 仅返回随机答案草稿列表，不写库。若需生成并保存，使用 RandomFillAndSaveAnswers。paperId 为 exam_paper.id。
+		RandomFillAnswersForTest(ctx context.Context, userID int64, examPaperID int64, attemptID int64) ([]bo.RandomAnswerDraftItem, error)
+		PaperSectionTopicForExam(ctx context.Context, examPaperID int64, sectionId int64) (*exambo.SectionTopic, error)
+		PaperDetailForExamInit(ctx context.Context, examPaperID int64) (*exambo.PaperDetailForExamInitTree, error)
+		PaperBootstrapForExam(ctx context.Context, examPaperID int64) (*exambo.PaperDetailForExamInitTree, []exambo.PaperPrepareSegment, *mockentity.MockExaminationPaper, error)
+		PaperPrepareSegments(ctx context.Context, examPaperID int64) ([]exambo.PaperPrepareSegment, error)
+		PaperSectionDetailForExam(ctx context.Context, examPaperID int64, sectionId int64) (*exambo.SectionDetailForExamView, error)
 	}
 )
 

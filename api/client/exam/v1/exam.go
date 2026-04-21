@@ -6,11 +6,12 @@ import "github.com/gogf/gf/v2/frame/g"
 
 type PaperForExamReq struct {
 	g.Meta  `path:"/exam/papers/{paperId}" method:"get" tags:"客户端-考试" summary:"考前初始化试卷结构（无题目/选项，无标准答案）"`
-	PaperId int64 `json:"paperId" in:"path" v:"required|min:1" dc:"mock_examination_paper.id"`
+	PaperId int64 `json:"paperId" in:"path" v:"required|min:1" dc:"exam_paper.id"`
 }
 
 type PaperForExamRes struct {
-	Id                   int64                  `json:"id" dc:"mock_examination_paper.id"`
+	Id                   int64                  `json:"id" dc:"exam_paper.id（主键）"`
+	MockExaminationPaperId int64              `json:"mock_examination_paper_id,omitempty" dc:"冗余：mock_examination_paper.id"`
 	Level                string                 `json:"level" dc:"试卷级别"`
 	PaperId              string                 `json:"paper_id" dc:"远程试卷ID"`
 	Title                string                 `json:"title" dc:"试卷标题"`
@@ -24,7 +25,7 @@ type PaperForExamRes struct {
 
 type PaperSectionForExamReq struct {
 	g.Meta    `path:"/exam/papers/{paperId}/sections/{sectionId}" method:"get" tags:"客户端-考试" summary:"按大题拉取 topic JSON 结构（脱敏，与资源文件字段一致）"`
-	PaperId   int64 `json:"paperId" in:"path" v:"required|min:1" dc:"mock_examination_paper.id"`
+	PaperId   int64 `json:"paperId" in:"path" v:"required|min:1" dc:"exam_paper.id"`
 	SectionId int64 `json:"sectionId" in:"path" v:"required|min:1" dc:"大题ID"`
 }
 
@@ -89,10 +90,11 @@ type AttemptCreateRes struct {
 	AttemptId int64 `json:"attempt_id" dc:"答题会话ID"`
 }
 
-// AttemptCreateByBatchReq 按考试批次与报名等级创建答题会话（未开始）。
+// AttemptCreateByBatchReq 按批次创建答题会话（未开始）；多卷批次须在 body 传 exam_paper_id。
 type AttemptCreateByBatchReq struct {
-	g.Meta  `path:"/exam/batches/{batchId}/attempts" method:"post" tags:"客户端-考试" summary:"按批次与 Mock 卷创建答题会话"`
-	BatchId int64 `json:"batchId" in:"path" v:"required|min:1" dc:"exam_batch.id"`
+	g.Meta        `path:"/exam/batches/{batchId}/attempts" method:"post" tags:"客户端-考试" summary:"按批次创建答题会话"`
+	BatchId       int64 `json:"batchId" in:"path" v:"required|min:1" dc:"exam_batch.id"`
+	ExamPaperId   int64 `json:"exam_paper_id" dc:"用户在批次中绑定的 exam_paper.id；该用户在批次下有多条 member 绑定（多卷）时必填"`
 }
 
 type AttemptStartReq struct {
@@ -110,7 +112,8 @@ type AttemptGetReq struct {
 
 type AttemptGetRes struct {
 	Id                 int64 `json:"id" dc:"会话ID"`
-	ExaminationPaperId int64 `json:"examination_paper_id" dc:"mock_examination_paper.id"`
+	ExamPaperId        int64 `json:"exam_paper_id" dc:"exam_paper.id"`
+	ExaminationPaperId int64 `json:"examination_paper_id" dc:"兼容字段：mock_examination_paper.id"`
 	Status             int   `json:"status" dc:"会话状态"`
 	//DurationSeconds    int     `json:"duration_seconds" dc:"考试时长(秒)"`
 	StartedAt  string `json:"started_at" dc:"开考时间"`
@@ -162,7 +165,7 @@ type AttemptSubmitRes struct{}
 // AttemptRandomAnswersReq 测试专用：按试卷全部小题随机填答并保存（需配置 exam.enableRandomAnswerHelper）。
 type AttemptRandomAnswersReq struct {
 	g.Meta    `path:"/exam/papers/{paperId}/attempts/{attemptId}/random-answers" method:"post" tags:"客户端-考试-测试" summary:"随机填答（仅测试环境）"`
-	PaperId   int64 `json:"paperId" in:"path" v:"required|min:1" dc:"mock_examination_paper.id"`
+	PaperId   int64 `json:"paperId" in:"path" v:"required|min:1" dc:"exam_paper.id"`
 	AttemptId int64 `json:"attemptId" in:"path" v:"required|min:1" dc:"答题会话ID"`
 }
 

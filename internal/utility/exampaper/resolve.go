@@ -24,9 +24,16 @@ type byMockIDEntry struct {
 }
 
 var (
-	byMockIDCache sync.Map
-	byMockIDSF    singleflight.Group
+	byMockIDCache       sync.Map
+	byMockIDSF          singleflight.Group
+	byExamPaperIDCache  sync.Map
+	byExamPaperIDSF     singleflight.Group
 )
+
+type byExamPaperIDEntry struct {
+	paper    examentity.ExamPaper
+	cachedAt time.Time
+}
 
 // ByMockID 按 mock_examination_paper.id 查询已导入且未删除的 exam_paper（带进程内缓存）。
 func ByMockID(ctx context.Context, mockExaminationPaperID int64) (examentity.ExamPaper, error) {
@@ -89,6 +96,63 @@ func byMockIDFromDB(ctx context.Context, mockExaminationPaperID int64) (examenti
 // InvalidateByMockIDCache 清除指定 mockPaperID 的本地缓存。
 func InvalidateByMockIDCache(mockExaminationPaperID int64) {
 	byMockIDCache.Delete(mockExaminationPaperID)
+}
+
+const byExamPaperIDCacheTTL = 10 * time.Minute
+
+// ByExamPaperID 按 exam_paper.id 查询未删除的试卷行（带进程内缓存）。
+func ByExamPaperID(ctx context.Context, examPaperID int64) (examentity.ExamPaper, error) {
+	var zero examentity.ExamPaper
+	if examPaperID <= 0 {
+		return zero, gerror.NewCode(consts.CodeInvalidParams)
+	}
+	if entry, ok := byExamPaperIDCache.Load(examPaperID); ok {
+		e := entry.(*byExamPaperIDEntry)
+		if time.Since(e.cachedAt) < byExamPaperIDCacheTTL {
+			return e.paper, nil
+		}
+		byExamPaperIDCache.Delete(examPaperID)
+	}
+	sfKey := fmt.Sprintf("byexam:%d", examPaperID)
+	v, err, _ := byExamPaperIDSF.Do(sfKey, func() (interface{}, error) {
+		if entry, ok := byExamPaperIDCache.Load(examPaperID); ok {
+			e := entry.(*byExamPaperIDEntry)
+			if time.Since(e.cachedAt) < byExamPaperIDCacheTTL {
+				return &e.paper, nil
+			}
+			byExamPaperIDCache.Delete(examPaperID)
+		}
+		p, err := byExamPaperIDFromDB(ctx, examPaperID)
+		if err != nil {
+			return nil, err
+		}
+		byExamPaperIDCache.Store(examPaperID, &byExamPaperIDEntry{paper: p, cachedAt: time.Now()})
+		return &p, nil
+	})
+	if err != nil {
+		return zero, err
+	}
+	return *v.(*examentity.ExamPaper), nil
+}
+
+func byExamPaperIDFromDB(ctx context.Context, examPaperID int64) (examentity.ExamPaper, error) {
+	var p examentity.ExamPaper
+	err := dao.ExamPaper.Ctx(ctx).
+		Where(dao.ExamPaper.Columns().Id, examPaperID).
+		Where(dao.ExamPaper.Columns().DeleteFlag, consts.DeleteFlagNotDeleted).
+		Scan(&p)
+	if err != nil {
+		return p, err
+	}
+	if p.Id == 0 {
+		return p, gerror.NewCode(consts.CodeExamPaperNotFound)
+	}
+	return p, nil
+}
+
+// InvalidateByExamPaperIDCache 清除指定 exam_paper.id 的本地缓存。
+func InvalidateByExamPaperIDCache(examPaperID int64) {
+	byExamPaperIDCache.Delete(examPaperID)
 }
 
 // ExamPaperByMockLevelID 按 mock_levels.id 选取一张已导入 exam_paper 的卷：同等级多张 mock 卷时优先 id 较大且已完成导入者。

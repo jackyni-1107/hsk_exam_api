@@ -51,6 +51,7 @@
 "err.exam_attempt_exists_for_batch" = "该批次已有考试记录"
 "err.exam_batch_paper_not_in_batch" = "该 Mock 卷不属于此批次"
 "err.exam_batch_paper_has_members" = "无法移除仍绑定学员的 Mock 卷，请先调整成员"
+"err.exam_paper_id_required_for_batch_attempt" = "该批次下您有多张绑定的试卷，请在创建会话时指定 exam_paper_id"
 
 "err.mock_exam_paper_not_found" = "模拟卷不存在"
 "err.mock_level_not_found" = "模拟等级不存在"

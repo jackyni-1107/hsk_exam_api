@@ -224,6 +224,7 @@ func (s *sPaper) IssueAudioHlsPlay(ctx context.Context, userID, attemptID, quest
 }
 
 // IssuePaperHlsPlay 基于试卷级 HLS 配置签发短期播放票据，返回相对 play_url（以 / 开头）。
+// paperID 为 exam_paper.id（与客户端试卷路径参数一致）。
 func (s *sPaper) IssuePaperHlsPlay(ctx context.Context, userID, paperID int64) (playURL string, expiresAt string, err error) {
 	if paperID <= 0 {
 		return "", "", gerror.NewCode(consts.CodeInvalidParams)
@@ -232,7 +233,7 @@ func (s *sPaper) IssuePaperHlsPlay(ctx context.Context, userID, paperID int64) (
 	if !storageSupportsPresign(stCfg.Type) {
 		return "", "", gerror.NewCode(consts.CodeExamStoragePresignOnly)
 	}
-	paperCfg, err := s.loadPaperHLS(ctx, paperID)
+	paperCfg, err := s.loadPaperHLSByExamPaperRowID(ctx, paperID)
 	if err != nil {
 		return "", "", err
 	}
