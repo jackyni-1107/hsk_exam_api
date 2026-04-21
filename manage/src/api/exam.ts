@@ -112,7 +112,7 @@ export function importExamPaper(data: {
 }
 
 export function updateExamPaper(data: {
-  /** mock_examination_paper.id */
+  /** exam_paper.id */
   id: number
   audio_hls_prefix?: string
   audio_hls_segment_count: number
@@ -141,7 +141,7 @@ export function editExamPaperMeta(data: {
 
 export interface ExamBatchListItem {
   id: number
-  mock_examination_paper_ids: number[]
+  exam_paper_ids: number[]
   title: string
   exam_start_at: string
   exam_end_at: string
@@ -150,7 +150,7 @@ export interface ExamBatchListItem {
 }
 
 export function getExamBatchList(params: {
-  mock_examination_paper_id?: number
+  exam_paper_id?: number
   page?: number
   size?: number
 }) {
@@ -167,14 +167,14 @@ export function createExamBatch(data: {
   title?: string
   exam_start_at: string
   exam_end_at: string
-  mock_examination_paper_ids: number[]
+  exam_paper_ids: number[]
 }) {
   return request.post<any, { data: { id: number } }>('/admin/exam/batch', data)
 }
 
 export function updateExamBatch(
   id: number,
-  data: { title?: string; exam_start_at: string; exam_end_at: string; mock_examination_paper_ids: number[] }
+  data: { title?: string; exam_start_at: string; exam_end_at: string; exam_paper_ids: number[] }
 ) {
   return request.put<any, { data: Record<string, never> }>(`/admin/exam/batch/${id}`, data)
 }
@@ -185,7 +185,7 @@ export function deleteExamBatch(id: number) {
 
 export interface ExamBatchMemberItem {
   member_id: number
-  mock_examination_paper_id: number
+  exam_paper_id: number
   username: string
   nickname: string
   import_time: string
@@ -193,7 +193,7 @@ export interface ExamBatchMemberItem {
 
 export function importExamBatchMembers(
   batchId: number,
-  data: { mock_examination_paper_id: number; member_ids: number[] },
+  data: { exam_paper_id: number; member_ids: number[] },
 ) {
   return request.post<any, { data: { inserted: number } }>(
     `/admin/exam/batch/${batchId}/members/import`,
@@ -210,7 +210,7 @@ export function getExamBatchMemberList(batchId: number, params?: { page?: number
 
 export function removeExamBatchMembers(
   batchId: number,
-  data: { mock_examination_paper_id: number; member_ids: number[] },
+  data: { exam_paper_id: number; member_ids: number[] },
 ) {
   return request.post<any, { data: { removed: number } }>(
     `/admin/exam/batch/${batchId}/members/remove`,

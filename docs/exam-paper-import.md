@@ -55,6 +55,12 @@
 
 - 入参 **`id` 同样为 `exam_paper.id`**，与详情、编辑接口对齐，避免在 Mock 主键与 Exam 主键之间来回转换。
 
+## 考试批次（`exam_batch_paper` / `exam_batch_member`）
+
+- 创建批次时管理端只传 **`exam_paper_ids`**；服务端写入 **`exam_batch_paper`** 时同时写入 **`exam_paper_id`** 与从 `exam_paper` 解析出的 **`mock_examination_paper_id`**（二者必须与 `exam_paper` 行一致）。
+- 导入批次成员时按 **`exam_paper_id`** 绑定；写入 **`exam_batch_member`** 时同样冗余 **`mock_examination_paper_id`**，便于按 Mock 卷口径查询或兼容旧逻辑。
+- 迁移脚本见 **`migrations/010_exam_batch_paper.sql`**（若库内曾执行过不含 mock 列的旧版 010，需手工 `ALTER` 补齐列并用 `exam_paper` 回填）。
+
 ## Mock 详情接口下线
 
 - 管理端 `/admin/mock/examination-paper/{id}` 不再暴露（API 类型与 controller 方法已删除）。

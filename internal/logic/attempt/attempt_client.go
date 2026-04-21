@@ -16,7 +16,6 @@ import (
 	examentity "exam/internal/model/entity/exam"
 	mockentity "exam/internal/model/entity/mock"
 	"exam/internal/utility"
-	"exam/internal/utility/exampaper"
 	"exam/internal/utility/examutil"
 )
 
@@ -55,18 +54,24 @@ func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batc
 	if link.BatchId == 0 {
 		return 0, gerror.NewCode(consts.CodeExamBatchMemberNotFound)
 	}
-	paper, err := exampaper.ByMockID(ctx, link.MockExaminationPaperId)
-	if err != nil {
+	var paper examentity.ExamPaper
+	if err := dao.ExamPaper.Ctx(ctx).
+		Where("id", link.ExamPaperId).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&paper); err != nil {
 		return 0, err
 	}
+	if paper.Id == 0 {
+		return 0, gerror.NewCode(consts.CodeExamPaperNotFound)
+	}
 	var mp mockentity.MockExaminationPaper
-	_ = dao.MockExaminationPaper.Ctx(ctx).Where("id", link.MockExaminationPaperId).Scan(&mp)
+	_ = dao.MockExaminationPaper.Ctx(ctx).Where("id", paper.MockExaminationPaperId).Scan(&mp)
 	levelID := mp.LevelId
 	attemptVar, err := dao.ExamAttempt.Ctx(ctx).
 		Fields("id").
 		Where("member_id", userID).
 		Where("exam_batch_id", batchID).
-		Where("mock_examination_paper_id", link.MockExaminationPaperId).
+		Where("exam_paper_id", paper.Id).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Value()
 	if err != nil {

@@ -11,66 +11,60 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-// ExamBatchMemberDao is the data access object for the table exam_batch_member.
-type ExamBatchMemberDao struct {
-	table    string                 // table is the underlying table name of the DAO.
-	group    string                 // group is the database configuration group name of the current DAO.
-	columns  ExamBatchMemberColumns // columns contains all the column names of Table for convenient usage.
-	handlers []gdb.ModelHandler     // handlers for customized model modification.
+// ExamBatchPaperDao is the data access object for the table exam_batch_paper.
+type ExamBatchPaperDao struct {
+	table    string                // table is the underlying table name of the DAO.
+	group    string                // group is the database configuration group name of the current DAO.
+	columns  ExamBatchPaperColumns // columns contains all the column names of Table for convenient usage.
+	handlers []gdb.ModelHandler    // handlers for customized model modification.
 }
 
-// ExamBatchMemberColumns defines and stores column names for the table exam_batch_member.
-type ExamBatchMemberColumns struct {
+// ExamBatchPaperColumns defines and stores column names for the table exam_batch_paper.
+type ExamBatchPaperColumns struct {
 	BatchId                string // exam_batch.id
-	MemberId               string // sys_member.id
 	MockExaminationPaperId string // mock_examination_paper.id
 	ExamPaperId            string //
-	Creator                string // 导入操作者
-	CreateTime             string // 导入时间
 }
 
-// examBatchMemberColumns holds the columns for the table exam_batch_member.
-var examBatchMemberColumns = ExamBatchMemberColumns{
+// examBatchPaperColumns holds the columns for the table exam_batch_paper.
+var examBatchPaperColumns = ExamBatchPaperColumns{
 	BatchId:                "batch_id",
-	MemberId:               "member_id",
 	MockExaminationPaperId: "mock_examination_paper_id",
 	ExamPaperId:            "exam_paper_id",
-	Creator:                "creator",
-	CreateTime:             "create_time",
 }
 
-// NewExamBatchMemberDao creates and returns a new DAO object for table data access.
-func NewExamBatchMemberDao(handlers ...gdb.ModelHandler) *ExamBatchMemberDao {
-	return &ExamBatchMemberDao{
+// NewExamBatchPaperDao creates and returns a new DAO object for table data access.
+func NewExamBatchPaperDao(handlers ...gdb.ModelHandler) *ExamBatchPaperDao {
+	return &ExamBatchPaperDao{
 		group:    "default",
-		table:    "exam_batch_member",
-		columns:  examBatchMemberColumns,
+		table:    "exam_batch_paper",
+		columns:  examBatchPaperColumns,
 		handlers: handlers,
 	}
 }
 
 // DB retrieves and returns the underlying raw database management object of the current DAO.
-func (dao *ExamBatchMemberDao) DB() gdb.DB {
+func (dao *ExamBatchPaperDao) DB() gdb.DB {
 	return g.DB(dao.group)
 }
 
 // Table returns the table name of the current DAO.
-func (dao *ExamBatchMemberDao) Table() string {
+func (dao *ExamBatchPaperDao) Table() string {
 	return dao.table
 }
 
 // Columns returns all column names of the current DAO.
-func (dao *ExamBatchMemberDao) Columns() ExamBatchMemberColumns {
+func (dao *ExamBatchPaperDao) Columns() ExamBatchPaperColumns {
 	return dao.columns
 }
 
 // Group returns the database configuration group name of the current DAO.
-func (dao *ExamBatchMemberDao) Group() string {
+func (dao *ExamBatchPaperDao) Group() string {
 	return dao.group
 }
 
 // Ctx creates and returns a Model for the current DAO. It automatically sets the context for the current operation.
-func (dao *ExamBatchMemberDao) Ctx(ctx context.Context) *gdb.Model {
+func (dao *ExamBatchPaperDao) Ctx(ctx context.Context) *gdb.Model {
 	model := dao.DB().Model(dao.table)
 	for _, handler := range dao.handlers {
 		model = handler(model)
@@ -84,6 +78,6 @@ func (dao *ExamBatchMemberDao) Ctx(ctx context.Context) *gdb.Model {
 //
 // Note: Do not commit or roll back the transaction in function f,
 // as it is automatically handled by this function.
-func (dao *ExamBatchMemberDao) Transaction(ctx context.Context, f func(ctx context.Context, tx gdb.TX) error) (err error) {
+func (dao *ExamBatchPaperDao) Transaction(ctx context.Context, f func(ctx context.Context, tx gdb.TX) error) (err error) {
 	return dao.Ctx(ctx).Transaction(ctx, f)
 }

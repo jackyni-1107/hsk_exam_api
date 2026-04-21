@@ -15,20 +15,20 @@ import (
 
 type (
 	IBatch interface {
-		// ExamBatchList 分页查询考试批次列表
-		ExamBatchList(ctx context.Context, mockPaperID int64, page int, size int, key string) (list []bo.ExamBatchAdminItem, total int, err error)
-		// ExamBatchDetail 批次详情（含 Mock 卷 id 列表与学员数）。
+		// ExamBatchList 分页查询考试批次列表（examPaperID 按 exam_paper.id 筛选，0 表示不限）
+		ExamBatchList(ctx context.Context, examPaperID int64, page int, size int, key string) (list []bo.ExamBatchAdminItem, total int, err error)
+		// ExamBatchDetail 批次详情（含 exam_paper.id 列表与学员数）。
 		ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdminItem, error)
 		// ExamBatchCreate 创建考试批次
-		ExamBatchCreate(ctx context.Context, title string, examStartAt string, examEndAt string, mockPaperIDs []int64, creator string) (int64, error)
+		ExamBatchCreate(ctx context.Context, title string, examStartAt string, examEndAt string, examPaperIDs []int64, creator string) (int64, error)
 		// ExamBatchUpdate 更新考试批次
-		ExamBatchUpdate(ctx context.Context, id int64, title string, examStartAt string, examEndAt string, mockPaperIDs []int64, updater string) error
+		ExamBatchUpdate(ctx context.Context, id int64, title string, examStartAt string, examEndAt string, examPaperIDs []int64, updater string) error
 		// ExamBatchDelete 删除考试批次
 		ExamBatchDelete(ctx context.Context, id int64) error
-		// ExamBatchMembersAdd 批量向指定批次和 Mock 卷添加学员
-		ExamBatchMembersAdd(ctx context.Context, batchID int64, mockPaperID int64, memberIDs []int64, creator string) (inserted int, err error)
+		// ExamBatchMembersAdd 批量向指定批次和试卷（exam_paper.id）添加学员
+		ExamBatchMembersAdd(ctx context.Context, batchID int64, examPaperID int64, memberIDs []int64, creator string) (inserted int, err error)
 		// ExamBatchMembersRemove 从批次中移除学员
-		ExamBatchMembersRemove(ctx context.Context, batchID int64, mockPaperID int64, memberIDs []int64) (int, error)
+		ExamBatchMembersRemove(ctx context.Context, batchID int64, examPaperID int64, memberIDs []int64) (int, error)
 		// ExamBatchMemberList 查询批次内的成员列表（关联系统用户表）
 		ExamBatchMemberList(ctx context.Context, batchID int64, page int, size int) (list []bo.ExamBatchMemberAdminRow, total int, err error)
 		// MyExamBatches 学员查询自己的批次

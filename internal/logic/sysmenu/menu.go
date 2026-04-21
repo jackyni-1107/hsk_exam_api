@@ -115,20 +115,60 @@ func (s *sSysMenu) MenuIdsForUser(ctx context.Context, userId int64) (map[int64]
 	if err != nil {
 		return nil, err
 	}
+	if len(userRoles) == 0 {
+		return map[int64]struct{}{}, nil
+	}
 
-	result := make(map[int64]struct{})
-	for _, ur := range userRoles {
-		var roleMenus []sysentity.SysRoleMenu
-		err = dao.SystemRoleMenu.Ctx(ctx).
-			Where("role_id", ur.RoleId).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Scan(&roleMenus)
-		if err != nil {
-			return nil, err
-		}
-		for _, rm := range roleMenus {
-			result[rm.MenuId] = struct{}{}
-		}
+	roleIDs := make([]int64, 0, len(userRoles))
+	for _, userRole := range userRoles {
+		roleIDs = append(roleIDs, userRole.RoleId)
+	}
+
+	var roles []sysentity.SysRole
+	if err := dao.SystemRole.Ctx(ctx).
+		WhereIn("id", roleIDs).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Where("status", consts.StatusNormal).
+		Scan(&roles); err != nil {
+		return nil, err
+	}
+	if len(roles) == 0 {
+		return map[int64]struct{}{}, nil
+	}
+
+	activeRoleIDs := make([]int64, 0, len(roles))
+	for _, role := range roles {
+		activeRoleIDs = append(activeRoleIDs, role.Id)
+	}
+
+	var roleMenus []sysentity.SysRoleMenu
+	if err := dao.SystemRoleMenu.Ctx(ctx).
+		WhereIn("role_id", activeRoleIDs).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&roleMenus); err != nil {
+		return nil, err
+	}
+	if len(roleMenus) == 0 {
+		return map[int64]struct{}{}, nil
+	}
+
+	menuIDs := make([]int64, 0, len(roleMenus))
+	for _, roleMenu := range roleMenus {
+		menuIDs = append(menuIDs, roleMenu.MenuId)
+	}
+
+	var menus []sysentity.SysMenu
+	if err := dao.SystemMenu.Ctx(ctx).
+		WhereIn("id", menuIDs).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Where("status", consts.StatusNormal).
+		Scan(&menus); err != nil {
+		return nil, err
+	}
+
+	result := make(map[int64]struct{}, len(menus))
+	for _, menu := range menus {
+		result[menu.Id] = struct{}{}
 	}
 	return result, nil
 }

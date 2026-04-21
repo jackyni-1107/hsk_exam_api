@@ -43,7 +43,7 @@ var (
 	ExamAttemptAnswer      = examdao.ExamAttemptAnswer
 	ExamResult             = examdao.ExamResult
 	ExamBatch              = examdao.ExamBatch
-	ExamBatchMockPaper     = examdao.ExamBatchMockPaper
+	ExamBatchPaper         = examdao.ExamBatchPaper
 	ExamBatchMember        = examdao.ExamBatchMember
 	MockLevels             = mockdao.MockLevels
 	MockExaminationPaper   = mockdao.MockExaminationPaper

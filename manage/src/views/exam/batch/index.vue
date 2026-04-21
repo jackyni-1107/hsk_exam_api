@@ -3,18 +3,18 @@
     <el-card shadow="never">
       <template #header><span>考试批次</span></template>
       <el-form :inline="true" class="filter" @submit.prevent="loadList">
-        <el-form-item label="Mock 卷">
+        <el-form-item label="试卷">
           <el-select
-            v-model="query.mock_examination_paper_id"
+            v-model="query.exam_paper_id"
             clearable
             filterable
-            placeholder="全部"
+            placeholder="全部（exam_paper）"
             style="width: 260px"
           >
             <el-option
-              v-for="p in paperOptions"
+              v-for="p in examPaperOptions"
               :key="p.id"
-              :label="`${p.id} · ${p.name}`"
+              :label="`${p.id} · ${p.title}`"
               :value="p.id"
             />
           </el-select>
@@ -28,8 +28,8 @@
 
       <el-table v-loading="loading" :data="rows" border stripe>
         <el-table-column prop="id" label="批次ID" width="88" />
-        <el-table-column label="Mock 卷" min-width="220" show-overflow-tooltip>
-          <template #default="{ row }">{{ mockPaperIdsCell(row.mock_examination_paper_ids) }}</template>
+        <el-table-column label="试卷（exam_paper）" min-width="220" show-overflow-tooltip>
+          <template #default="{ row }">{{ examPaperIdsCell(row.exam_paper_ids) }}</template>
         </el-table-column>
         <el-table-column prop="title" label="批次名称" min-width="140" show-overflow-tooltip />
         <el-table-column prop="exam_start_at" label="开始时间" width="172" show-overflow-tooltip :formatter="formatUtcForDisplay" />
@@ -60,18 +60,18 @@
 
     <el-dialog v-model="formVisible" :title="formMode === 'create' ? '新建批次' : '编辑批次'" width="560px" destroy-on-close>
       <el-form ref="formRef" :model="form" :rules="formRules" label-width="120px">
-        <el-form-item label="Mock 卷" prop="mock_examination_paper_ids">
+        <el-form-item label="试卷" prop="exam_paper_ids">
           <el-select
-            v-model="form.mock_examination_paper_ids"
+            v-model="form.exam_paper_ids"
             multiple
             filterable
-            placeholder="选择已导入的卷（可多选）"
+            placeholder="选择 exam_paper（可多选）"
             style="width: 100%"
           >
             <el-option
-              v-for="p in importedPapers"
+              v-for="p in examPaperOptions"
               :key="p.id"
-              :label="`${p.id} · ${p.name}`"
+              :label="`${p.id} · ${p.title}`"
               :value="p.id"
             />
           </el-select>
@@ -108,18 +108,18 @@
       <template v-if="currentBatch">
         <p class="hint">批次 #{{ currentBatch.id }} · {{ currentBatch.title || '（无标题）' }}</p>
         <el-form class="member-import-form mb" label-width="120px">
-          <el-form-item label="导入 Mock 卷" required>
+          <el-form-item label="导入试卷" required>
             <el-select
-              v-model="importMockPaperId"
-              placeholder="选择 Mock 卷"
+              v-model="importExamPaperId"
+              placeholder="选择 exam_paper"
               class="import-mock-paper-select"
               filterable
               clearable
             >
               <el-option
-                v-for="id in currentBatch.mock_examination_paper_ids || []"
+                v-for="id in currentBatch.exam_paper_ids || []"
                 :key="id"
-                :label="mockPaperLabel(id)"
+                :label="examPaperLabel(id)"
                 :value="id"
               />
             </el-select>
@@ -155,8 +155,8 @@
         </el-table>
         <el-table v-loading="memberLoading" :data="memberRows" border size="small">
           <el-table-column prop="member_id" label="会员ID" width="88" />
-          <el-table-column label="Mock 卷" min-width="200" show-overflow-tooltip>
-            <template #default="{ row }">{{ mockPaperLabel(row.mock_examination_paper_id) }}</template>
+          <el-table-column label="试卷 ID" min-width="200" show-overflow-tooltip>
+            <template #default="{ row }">{{ examPaperLabel(row.exam_paper_id) }}</template>
           </el-table-column>
           <el-table-column prop="username" label="账号" />
           <el-table-column prop="nickname" label="昵称" />
@@ -194,59 +194,59 @@ import {
   deleteExamBatch,
   getExamBatchList,
   getExamBatchMemberList,
+  getExamPaperList,
   importExamBatchMembers,
   removeExamBatchMembers,
   updateExamBatch,
   type ExamBatchListItem,
   type ExamBatchMemberItem,
+  type ExamPaperItem,
 } from '@/api/exam'
-import { getMockExaminationPapers, type MockExaminationPaperItem } from '@/api/mockAdmin'
 import { fetchMemberList, type MemberItem } from '@/api/member'
 import { formatUtcForDisplay, formatUtcText } from '@/utils/datetime'
 
 const loading = ref(false)
 const rows = ref<ExamBatchListItem[]>([])
 const total = ref(0)
-const paperOptions = ref<MockExaminationPaperItem[]>([])
-const importedPapers = ref<MockExaminationPaperItem[]>([])
+/** 下拉用：拉取足够多的 exam_paper（管理端分页接口） */
+const examPaperOptions = ref<ExamPaperItem[]>([])
 
-const paperById = computed(() => {
-  const m = new Map<number, MockExaminationPaperItem>()
-  for (const p of paperOptions.value) {
+const examPaperById = computed(() => {
+  const m = new Map<number, ExamPaperItem>()
+  for (const p of examPaperOptions.value) {
     m.set(p.id, p)
   }
   return m
 })
 
-/** 单行展示：id · 试卷名称（本地缓存的 mock 列表无记录时仅显示 id） */
-function mockPaperLabel(id: number): string {
-  const p = paperById.value.get(id)
-  return p ? `${p.id} · ${p.name}` : String(id)
+/** 单行展示：id · 试卷标题 */
+function examPaperLabel(id: number): string {
+  const p = examPaperById.value.get(id)
+  return p ? `${p.id} · ${p.title}` : String(id)
 }
 
 /** 批次列表单元格：多张卷分号分隔 */
-function mockPaperIdsCell(ids: number[] | undefined): string {
+function examPaperIdsCell(ids: number[] | undefined): string {
   if (!ids?.length) return '—'
-  return ids.map((id) => mockPaperLabel(id)).join('；')
+  return ids.map((id) => examPaperLabel(id)).join('；')
 }
 
 const query = reactive({
-  mock_examination_paper_id: undefined as number | undefined,
+  exam_paper_id: undefined as number | undefined,
   page: 1,
   size: 10,
 })
 
-async function loadPapers() {
-  const res = await getMockExaminationPapers()
-  paperOptions.value = res.data?.list ?? []
-  importedPapers.value = (res.data?.list ?? []).filter((p) => p.imported)
+async function loadExamPapersForSelect() {
+  const res = await getExamPaperList({ page: 1, size: 500 })
+  examPaperOptions.value = res.data?.list ?? []
 }
 
 async function loadList() {
   loading.value = true
   try {
     const res = await getExamBatchList({
-      mock_examination_paper_id: query.mock_examination_paper_id || 0,
+      exam_paper_id: query.exam_paper_id || undefined,
       page: query.page,
       size: query.size,
     })
@@ -258,7 +258,7 @@ async function loadList() {
 }
 
 function resetQuery() {
-  query.mock_examination_paper_id = undefined
+  query.exam_paper_id = undefined
   query.page = 1
   loadList()
 }
@@ -269,15 +269,15 @@ const formSaving = ref(false)
 const formRef = ref<FormInstance>()
 const editingId = ref(0)
 const form = reactive({
-  mock_examination_paper_ids: [] as number[],
+  exam_paper_ids: [] as number[],
   title: '',
   exam_start_at: '',
   exam_end_at: '',
 })
 
 const formRules: FormRules = {
-  mock_examination_paper_ids: [
-    { type: 'array', required: true, message: '请选择 Mock 卷', trigger: 'change' },
+  exam_paper_ids: [
+    { type: 'array', required: true, message: '请选择试卷', trigger: 'change' },
     { type: 'array', min: 1, message: '至少选择一张卷', trigger: 'change' },
   ],
   exam_start_at: [{ required: true, message: '请选择开始时间', trigger: 'change' }],
@@ -287,7 +287,7 @@ const formRules: FormRules = {
 function openCreate() {
   formMode.value = 'create'
   editingId.value = 0
-  form.mock_examination_paper_ids = []
+  form.exam_paper_ids = []
   form.title = ''
   form.exam_start_at = ''
   form.exam_end_at = ''
@@ -297,7 +297,7 @@ function openCreate() {
 function openEdit(row: ExamBatchListItem) {
   formMode.value = 'edit'
   editingId.value = row.id
-  form.mock_examination_paper_ids = [...(row.mock_examination_paper_ids || [])]
+  form.exam_paper_ids = [...(row.exam_paper_ids || [])]
   form.title = row.title
   form.exam_start_at = formatUtcText(row.exam_start_at)
   form.exam_end_at = formatUtcText(row.exam_end_at)
@@ -306,7 +306,7 @@ function openEdit(row: ExamBatchListItem) {
 
 async function submitForm() {
   await formRef.value?.validate().catch(() => Promise.reject())
-  if (!form.mock_examination_paper_ids.length) return
+  if (!form.exam_paper_ids.length) return
   formSaving.value = true
   try {
     const start = form.exam_start_at.trim()
@@ -316,7 +316,7 @@ async function submitForm() {
         title: form.title,
         exam_start_at: start,
         exam_end_at: end,
-        mock_examination_paper_ids: form.mock_examination_paper_ids,
+        exam_paper_ids: form.exam_paper_ids,
       })
       ElMessage.success('已创建')
     } else {
@@ -324,7 +324,7 @@ async function submitForm() {
         title: form.title,
         exam_start_at: start,
         exam_end_at: end,
-        mock_examination_paper_ids: form.mock_examination_paper_ids,
+        exam_paper_ids: form.exam_paper_ids,
       })
       ElMessage.success('已保存')
     }
@@ -349,7 +349,7 @@ const memberRows = ref<ExamBatchMemberItem[]>([])
 const memberTotal = ref(0)
 const memberQuery = reactive({ page: 1, size: 10 })
 const importIdsText = ref('')
-const importMockPaperId = ref(0)
+const importExamPaperId = ref(0)
 const importing = ref(false)
 const pickMembers = ref<MemberItem[]>([])
 
@@ -357,7 +357,7 @@ function openMembers(row: ExamBatchListItem) {
   currentBatch.value = row
   memberQuery.page = 1
   importIdsText.value = ''
-  importMockPaperId.value = row.mock_examination_paper_ids?.[0] ?? 0
+  importExamPaperId.value = row.exam_paper_ids?.[0] ?? 0
   pickMembers.value = []
   memberDrawer.value = true
 }
@@ -389,8 +389,8 @@ function parseIdList(text: string): number[] {
 
 async function doImport() {
   if (!currentBatch.value) return
-  if (!importMockPaperId.value) {
-    ElMessage.warning('请选择 Mock 卷')
+  if (!importExamPaperId.value) {
+    ElMessage.warning('请选择试卷')
     return
   }
   const ids = parseIdList(importIdsText.value)
@@ -401,7 +401,7 @@ async function doImport() {
   importing.value = true
   try {
     const res = await importExamBatchMembers(currentBatch.value.id, {
-      mock_examination_paper_id: importMockPaperId.value,
+      exam_paper_id: importExamPaperId.value,
       member_ids: ids,
     })
     ElMessage.success(`已导入 ${res.data?.inserted ?? 0} 人`)
@@ -417,7 +417,7 @@ async function removeOne(row: ExamBatchMemberItem) {
   if (!currentBatch.value) return
   await ElMessageBox.confirm('从批次中移除该学员？', '确认', { type: 'warning' })
   await removeExamBatchMembers(currentBatch.value.id, {
-    mock_examination_paper_id: row.mock_examination_paper_id,
+    exam_paper_id: row.exam_paper_id,
     member_ids: [row.member_id],
   })
   ElMessage.success('已移除')
@@ -444,7 +444,7 @@ function addPickId(id: number) {
 }
 
 onMounted(async () => {
-  await loadPapers()
+  await loadExamPapersForSelect()
   loadList()
 })
 </script>
