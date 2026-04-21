@@ -7,12 +7,15 @@ package sysmenu
 
 import (
 	"context"
+	"exam/internal/model/bo"
 	sysentity "exam/internal/model/entity/sys"
 )
 
 type (
 	ISysMenu interface {
 		MenuTree(ctx context.Context) ([]sysentity.SysMenu, error)
+		VisibleMenusForUser(ctx context.Context, userId int64) ([]sysentity.SysMenu, error)
+		VisibleMenuTreeForUser(ctx context.Context, userId int64) ([]*bo.MenuTreeNode, error)
 		MenuCreate(ctx context.Context, name string, permission string, path string, icon string, component string, componentName string, creator string, typ int, sort int, parentId int64, status int, visible int, keepAlive int, alwaysShow int) (int64, error)
 		MenuUpdate(ctx context.Context, id int64, name string, permission string, path string, icon string, component string, componentName string, updater string, typ int, sort int, parentId int64, status int, visible int, keepAlive int, alwaysShow int) error
 		MenuDelete(ctx context.Context, id int64, updater string) error
