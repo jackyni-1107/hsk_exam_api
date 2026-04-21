@@ -280,7 +280,7 @@ async function loadStorage() {
   }
 }
 
-async function handleFileUploadRequest(opt: UploadRequestOptions) {
+async function handleFileUploadRequest(opt: UploadRequestOptions & { onError?: (error: Error) => void }) {
   try {
     await uploadSysFile(opt.file as File, 0)
     ElMessage.success('上传成功')

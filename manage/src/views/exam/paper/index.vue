@@ -499,14 +499,23 @@ const importForm = reactive({
 });
 
 /** 听力 HLS 表单默认值（新建或未配置时展示/回填） */
-const HLS_FORM_DEFAULTS = {
+type HlsFormDefaults = {
+  audio_hls_prefix: string;
+  audio_hls_segment_count: number;
+  audio_hls_segment_pattern: string;
+  audio_hls_key_object: string;
+  audio_hls_iv_hex: string;
+  audio_hls_segment_duration: number;
+};
+
+const HLS_FORM_DEFAULTS: HlsFormDefaults = {
   audio_hls_prefix: "",
   audio_hls_segment_count: 0,
   audio_hls_segment_pattern: "segment_%03d.ts",
   audio_hls_key_object: "static.key",
   audio_hls_iv_hex: "0x0123456789abcdef0123456789abcdef",
   audio_hls_segment_duration: 10,
-} as const;
+};
 
 const settingsDlg = ref(false);
 const savingSettings = ref(false);

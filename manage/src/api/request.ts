@@ -1,6 +1,12 @@
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig, type AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 
+type ApiEnvelope<T = unknown> = {
+  code?: number
+  message?: string
+  data?: T
+}
+
 const request: AxiosInstance = axios.create({
   baseURL: '/api',
   timeout: 60000,
@@ -15,8 +21,8 @@ request.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 })
 
 request.interceptors.response.use(
-  (res: AxiosResponse) => {
-    const body = res.data as { code?: number; message?: string; data?: unknown }
+  (res: AxiosResponse): any => {
+    const body = res.data as ApiEnvelope
     if (body && typeof body.code === 'number' && body.code !== 0) {
       const msg = body.message || '请求失败'
       ElMessage.error(msg)
