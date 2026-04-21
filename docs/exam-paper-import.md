@@ -38,10 +38,25 @@
 
 ## 管理端试卷列表（`/admin/exam/paper/list`）
 
-- 列表以 **`exam_paper` 为主表**：`id` 为 `exam_paper.id`，并返回 `mock_examination_paper_id` 供详情、导入、听力 HLS 等仍按 Mock 业务 id 调用的接口使用。
+- 列表以 **`exam_paper` 为主表**：`id` 为 `exam_paper.id`，并返回 `mock_examination_paper_id` 供导入按 Mock 业务 id 的入口沿用。
 - 支持按 `exam_paper.level` 字符串筛选与分页。
+
+## 管理端试卷详情（`GET /admin/exam/paper/{id}`）
+
+- 路径参数 `id` **以 `exam_paper.id` 为准**。控制器不再经 `exampaper.ByMockID` 一次转换；响应体中仍附带 `paper.id`（= `mock_examination_paper_id`）、`paper.exam_paper_id` 两个口径。
+- 找不到记录时返回 `code=11114`（`exam_paper_not_found`）。
 
 ## 管理端编辑元数据（`POST /admin/exam/paper/edit`）
 
 - 入参 **`exam_paper_id`**（与列表项 `id` 一致），可更新：`title`、`prepare_*`、`source_base_url`（非空时规范为以 `/` 结尾）、`duration_seconds`（`0` 表示走系统默认时长）。
-- 不包含题目树与 `index_json` 的修改；听力 HLS 仍走 `POST /admin/exam/paper/update`（参数为 mock 卷 id）。
+- 不包含题目树与 `index_json` 的修改。
+
+## 管理端听力 HLS（`POST /admin/exam/paper/update`）
+
+- 入参 **`id` 同样为 `exam_paper.id`**，与详情、编辑接口对齐，避免在 Mock 主键与 Exam 主键之间来回转换。
+
+## Mock 详情接口下线
+
+- 管理端 `/admin/mock/examination-paper/{id}` 不再暴露（API 类型与 controller 方法已删除）。
+- 列表接口 `/admin/mock/examination-paper/list` 保留，仅用于「导入试卷」弹窗按等级筛选候选 Mock 卷。
+- 答题详情等仍需要 Mock 卷名称/元信息的内部逻辑，直接走 `mocksvc.Mock()` 服务层或 DAO，不再依赖对外的管理端 HTTP 接口。

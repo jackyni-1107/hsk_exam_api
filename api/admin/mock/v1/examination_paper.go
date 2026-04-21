@@ -25,11 +25,3 @@ type ExaminationPaperItem struct {
 	Imported    bool   `json:"imported" dc:"是否已在 exam 域导入（存在未删除的 exam_paper）"`
 }
 
-type ExaminationPaperDetailReq struct {
-	g.Meta `path:"/mock/examination-paper/{id}" method:"get" tags:"Mock-管理" summary:"模拟卷详情（管理端）"`
-	Id     int64 `json:"id" in:"path" v:"required#err.invalid_params" dc:"模拟卷ID"`
-}
-
-type ExaminationPaperDetailRes struct {
-	Paper *ExaminationPaperItem `json:"paper" dc:"模拟卷信息"`
-}

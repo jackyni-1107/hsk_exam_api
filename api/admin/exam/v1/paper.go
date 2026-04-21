@@ -50,8 +50,8 @@ type PaperImportRes struct {
 }
 
 type PaperUpdateReq struct {
-	g.Meta `path:"/exam/paper/update" method:"post" tags:"试卷管理" summary:"修改听力 HLS 配置；答题时长以 mock 卷为准。id 为 mock 卷 id，未导入时 code=11114"`
-	Id     int64 `json:"id" v:"required|min:1#err.invalid_params" dc:"mock_examination_paper.id"`
+	g.Meta `path:"/exam/paper/update" method:"post" tags:"试卷管理" summary:"修改听力 HLS 配置；答题时长以 exam_paper.duration_seconds 为准。id 为 exam_paper.id"`
+	Id     int64 `json:"id" v:"required|min:1#err.invalid_params" dc:"exam_paper.id"`
 	// 听力 HLS：与 exam_paper 表字段一致
 	AudioHlsPrefix          string  `json:"audio_hls_prefix" dc:"目录前缀（无首尾/）"`
 	AudioHlsSegmentCount    int     `json:"audio_hls_segment_count" v:"min:0#err.invalid_params" dc:"分片总数，0 表示未配置"`
@@ -80,8 +80,8 @@ type PaperEditReq struct {
 type PaperEditRes struct{}
 
 type PaperDetailReq struct {
-	g.Meta `path:"/exam/paper/{id}" method:"get" tags:"试卷管理" summary:"试卷详情（大题/题块/试题）；path id 为 mock_examination_paper.id。未导入时 code=11114，mock 不存在时 code=11201"`
-	Id     int64 `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"mock_examination_paper.id"`
+	g.Meta `path:"/exam/paper/{id}" method:"get" tags:"试卷管理" summary:"试卷详情（大题/题块/试题）；path id 为 exam_paper.id，未找到 code=11114"`
+	Id     int64 `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"exam_paper.id"`
 }
 
 type PaperDetailRes struct {

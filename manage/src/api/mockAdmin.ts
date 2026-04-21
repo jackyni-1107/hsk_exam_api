@@ -41,9 +41,3 @@ export function getMockExaminationPapers(params?: {
     { params },
   )
 }
-
-export function getMockExaminationPaperDetail(id: number) {
-  return request.get<any, { data: { paper: MockExaminationPaperItem } }>(
-    `/admin/mock/examination-paper/${id}`,
-  )
-}

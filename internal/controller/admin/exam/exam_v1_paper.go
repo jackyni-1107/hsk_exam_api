@@ -11,7 +11,6 @@ import (
 	"exam/internal/middleware"
 	papersvc "exam/internal/service/paper"
 	"exam/internal/utility"
-	"exam/internal/utility/exampaper"
 )
 
 func (c *ControllerV1) PaperList(ctx context.Context, req *v1.PaperListReq) (res *v1.PaperListRes, err error) {
@@ -42,11 +41,7 @@ func (c *ControllerV1) PaperList(ctx context.Context, req *v1.PaperListReq) (res
 }
 
 func (c *ControllerV1) PaperDetail(ctx context.Context, req *v1.PaperDetailReq) (res *v1.PaperDetailRes, err error) {
-	paper, err := exampaper.ByMockID(ctx, req.Id)
-	if err != nil {
-		return nil, err
-	}
-	d, err := papersvc.Paper().PaperDetail(ctx, paper.Id)
+	d, err := papersvc.Paper().PaperDetail(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -105,11 +100,7 @@ func (c *ControllerV1) PaperUpdate(ctx context.Context, req *v1.PaperUpdateReq) 
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	paper, err := exampaper.ByMockID(ctx, req.Id)
-	if err != nil {
-		return nil, err
-	}
-	err = papersvc.Paper().UpdatePaperSettings(ctx, paper.Id, exambo.PaperHlsExamAdminUpdate{
+	err = papersvc.Paper().UpdatePaperSettings(ctx, req.Id, exambo.PaperHlsExamAdminUpdate{
 		AudioHlsPrefix:          req.AudioHlsPrefix,
 		AudioHlsSegmentCount:    req.AudioHlsSegmentCount,
 		AudioHlsSegmentPattern:  req.AudioHlsSegmentPattern,

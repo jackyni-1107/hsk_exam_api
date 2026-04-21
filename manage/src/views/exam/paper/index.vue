@@ -244,12 +244,11 @@
       destroy-on-close
     >
       <el-form label-width="168px">
-        <el-form-item label="Mock卷ID">
+        <el-form-item label="试卷ID">
           <span>{{ settingsPaperId }}</span>
         </el-form-item>
         <div class="hint form-top-hint">
-          答题时长请在 Mock 卷（time_full 等）中维护；此处仅配置听力 HLS
-          相关字段。
+          此处仅配置听力 HLS 相关字段；答题时长在「编辑」中维护。
         </div>
         <el-form-item label="HLS 前缀">
           <el-input
@@ -305,7 +304,7 @@
       </template>
     </el-dialog>
 
-    <!-- 详情：以 exam_paper 为主，附 Mock 元数据 -->
+    <!-- 详情：以 exam_paper 为主 -->
     <el-drawer
       v-model="detailDrawer"
       title="试卷详情"
@@ -402,38 +401,8 @@
           </el-collapse>
         </template>
 
-        <template v-if="mockDetailPaper">
-          <h4 class="sec-title">Mock 卷信息</h4>
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="ID">{{
-              mockDetailPaper.id
-            }}</el-descriptions-item>
-            <el-descriptions-item label="等级ID">{{
-              mockDetailPaper.level_id
-            }}</el-descriptions-item>
-            <el-descriptions-item label="名称" :span="2">{{
-              mockDetailPaper.name
-            }}</el-descriptions-item>
-            <el-descriptions-item label="满分">{{
-              mockDetailPaper.score_full
-            }}</el-descriptions-item>
-            <el-descriptions-item label="时长(分)">{{
-              mockDetailPaper.time_full
-            }}</el-descriptions-item>
-            <el-descriptions-item label="状态">{{
-              mockDetailPaper.status
-            }}</el-descriptions-item>
-            <el-descriptions-item label="试卷类型">{{
-              mockDetailPaper.paper_type
-            }}</el-descriptions-item>
-            <el-descriptions-item label="Mock类型">{{
-              mockDetailPaper.mock_type
-            }}</el-descriptions-item>
-          </el-descriptions>
-        </template>
-
         <el-alert
-          v-else-if="detailLoaded && !examDetail"
+          v-if="detailLoaded && !examDetail"
           type="info"
           :closable="false"
           show-icon
@@ -460,7 +429,6 @@ import {
 import {
   getMockLevelsList,
   getMockExaminationPapers,
-  getMockExaminationPaperDetail,
   type MockLevelItem,
   type MockExaminationPaperItem,
 } from "@/api/mockAdmin";
@@ -550,7 +518,6 @@ const settingsForm = reactive({ ...HLS_FORM_DEFAULTS });
 const detailDrawer = ref(false);
 const detailLoading = ref(false);
 const detailLoaded = ref(false);
-const mockDetailPaper = ref<MockExaminationPaperItem | null>(null);
 const examDetail = ref<ExamPaperDetail | null>(null);
 
 function truncate(s: string, max: number) {
@@ -629,7 +596,7 @@ async function openEdit(row: ExamPaperItem) {
   editDlg.value = true;
   editLoading.value = true;
   try {
-    const res = (await getExamPaperDetail(row.mock_examination_paper_id)) as {
+    const res = (await getExamPaperDetail(row.id)) as {
       data?: ExamPaperDetail;
     };
     const p = res?.data?.paper;
@@ -730,7 +697,7 @@ async function submitImport() {
 
 async function openSettings(row: ExamPaperItem) {
   try {
-    const res = (await getExamPaperDetail(row.mock_examination_paper_id)) as {
+    const res = (await getExamPaperDetail(row.id)) as {
       data?: ExamPaperDetail;
     };
     const d = res?.data;
@@ -738,7 +705,7 @@ async function openSettings(row: ExamPaperItem) {
       ElMessage.warning("无法加载该试卷详情");
       return;
     }
-    settingsPaperId.value = row.mock_examination_paper_id;
+    settingsPaperId.value = row.id;
     const p = d.paper;
     settingsForm.audio_hls_prefix =
       p.audio_hls_prefix?.trim() || HLS_FORM_DEFAULTS.audio_hls_prefix;
@@ -786,28 +753,17 @@ async function submitSettings() {
 }
 
 async function openDetail(row: ExamPaperItem) {
-  mockDetailPaper.value = null;
   examDetail.value = null;
   detailLoaded.value = false;
   detailDrawer.value = true;
   detailLoading.value = true;
   try {
-    try {
-      const examRes = (await getExamPaperDetail(
-        row.mock_examination_paper_id,
-      )) as { data?: ExamPaperDetail };
-      examDetail.value = examRes?.data ?? null;
-    } catch {
-      examDetail.value = null;
-    }
-    try {
-      const mockRes = (await getMockExaminationPaperDetail(
-        row.mock_examination_paper_id,
-      )) as { data?: { paper?: MockExaminationPaperItem } };
-      mockDetailPaper.value = mockRes?.data?.paper ?? null;
-    } catch {
-      mockDetailPaper.value = null;
-    }
+    const examRes = (await getExamPaperDetail(row.id)) as {
+      data?: ExamPaperDetail;
+    };
+    examDetail.value = examRes?.data ?? null;
+  } catch {
+    examDetail.value = null;
   } finally {
     detailLoading.value = false;
     detailLoaded.value = true;
