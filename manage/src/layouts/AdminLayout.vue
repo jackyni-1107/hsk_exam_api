@@ -5,7 +5,7 @@
         <span class="logo-mark">
           <el-icon :size="22"><Grid /></el-icon>
         </span>
-        <span class="logo-text">Admin</span>
+        <span class="logo-text" :title="siteConfig.systemName">{{ siteConfig.systemName }}</span>
       </div>
       <el-menu
         v-loading="menuLoading"
@@ -13,8 +13,8 @@
         router
         class="side-menu"
         background-color="transparent"
-        text-color="#94a3b8"
-        active-text-color="#f8fafc"
+        text-color="#5c6b7a"
+        active-text-color="#1d4ed8"
       >
         <template v-for="item in menuList" :key="item.id">
           <el-menu-item v-if="item.type === 2 && !item.children?.length" :index="item.path" class="menu-item-leaf">
@@ -55,7 +55,7 @@
         <div class="main-content">
           <router-view />
         </div>
-        <footer class="layout-footer">© 2025 后台管理系统</footer>
+        <footer class="layout-footer">{{ siteConfig.copyright }}</footer>
       </el-main>
     </el-container>
   </el-container>
@@ -71,6 +71,7 @@ import { getUserMenus, filterSidebarMenus } from '@/api/menu'
 import type { MenuTreeNode } from '@/api/menu'
 import MenuItem from './MenuItem.vue'
 import MenuIcon from '@/components/MenuIcon.vue'
+import { siteConfig } from '@/config/site'
 
 const route = useRoute()
 const router = useRouter()
@@ -160,10 +161,19 @@ function handleCommand(cmd: string) {
 }
 
 .aside {
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 55%, #0f172a 100%);
+  /* 浅灰蓝侧栏，长时间浏览相对柔和 */
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 42%, #e8eef4 100%);
   overflow-y: auto;
-  border-right: 1px solid rgba(148, 163, 184, 0.12);
-  box-shadow: 4px 0 24px rgba(15, 23, 42, 0.35);
+  border-right: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 2px 0 18px rgba(15, 23, 42, 0.05);
+  /* 隐藏滚动条，仍可用滚轮/触摸板滚动 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.aside::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .aside :deep(.el-menu) {
@@ -193,15 +203,15 @@ function handleCommand(cmd: string) {
 
 .aside :deep(.el-menu-item:hover),
 .aside :deep(.el-sub-menu__title:hover) {
-  background: rgba(148, 163, 184, 0.12) !important;
-  color: #e2e8f0 !important;
+  background: rgba(37, 99, 235, 0.07) !important;
+  color: #0f172a !important;
 }
 
 .aside :deep(.el-menu-item.is-active) {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(139, 92, 246, 0.22)) !important;
-  color: #f8fafc !important;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(59, 130, 246, 0.1)) !important;
+  color: #1d4ed8 !important;
   font-weight: 600;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 1px 0 rgba(37, 99, 235, 0.12);
 }
 
 .aside :deep(.el-sub-menu .el-menu-item) {
@@ -228,7 +238,7 @@ function handleCommand(cmd: string) {
 .aside :deep(.sub-menu--directory > .el-sub-menu__title) {
   font-weight: 600;
   font-size: 14px;
-  color: #cbd5e1;
+  color: #334155;
 }
 
 .aside :deep(.sub-menu--directory > .el-sub-menu__title .menu-icon) {
@@ -251,30 +261,35 @@ function handleCommand(cmd: string) {
   height: 56px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
-  padding: 0 16px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  padding: 0 14px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
   flex-shrink: 0;
 }
 
 .logo-mark {
   width: 36px;
   height: 36px;
+  flex-shrink: 0;
   border-radius: 10px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.45), rgba(139, 92, 246, 0.35));
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #f8fafc;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.28);
 }
 
 .logo-text {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  color: #f1f5f9;
+  letter-spacing: 0.01em;
+  color: #0f172a;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header {

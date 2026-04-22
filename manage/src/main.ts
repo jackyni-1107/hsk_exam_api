@@ -8,6 +8,9 @@ import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 import App from './App.vue'
 import router from './router'
 import i18n from './locales'
+import { siteConfig } from './config/site'
+
+document.title = siteConfig.documentTitle
 
 const app = createApp(App)
 const pinia = createPinia()
