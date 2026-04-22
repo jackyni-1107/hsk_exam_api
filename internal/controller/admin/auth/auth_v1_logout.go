@@ -24,11 +24,9 @@ func (c *ControllerV1) Logout(ctx context.Context, req *v1.LogoutReq) (res *v1.L
 		tok := bearerToken(r)
 		if d := middleware.GetCtxData(ctx); d != nil && tok != "" {
 			auditsvc.Audit().RecordLogout(ctx, d.UserId, d.Username, d.UserType, ip, userAgent, middleware.GetTraceId(ctx))
-			secsvc.Security().RemoveSessionToken(ctx, consts.UserTypeAdmin, d.UserId, tok)
-		}
-		if tok != "" {
-			key := consts.TokenRedisKeyPrefix + consts.UserTypeTagAdmin + ":" + tok
-			_, _ = g.Redis().Del(ctx, key)
+			if err := secsvc.Security().RevokeToken(ctx, consts.UserTypeAdmin, d.UserId, tok); err != nil {
+				g.Log().Warningf(ctx, "revoke admin token failed: %v", err)
+			}
 		}
 	}
 	return &v1.LogoutRes{}, nil

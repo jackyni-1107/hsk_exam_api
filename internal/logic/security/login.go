@@ -2,120 +2,169 @@ package security
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
-	"github.com/gogf/gf/v2/frame/g"
-
 	"exam/internal/consts"
+	"exam/internal/dao"
+	"exam/internal/model/bo"
+	sysdo "exam/internal/model/do/sys"
 	"exam/internal/service/audit"
+	membersvc "exam/internal/service/member"
+	"exam/internal/service/sysuser"
+	"exam/internal/utility"
+
+	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gtime"
 )
 
-func userTypeTag(ut int) string {
-	if ut == consts.UserTypeClient {
-		return consts.UserTypeTagClient
-	}
-	return consts.UserTypeTagAdmin
+type loginAccount struct {
+	Id                int64
+	Username          string
+	PasswordHash      string
+	Nickname          string
+	Avatar            string
+	Status            int
+	PasswordChangedAt *gtime.Time
 }
 
-// NormalizeLoginName 登录名规范化（用于 Redis 键）
-func (s *sSecurity) NormalizeLoginName(name string) string {
-	return strings.TrimSpace(name)
-}
-
-// CheckIPLoginRateLimit 单 IP 每分钟尝试次数，超限返回 true
-func (s *sSecurity) CheckIPLoginRateLimit(ctx context.Context, ip string) (blocked bool) {
-	cfg := s.LoadLoginCfg(ctx)
-	if cfg.RateLimitPerMinute <= 0 || ip == "" {
-		return false
-	}
-	key := consts.LoginRateLimitKeyPrefix + ip
-	n, err := g.Redis().Incr(ctx, key)
-	if err != nil {
-		return false
-	}
-	if n == 1 {
-		_, _ = g.Redis().Expire(ctx, key, 60)
-	}
-	return int(n) > cfg.RateLimitPerMinute
-}
-
-// IsAccountLocked 账号是否处于锁定窗口
-func (s *sSecurity) IsAccountLocked(ctx context.Context, userType int, username string) bool {
-	name := s.NormalizeLoginName(username)
-	if name == "" {
-		return false
-	}
-	key := consts.LoginLockKeyPrefix + userTypeTag(userType) + ":" + name
-	n, err := g.Redis().Get(ctx, key)
-	if err != nil || n.IsEmpty() {
-		return false
-	}
-	return true
-}
-
-// ShouldRequireCaptcha 是否必须提交验证码（失败次数达到阈值）
-func (s *sSecurity) ShouldRequireCaptcha(ctx context.Context, userType int, username string) bool {
-	cfg := s.LoadLoginCfg(ctx)
-	if !cfg.CaptchaEnabled || cfg.CaptchaAfterFailures <= 0 {
-		return false
-	}
-	name := s.NormalizeLoginName(username)
-	if name == "" {
-		return false
-	}
-	key := consts.LoginFailCountKeyPrefix + userTypeTag(userType) + ":" + name
-	val, err := g.Redis().Get(ctx, key)
-	if err != nil || val.IsEmpty() {
-		return false
-	}
-	return val.Int() >= cfg.CaptchaAfterFailures
-}
-
-// RecordLoginFailure 记录失败：计数、可能加锁并记录 brute_force 安全事件
-func (s *sSecurity) RecordLoginFailure(ctx context.Context, userType int, username, ip, userAgent, traceId string) {
-	cfg := s.LoadLoginCfg(ctx)
-	name := s.NormalizeLoginName(username)
-	if name == "" {
-		return
-	}
-	failKey := consts.LoginFailCountKeyPrefix + userTypeTag(userType) + ":" + name
-	n, err := g.Redis().Incr(ctx, failKey)
-	if err != nil {
-		return
-	}
-	if n == 1 && cfg.FailureWindowSeconds > 0 {
-		_, _ = g.Redis().Expire(ctx, failKey, int64(cfg.FailureWindowSeconds))
+func (s *sSecurity) Login(ctx context.Context, input bo.LoginInput) (*bo.LoginResult, error) {
+	if s.CheckIPLoginRateLimit(ctx, input.IP) {
+		s.recordSuspiciousIP(ctx, input)
+		return nil, gerror.NewCode(consts.CodeTooManyRequests)
 	}
 
-	if cfg.MaxFailuresBeforeLock > 0 && int(n) >= cfg.MaxFailuresBeforeLock {
-		lockKey := consts.LoginLockKeyPrefix + userTypeTag(userType) + ":" + name
-		if cfg.LockDurationSeconds > 0 {
-			_ = g.Redis().SetEX(ctx, lockKey, "1", int64(cfg.LockDurationSeconds))
+	loginName := s.NormalizeLoginName(input.Username)
+	if s.ShouldRequireCaptcha(ctx, input.UserType, loginName) {
+		if input.CaptchaId == "" || !s.VerifyCaptcha(ctx, input.CaptchaId, input.CaptchaAnswer) {
+			return nil, gerror.NewCode(consts.CodeCaptchaRequired)
 		}
-		audit.Audit().RecordSecurityEvent(ctx, consts.SecurityEventBruteForce, 0, ip, userAgent,
-			fmt.Sprintf("account locked after %d failed logins: %s", n, name), traceId)
+	}
+	if s.IsAccountLocked(ctx, input.UserType, loginName) {
+		return nil, gerror.NewCode(consts.CodeAccountLocked)
+	}
+
+	account, err := s.loadLoginAccount(ctx, input.UserType, loginName)
+	if err != nil {
+		g.Log().Errorf(ctx, "load login account failed: userType=%d, username=%s, err=%v", input.UserType, loginName, err)
+		s.recordLoginFailure(ctx, input, 0, "user lookup failed", false)
+		return nil, gerror.NewCode(consts.CodeLoginFailed)
+	}
+	if account == nil {
+		s.recordLoginFailure(ctx, input, 0, "user not found", true)
+		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
+	}
+	if account.Status == consts.StatusDisabled {
+		s.recordLoginFailure(ctx, input, account.Id, "user disabled", false)
+		return nil, gerror.NewCode(consts.CodeUserDisabled)
+	}
+	if s.IsPasswordExpired(ctx, account.PasswordChangedAt) {
+		s.recordLoginFailure(ctx, input, account.Id, "password expired", false)
+		return nil, gerror.NewCode(consts.CodePasswordExpired)
+	}
+
+	plainPassword, err := s.resolveEncryptedPassword(ctx, input.EncryptedPassword)
+	if err != nil {
+		s.recordLoginFailure(ctx, input, account.Id, "invalid encrypted password", true)
+		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
+	}
+	if !utility.CheckPassword(account.PasswordHash, plainPassword) {
+		s.recordLoginFailure(ctx, input, account.Id, "invalid password", true)
+		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
+	}
+
+	token, err := s.IssueToken(ctx, input.UserType, account.Id, account.Username)
+	if err != nil {
+		g.Log().Errorf(ctx, "issue login token failed: userType=%d, userId=%d, err=%v", input.UserType, account.Id, err)
+		s.recordLoginFailure(ctx, input, account.Id, "issue token failed", false)
+		return nil, gerror.NewCode(consts.CodeLoginFailed)
+	}
+
+	s.bestEffortUpdateLoginMeta(ctx, input.UserType, account.Id, input.IP)
+	s.ClearLoginFailure(ctx, input.UserType, input.Username)
+	audit.Audit().RecordLoginSuccess(ctx, account.Id, account.Username, input.UserType, input.IP, input.UserAgent, input.TraceId)
+
+	return &bo.LoginResult{
+		Token: token,
+		UserInfo: bo.LoginUserInfo{
+			Id:       account.Id,
+			Username: account.Username,
+			Nickname: account.Nickname,
+			Avatar:   account.Avatar,
+		},
+	}, nil
+}
+
+func (s *sSecurity) resolveEncryptedPassword(ctx context.Context, encryptedPassword string) (string, error) {
+	if strings.TrimSpace(encryptedPassword) == "" {
+		return "", gerror.NewCode(consts.CodeInvalidParams)
+	}
+	return s.DecryptLoginPassword(ctx, encryptedPassword)
+}
+
+func (s *sSecurity) loadLoginAccount(ctx context.Context, userType int, username string) (*loginAccount, error) {
+	switch userType {
+	case consts.UserTypeClient:
+		member, err := membersvc.Member().FindByUsername(ctx, username)
+		if err != nil || member == nil {
+			return nil, err
+		}
+		return &loginAccount{
+			Id:                member.Id,
+			Username:          member.Username,
+			PasswordHash:      member.Password,
+			Nickname:          member.Nickname,
+			Avatar:            member.Avatar,
+			Status:            member.Status,
+			PasswordChangedAt: member.PasswordChangedAt,
+		}, nil
+	default:
+		user, err := sysuser.SysUser().FindByUsername(ctx, username)
+		if err != nil || user == nil {
+			return nil, err
+		}
+		return &loginAccount{
+			Id:                user.Id,
+			Username:          user.Username,
+			PasswordHash:      user.Password,
+			Nickname:          user.Nickname,
+			Avatar:            user.Avatar,
+			Status:            user.Status,
+			PasswordChangedAt: user.PasswordChangedAt,
+		}, nil
 	}
 }
 
-// ClearLoginFailure 登录成功时清除失败计数与锁定（若存在可配置为手动解锁，此处仅清失败计数）
-func (s *sSecurity) ClearLoginFailure(ctx context.Context, userType int, username string) {
-	name := s.NormalizeLoginName(username)
-	if name == "" {
-		return
-	}
-	failKey := consts.LoginFailCountKeyPrefix + userTypeTag(userType) + ":" + name
-	_, _ = g.Redis().Del(ctx, failKey)
+func (s *sSecurity) recordSuspiciousIP(ctx context.Context, input bo.LoginInput) {
+	audit.Audit().RecordSecurityEvent(ctx, consts.EventTypeSuspiciousIP, 0, input.IP, input.UserAgent, "login rate limit exceeded", input.TraceId)
 }
 
-// UnlockAccount 管理员或到期后解锁（删除锁定键）
-func (s *sSecurity) UnlockAccount(ctx context.Context, userType int, username string) {
-	name := s.NormalizeLoginName(username)
-	if name == "" {
+func (s *sSecurity) recordLoginFailure(ctx context.Context, input bo.LoginInput, userId int64, reason string, increaseFailureCount bool) {
+	audit.Audit().RecordLoginFailure(ctx, userId, input.Username, input.UserType, input.IP, input.UserAgent, reason, input.TraceId)
+	if increaseFailureCount {
+		s.RecordLoginFailure(ctx, input.UserType, input.Username, input.IP, input.UserAgent, input.TraceId)
+	}
+}
+
+func (s *sSecurity) bestEffortUpdateLoginMeta(ctx context.Context, userType int, userId int64, ip string) {
+	if userId <= 0 {
 		return
 	}
-	lockKey := consts.LoginLockKeyPrefix + userTypeTag(userType) + ":" + name
-	_, _ = g.Redis().Del(ctx, lockKey)
-	failKey := consts.LoginFailCountKeyPrefix + userTypeTag(userType) + ":" + name
-	_, _ = g.Redis().Del(ctx, failKey)
+	now := gtime.Now()
+	var err error
+	switch userType {
+	case consts.UserTypeClient:
+		_, err = dao.SysMember.Ctx(ctx).Where("id", userId).Data(sysdo.SysMember{
+			LoginIp:   ip,
+			LoginTime: now,
+		}).Update()
+	default:
+		_, err = dao.SystemUser.Ctx(ctx).Where("id", userId).Data(sysdo.SysUser{
+			LoginIp:   ip,
+			LoginTime: now,
+		}).Update()
+	}
+	if err != nil {
+		g.Log().Warningf(ctx, "update login meta failed: userType=%d, userId=%d, err=%v", userType, userId, err)
+	}
 }

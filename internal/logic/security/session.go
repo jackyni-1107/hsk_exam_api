@@ -35,9 +35,7 @@ func (s *sSecurity) RegisterSession(ctx context.Context, userType int, userId in
 		if err != nil || oldTok.IsEmpty() {
 			break
 		}
-		old := oldTok.String()
-		tk := consts.TokenRedisKeyPrefix + userTypeTag(userType) + ":" + old
-		_, _ = g.Redis().Del(ctx, tk)
+		_, _ = g.Redis().Del(ctx, tokenKey(userType, oldTok.String()))
 	}
 	return nil
 }
@@ -67,14 +65,12 @@ func (s *sSecurity) RevokeAllUserSessions(ctx context.Context, userType int, use
 	if err != nil {
 		return err
 	}
-	tag := userTypeTag(userType)
 	for _, v := range vals {
 		tok := v.String()
 		if tok == "" {
 			continue
 		}
-		key := consts.TokenRedisKeyPrefix + tag + ":" + tok
-		_, _ = g.Redis().Del(ctx, key)
+		_, _ = g.Redis().Del(ctx, tokenKey(userType, tok))
 	}
 	_, _ = g.Redis().Del(ctx, listKey)
 	return nil

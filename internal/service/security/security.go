@@ -22,12 +22,9 @@ type (
 		LoadPasswordCfg(ctx context.Context) bo.PasswordCfg
 		LoadSessionCfg(ctx context.Context) bo.SessionCfg
 		LoadSM2Cfg(ctx context.Context) bo.SM2Cfg
-		// DecryptLoginPassword 将 SM2 密文解密为明文密码（支持 hex/base64 输入）。
-		DecryptLoginPassword(ctx context.Context, encrypted string) (string, error)
-		// LoginEncryptPublicKeyHex 返回前端登录加密用 SM2 公钥（hex）。
-		LoginEncryptPublicKeyHex(ctx context.Context) (string, error)
 		// TokenTTLSeconds 会话 Token 有效期（秒），供服务接口实现使用。
 		TokenTTLSeconds(ctx context.Context) int64
+		Login(ctx context.Context, input bo.LoginInput) (*bo.LoginResult, error)
 		// NormalizeLoginName 登录名规范化（用于 Redis 键）
 		NormalizeLoginName(name string) string
 		// CheckIPLoginRateLimit 单 IP 每分钟尝试次数，超限返回 true
@@ -56,6 +53,11 @@ type (
 		RemoveSessionToken(ctx context.Context, userType int, userId int64, token string)
 		// RevokeAllUserSessions 撤销某用户全部 Token（强制下线）
 		RevokeAllUserSessions(ctx context.Context, userType int, userId int64) error
+		DecryptLoginPassword(ctx context.Context, encrypted string) (string, error)
+		LoginEncryptPublicKeyHex(ctx context.Context) (string, error)
+		IssueToken(ctx context.Context, userType int, userId int64, username string) (string, error)
+		LoadTokenPayload(ctx context.Context, userType int, token string) (*bo.TokenPayload, error)
+		RevokeToken(ctx context.Context, userType int, userId int64, token string) error
 	}
 )
 
