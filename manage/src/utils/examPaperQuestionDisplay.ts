@@ -52,30 +52,40 @@ export function hasBlockScreenSegments(topicJson: string | undefined, bi: number
   return parseScreenTextSegments(getBlockScreenTextRaw(topicJson, bi)).length > 0
 }
 
-export function hasQuestionStemSegments(
-  stemText: string | undefined,
-  screenTextJson: string | undefined,
-  topicJson: string | undefined,
-  bi: number,
-  qi: number,
-) {
-  if ((stemText || '').trim()) return false
-  const raw =
-    screenTextJson && String(screenTextJson).trim()
-      ? screenTextJson
-      : getQuestionScreenTextRaw(topicJson, bi, qi)
-  return parseScreenTextSegments(raw).length > 0
-}
-
-export function questionStemRichRaw(
-  stemText: string | undefined,
+/** 与试卷预览一致：优先库表 screen_text_json，再 topic_json 内小题的 screen_text。 */
+function resolveQuestionScreenTextRaw(
   screenTextJson: string | undefined,
   topicJson: string | undefined,
   bi: number,
   qi: number,
 ): unknown {
-  if ((stemText || '').trim()) return undefined
-  return screenTextJson && String(screenTextJson).trim()
-    ? screenTextJson
-    : getQuestionScreenTextRaw(topicJson, bi, qi)
+  if (screenTextJson && String(screenTextJson).trim()) return screenTextJson
+  return getQuestionScreenTextRaw(topicJson, bi, qi)
+}
+
+/**
+ * 若答题记录里 stem_text 有值、但题面仍来自 topic/screen 富文本，不能因 stem 非空就退回纯文本；
+ * 否则与「试卷管理·详情」用 ExamScreenTextBlocks 的效果不一致。只要题包有 screen_text 片段，即走富文本。
+ */
+export function hasQuestionStemSegments(
+  _stemText: string | undefined,
+  screenTextJson: string | undefined,
+  topicJson: string | undefined,
+  bi: number,
+  qi: number,
+) {
+  const raw = resolveQuestionScreenTextRaw(screenTextJson, topicJson, bi, qi)
+  return parseScreenTextSegments(raw).length > 0
+}
+
+export function questionStemRichRaw(
+  _stemText: string | undefined,
+  screenTextJson: string | undefined,
+  topicJson: string | undefined,
+  bi: number,
+  qi: number,
+): unknown {
+  const raw = resolveQuestionScreenTextRaw(screenTextJson, topicJson, bi, qi)
+  if (parseScreenTextSegments(raw).length > 0) return raw
+  return undefined
 }

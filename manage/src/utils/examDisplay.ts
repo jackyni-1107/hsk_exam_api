@@ -36,9 +36,23 @@ export function looksLikeHtml(s: string | undefined): boolean {
   return /<\/?[a-z][\s\S]*>/i.test(t)
 }
 
-/** 管理端展示用：去掉 script，降低 v-html 风险 */
+/**
+ * 题包常见 `<font .../>` 自闭合；在 HTML5 中 font 非空标签，`/>` 会被忽略，导致后续
+ * 所有 `<font>` 被嵌进前一个未闭合的 font 内，整句变竖条。展开为显式成对结束标签。
+ * 带 `blank="input"` 且原本无正文时补 `&nbsp;` 以稳定格宽与下划线。
+ */
+export function normalizeFontSelfClosingInHtml(html: string): string {
+  return html.replace(/<font\b([^>]*?)\s*\/\s*>/gi, (_m, attrs) => {
+    const inner = /\bblank\s*=\s*["']input["']/i.test(String(attrs)) ? '\u00a0' : ''
+    return `<font${attrs}>${inner}</font>`
+  })
+}
+
+/** 管理端展示用：去掉 script，降低 v-html 风险；修正题包 font 自闭合 */
 export function sanitizeHtmlForDisplay(html: string): string {
-  return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+  let s = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+  s = normalizeFontSelfClosingInHtml(s)
+  return s
 }
 
 /** 选项是否为图片资源（与 ExamOptionReview 一致） */
