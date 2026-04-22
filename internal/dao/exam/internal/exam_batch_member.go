@@ -24,6 +24,7 @@ type ExamBatchMemberColumns struct {
 	BatchId                string // exam_batch.id
 	MemberId               string // sys_member.id
 	MockExaminationPaperId string // mock_examination_paper.id
+	ExamPaperId            string //
 	Creator                string // 导入操作者
 	CreateTime             string // 导入时间
 }
@@ -33,6 +34,7 @@ var examBatchMemberColumns = ExamBatchMemberColumns{
 	BatchId:                "batch_id",
 	MemberId:               "member_id",
 	MockExaminationPaperId: "mock_examination_paper_id",
+	ExamPaperId:            "exam_paper_id",
 	Creator:                "creator",
 	CreateTime:             "create_time",
 }

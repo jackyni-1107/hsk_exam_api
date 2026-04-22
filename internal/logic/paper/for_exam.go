@@ -340,7 +340,7 @@ func paperSectionDetailForExamFromDB(ctx context.Context, examPaperId, sectionId
 
 func paperHeadForExam(p examentity.ExamPaper) PaperHeadForExamView {
 	v := PaperHeadForExamView{
-		Id:                 p.MockExaminationPaperId,
+		Id:                 p.Id,
 		Level:              p.Level,
 		PaperId:            p.PaperId,
 		Title:              p.Title,

@@ -1,0 +1,96 @@
+/**
+ * 题包/试卷富文本（v-html）含 pinyin 属时的书式横排（参考教材：拼音在上、小号、整句横排）。
+ * 在包裹 v-html 的根节点上加 class="exam-rich-html"。
+ * 勿对父级使用 pre-wrap 保留 HTML 换行；块级 p/div 展平为行内以免竖成「一列字」。
+ */
+.exam-rich-html {
+  display: block;
+  width: 100%;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  line-height: 1.75;
+  writing-mode: horizontal-tb;
+  font-size: 16px;
+  color: var(--el-text-color-primary, #1a1a1a);
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+}
+
+.exam-rich-html p {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+
+.exam-rich-html div {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  vertical-align: text-bottom;
+}
+
+/*
+ * 上：拼音（::before）下：汉字；用列方向 flex 固定两行，避免空位格与标点串行错位。
+ * 连续 text 片段已在 ExamScreenTextBlocks 合并，此处 inline-flex 不会整句竖排。
+ */
+.exam-rich-html [pinyin] {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  row-gap: 0.1em;
+  vertical-align: bottom;
+  box-sizing: border-box;
+  margin: 0 0.06em;
+  text-align: center;
+  line-height: 1.15;
+  font-size: 1em;
+  font-weight: 500;
+}
+
+.exam-rich-html [pinyin]::before {
+  content: attr(pinyin);
+  display: block;
+  flex: 0 0 auto;
+  font-size: 0.56em;
+  line-height: 1.12;
+  font-weight: 400;
+  color: #2d2d2d;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  font-family:
+    "Segoe UI", system-ui, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans SC", sans-serif;
+}
+
+/* 仅有 blank、无拼音：简单下划线空位 */
+.exam-rich-html [blank="input"]:not([pinyin]) {
+  display: inline-block;
+  vertical-align: bottom;
+  box-sizing: border-box;
+  margin: 0 0.06em;
+  min-width: 1em;
+  min-height: 1.35em;
+  text-align: center;
+  line-height: 1.15;
+  font-size: 1em;
+  border-bottom: 1px solid var(--el-border-color-darker, rgba(0, 0, 0, 0.35));
+  padding-bottom: 0.04em;
+}
+
+/* 有拼音的作答空：须保留 font 内正文/下划线可见，不得用 font-size:0 隐藏子文本 */
+.exam-rich-html [blank="input"][pinyin] {
+  min-width: 1.1em;
+  padding-bottom: 0.12em;
+  border-bottom: 1px solid var(--el-border-color-darker, #a8abb2);
+}
+
+/* 填空等：题包用 font color=grey 时，拼音略浅 */
+.exam-rich-html font[pinyin][color="gray"]::before,
+.exam-rich-html font[pinyin][color="grey"]::before,
+.exam-rich-html font[pinyin][color="Gray"]::before,
+.exam-rich-html [pinyin][data-pinyin-hint]::before {
+  color: #9a9a9a;
+  font-weight: 400;
+}

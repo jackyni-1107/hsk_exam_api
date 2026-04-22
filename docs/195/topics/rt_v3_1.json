@@ -1,0 +1,77 @@
+{
+  "items": [
+    {
+      "index": 1,
+      "questions": [
+        {
+          "index": 51,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "卖饺子",
+              "correct": false
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "羊肉好吃",
+              "correct": true
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "椅子很矮",
+              "correct": false
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 关于那家饭店，可以知道什么？"
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "听说公司楼下那家饭店的羊肉又新鲜又好吃，中午我们去尝一尝吧？"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    }
+  ]
+}

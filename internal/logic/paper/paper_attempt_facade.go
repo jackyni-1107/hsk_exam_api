@@ -16,7 +16,7 @@ import (
 )
 
 // RandomFillAnswersForTest 仅返回随机答案草稿列表，不写库。若需生成并保存，使用 RandomFillAndSaveAnswers。
-func (s *sPaper) RandomFillAnswersForTest(ctx context.Context, userID int64, mockPaperID int64, attemptID int64) ([]bo.RandomAnswerDraftItem, error) {
+func (s *sPaper) RandomFillAnswersForTest(ctx context.Context, userID int64, examPaperID int64, attemptID int64) ([]bo.RandomAnswerDraftItem, error) {
 	cfg := LoadExamCfg(ctx)
 	if !cfg.EnableRandomAnswerHelper {
 		return nil, gerror.NewCode(consts.CodeExamTestHelperDisabled)
@@ -25,7 +25,7 @@ func (s *sPaper) RandomFillAnswersForTest(ctx context.Context, userID int64, moc
 	if err != nil {
 		return nil, err
 	}
-	if att.MockExaminationPaperId != mockPaperID {
+	if att.ExamPaperId != examPaperID {
 		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
 

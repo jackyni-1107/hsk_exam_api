@@ -23,20 +23,16 @@ func (c *ControllerV1) MyExams(ctx context.Context, req *v1.ExamsReq) (res *v1.E
 	}
 	list := make([]v1.ExamBatchItem, 0, len(rows))
 	for _, r := range rows {
-		pids := r.MockExaminationPaperIds
-		if pids == nil {
-			pids = []int64{}
-		}
 		list = append(list, v1.ExamBatchItem{
 			BatchId:                r.BatchId,
 			Title:                  r.Title,
+			ExamPaperId:            r.ExamPaperId,
 			MockExaminationPaperId: r.MockExaminationPaperId,
-			//MockExaminationPaperIds: pids,
-			PaperTitle:   r.PaperTitle,
-			ExamStartAt:  utility.ToRFC3339UTC(r.ExamStartAt),
-			ExamEndAt:    utility.ToRFC3339UTC(r.ExamEndAt),
-			AttemptId:    r.AttemptId,
-			WindowStatus: r.WindowStatus,
+			PaperTitle:             r.PaperTitle,
+			ExamStartAt:            utility.ToRFC3339UTC(r.ExamStartAt),
+			ExamEndAt:              utility.ToRFC3339UTC(r.ExamEndAt),
+			AttemptId:              r.AttemptId,
+			WindowStatus:           r.WindowStatus,
 		})
 	}
 	return &v1.ExamsRes{List: list}, nil

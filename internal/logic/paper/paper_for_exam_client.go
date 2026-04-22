@@ -99,11 +99,12 @@ func invalidateSectionTopicMemCacheByPaper(paperID int64) {
 	})
 }
 
-func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionTopic, error) {
-	paper, err := exampaper.ByMockID(ctx, mockPaperID)
+func (s *sPaper) PaperSectionTopicForExam(ctx context.Context, examPaperID int64, sectionId int64) (*exambo.SectionTopic, error) {
+	paper, err := exampaper.ByExamPaperID(ctx, examPaperID)
 	if err != nil {
 		return nil, err
 	}
+	mockPaperID := paper.MockExaminationPaperId
 	// L1: 进程内对象缓存。命中即直接返回，绕过 Redis 往返和大对象 JSON 反序列化。
 	if t := loadSectionTopicFromMem(paper.Id, sectionId); t != nil {
 		return t, nil
@@ -430,12 +431,12 @@ func stripSensitiveFieldsOnExtra(v map[string]json.RawMessage, isExample bool) {
 	delete(v, "correct_rate")
 }
 
-func (s *sPaper) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, error) {
-	paper, err := exampaper.ByMockID(ctx, mockPaperID)
+func (s *sPaper) PaperDetailForExamInit(ctx context.Context, examPaperID int64) (*exambo.PaperDetailForExamInitTree, error) {
+	paper, err := exampaper.ByExamPaperID(ctx, examPaperID)
 	if err != nil {
 		return nil, err
 	}
-	mockPaper, err := loadMockPaperByID(ctx, mockPaperID)
+	mockPaper, err := loadMockPaperByID(ctx, paper.MockExaminationPaperId)
 	if err != nil {
 		return nil, err
 	}
@@ -448,30 +449,35 @@ func (s *sPaper) PaperDetailForExamInit(ctx context.Context, mockPaperID int64) 
 	return &out, nil
 }
 
-func (s *sPaper) PaperBootstrapForExam(ctx context.Context, mockPaperID int64) (*exambo.PaperDetailForExamInitTree, []exambo.PaperPrepareSegment, error) {
-	paper, err := exampaper.ByMockID(ctx, mockPaperID)
+func (s *sPaper) PaperBootstrapForExam(ctx context.Context, examPaperID int64) (*exambo.PaperDetailForExamInitTree, []exambo.PaperPrepareSegment, *mockentity.MockExaminationPaper, error) {
+	paper, err := exampaper.ByExamPaperID(ctx, examPaperID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	mockPaper, err := loadMockPaperByID(ctx, mockPaperID)
+	mockPaper, err := loadMockPaperByID(ctx, paper.MockExaminationPaperId)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	t, err := PaperDetailForExamInit(ctx, paper.Id)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	detail := paperDetailForExamInitTreeToBO(t)
 	detail.Paper.ListenReviewDuration = mockPaper.ListenReviewDuration
 
 	segments, err := paperPrepareSegmentsByLevelID(ctx, mockPaper.LevelId)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return &detail, segments, nil
+	return &detail, segments, &mockPaper, nil
 }
 
-func (s *sPaper) PaperPrepareSegments(ctx context.Context, mockPaperID int64) ([]exambo.PaperPrepareSegment, error) {
+func (s *sPaper) PaperPrepareSegments(ctx context.Context, examPaperID int64) ([]exambo.PaperPrepareSegment, error) {
+	paper, err := exampaper.ByExamPaperID(ctx, examPaperID)
+	if err != nil {
+		return nil, err
+	}
+	mockPaperID := paper.MockExaminationPaperId
 	rkey := paperPrepareRedisKey(mockPaperID)
 	if cached := redisGetPrepareJSON(ctx, rkey); cached != "" {
 		var out []exambo.PaperPrepareSegment
@@ -674,8 +680,8 @@ func loadPartsByLevelID(ctx context.Context, levelID int64, segmentIDs []int64) 
 	return v.([]mockentity.MockExaminationPart), nil
 }
 
-func (s *sPaper) PaperSectionDetailForExam(ctx context.Context, mockPaperID int64, sectionId int64) (*exambo.SectionDetailForExamView, error) {
-	paper, err := exampaper.ByMockID(ctx, mockPaperID)
+func (s *sPaper) PaperSectionDetailForExam(ctx context.Context, examPaperID int64, sectionId int64) (*exambo.SectionDetailForExamView, error) {
+	paper, err := exampaper.ByExamPaperID(ctx, examPaperID)
 	if err != nil {
 		return nil, err
 	}

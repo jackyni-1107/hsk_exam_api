@@ -1,0 +1,763 @@
+{
+  "items": [
+    {
+      "index": 1,
+      "questions": [
+        {
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "8:00",
+              "correct": false
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "8:30",
+              "correct": false
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "9:00",
+              "correct": true
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 会议最可能几点开始？"
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": true,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "您是来参加今天会议的吗？您来早了一点儿，现在才八点半。您先进来坐吧。"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    },
+    {
+      "index": 1,
+      "questions": [
+        {
+          "index": 51,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "卖饺子",
+              "correct": false
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "羊肉好吃",
+              "correct": true
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "椅子很矮",
+              "correct": false
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 关于那家饭店，可以知道什么？"
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "听说公司楼下那家饭店的羊肉又新鲜又好吃，中午我们去尝一尝吧？"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    },
+    {
+      "index": 2,
+      "questions": [
+        {
+          "index": 52,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "爱帮助人",
+              "correct": false
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "很会讲故事",
+              "correct": false
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "总担心做不好",
+              "correct": true
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 老张："
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "老张总是希望把事情做到最好，但是又经常因为害怕做不好，所以选择不去做。其实，能不能做好要先做了才知道。"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    },
+    {
+      "index": 3,
+      "questions": [
+        {
+          "index": 53,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "球没踢进",
+              "correct": true
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "朋友没来",
+              "correct": false
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "雨伞丢了",
+              "correct": false
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 他为什么生气？"
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "今天放学后，我和朋友们一起去球场踢足球，让我生气的是，一个下午，我一个球都没有踢进。"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    },
+    {
+      "index": 4,
+      "questions": [
+        {
+          "index": 54,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "不能太胖",
+              "correct": false
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "老人要多睡觉",
+              "correct": false
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "经常笑对身体好",
+              "correct": true
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 根据这段话，可以知道什么？"
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "中国人常说：“笑一笑，十年少。”经常笑能让人身体健康，看起来更年轻。"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    },
+    {
+      "index": 5,
+      "questions": [
+        {
+          "index": 55,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "会很晚睡觉",
+              "correct": false
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "会忘记时间",
+              "correct": true
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "手机会关机",
+              "correct": false
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 他玩游戏时："
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "他有个很不好的习惯，一玩起游戏就会忘记时间，经常不吃不喝地玩几个小时。"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    },
+    {
+      "index": 6,
+      "questions": [
+        {
+          "index": 56,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "变化快",
+              "correct": true
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "热极了",
+              "correct": false
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "一般不下雨",
+              "correct": false
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 六月的天气："
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "“六月的天，孩子的脸，说变就变。”刚才还是大晴天，现在就要用伞了。雨越下越大，天也变得越来越黑，街上一辆出租车也打不到了。"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    },
+    {
+      "index": 7,
+      "questions": [
+        {
+          "index": 57,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "药店",
+              "correct": false
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "花店",
+              "correct": true
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "奶茶店",
+              "correct": false
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 他和朋友开了一家什么？"
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        },
+        {
+          "index": 58,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "累",
+              "correct": true
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "简单",
+              "correct": false
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "有意思",
+              "correct": false
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 他觉得自己开店比上班："
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "      我以前觉得上班很累，总希望能有一家自己的店。后来我离开了公司，和朋友一起开了一家花店，才发现开店比上班累多了，很多事情都要自己来做，而且几乎没有休息日，周末比工作日还忙。"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    },
+    {
+      "index": 8,
+      "questions": [
+        {
+          "index": 59,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "找电脑",
+              "correct": false
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "搬椅子",
+              "correct": true
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "检查冰箱",
+              "correct": false
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 开会前，小李要去："
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        },
+        {
+          "index": 60,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "纸和笔",
+              "correct": false
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "笔记本",
+              "correct": false
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "矿泉水",
+              "correct": true
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 桌子上得放什么？"
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "      今天下午两点半，公司要在四层会议室开会，一共一百多人参加，小李，你找几位同事跟你一起，搬一些椅子过去。还有，每张桌子上都要放一瓶矿泉水，小王你跟我去搬几箱矿泉水过去。其他人也去会议室看看有没有需要帮忙的。大家都动起来吧。"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    }
+  ]
+}

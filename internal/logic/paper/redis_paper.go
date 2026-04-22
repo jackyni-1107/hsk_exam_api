@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"exam/internal/consts"
+	"exam/internal/utility/exampaper"
 )
 
 func paperForExamInitRedisKey(examPaperId int64) string {
@@ -46,6 +47,7 @@ func InvalidatePaperForExamCache(ctx context.Context, examPaperId int64) {
 	if examPaperId <= 0 {
 		return
 	}
+	exampaper.InvalidateByExamPaperIDCache(examPaperId)
 	initKey := paperForExamInitRedisKey(examPaperId)
 	legacyKey := paperForExamLegacyRedisKey(examPaperId)
 	if _, err := g.Redis().Del(ctx, initKey, legacyKey); err != nil {

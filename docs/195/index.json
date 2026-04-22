@@ -1,0 +1,146 @@
+{
+  "items": [
+    {
+      "part_code": 1,
+      "topic_type": "xt",
+      "topic_items": "xt_v3.json",
+      "topic_title": "听力第一部分",
+      "segment_code": "listen",
+      "topic_subtitle": "选择对应图片（套）（无拼音）"
+    },
+    {
+      "part_code": 2,
+      "topic_type": "xw",
+      "topic_items": "xw_v3.json",
+      "topic_title": "听力第二部分",
+      "segment_code": "listen",
+      "topic_subtitle": "选择题（文本）"
+    },
+    {
+      "part_code": 3,
+      "topic_type": "xw",
+      "topic_items": "xw_v3_1.json",
+      "topic_title": "听力第三部分",
+      "segment_code": "listen",
+      "topic_subtitle": "听音选择题（无拼音）"
+    },
+    {
+      "part_code": 3,
+      "topic_type": "lt",
+      "topic_items": "lt_v3_1.json",
+      "topic_title": "听力第三部分",
+      "segment_code": "listen",
+      "topic_subtitle": "听音选择题（无拼音）（套题）"
+    },
+    {
+      "part_code": 1,
+      "topic_type": "tt",
+      "topic_items": "tt_v3.json",
+      "topic_title": "阅读第一部分",
+      "segment_code": "read",
+      "topic_subtitle": "选词填空（套）（无拼音)"
+    },
+    {
+      "part_code": 2,
+      "topic_type": "tt",
+      "topic_items": "tt1_v3.json",
+      "topic_title": "阅读第二部分",
+      "segment_code": "read",
+      "topic_subtitle": "选词填空（套）（无拼音)"
+    },
+    {
+      "part_code": 3,
+      "topic_type": "ct",
+      "topic_items": "ct_v3_1.json",
+      "topic_title": "阅读第三部分",
+      "segment_code": "read",
+      "topic_subtitle": "选择题（文本）（无拼音）"
+    },
+    {
+      "part_code": 3,
+      "topic_type": "rt",
+      "topic_items": "rt_v3_1.json",
+      "topic_title": "阅读第三部分",
+      "segment_code": "read",
+      "topic_subtitle": "选择题（文本）（无拼音）"
+    },
+    {
+      "part_code": 3,
+      "topic_type": "rt",
+      "topic_items": "rt_v3_2.json",
+      "topic_title": "阅读第三部分",
+      "segment_code": "read",
+      "topic_subtitle": "选择题（文本）（无拼音）"
+    },
+    {
+      "part_code": 3,
+      "topic_type": "rt",
+      "topic_items": "rt_v3_3.json",
+      "topic_title": "阅读第三部分",
+      "segment_code": "read",
+      "topic_subtitle": "选择题（文本）（无拼音）"
+    },
+    {
+      "part_code": 3,
+      "topic_type": "rt",
+      "topic_items": "rt_v3_4.json",
+      "topic_title": "阅读第三部分",
+      "segment_code": "read",
+      "topic_subtitle": "选择题（文本）（无拼音）"
+    },
+    {
+      "part_code": 3,
+      "topic_type": "rt",
+      "topic_items": "rt_v3_5.json",
+      "topic_title": "阅读第三部分",
+      "segment_code": "read",
+      "topic_subtitle": "选择题（文本）（无拼音）"
+    },
+    {
+      "part_code": 3,
+      "topic_type": "rt",
+      "topic_items": "rt_v3_6.json",
+      "topic_title": "阅读第三部分",
+      "segment_code": "read",
+      "topic_subtitle": "选择题（文本）（无拼音）"
+    },
+    {
+      "part_code": 3,
+      "topic_type": "rt",
+      "topic_items": "rt_v3_7.json",
+      "topic_title": "阅读第三部分",
+      "segment_code": "read",
+      "topic_subtitle": "选择题（文本）（无拼音）"
+    },
+    {
+      "part_code": 3,
+      "topic_type": "rt",
+      "topic_items": "rt_v3_8.json",
+      "topic_title": "阅读第三部分",
+      "segment_code": "read",
+      "topic_subtitle": "选择题（文本）（无拼音）"
+    },
+    {
+      "part_code": 1,
+      "topic_type": "ph",
+      "topic_items": "ph_v3.json",
+      "topic_title": "写作第一部分",
+      "segment_code": "write",
+      "topic_subtitle": "写汉字"
+    },
+    {
+      "part_code": 2,
+      "topic_type": "pu",
+      "topic_items": "pu_v3.json",
+      "topic_title": "写作第二部分",
+      "segment_code": "write",
+      "topic_subtitle": "看图，用词造句"
+    }
+  ],
+  "title": "HSK3（3.0）",
+  "prepare": {
+    "title": "新HSK 3级模拟考试试卷1",
+    "audio_file": "test.mp3",
+    "instruction": ""
+  }
+}

@@ -15,6 +15,7 @@ type ExamBatchMember struct {
 	BatchId                any         // exam_batch.id
 	MemberId               any         // sys_member.id
 	MockExaminationPaperId any         // mock_examination_paper.id
+	ExamPaperId            any         //
 	Creator                any         // 导入操作者
 	CreateTime             *gtime.Time // 导入时间
 }

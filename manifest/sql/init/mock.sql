@@ -18,33 +18,35 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ----------------------------
--- Table structure for exam_batch_mock_paper
+-- Table structure for exam_batch_paper（批次可选 exam_paper，与 examsql.exam_paper.id 对齐）
 -- ----------------------------
-DROP TABLE IF EXISTS `exam_batch_mock_paper`;
-CREATE TABLE `exam_batch_mock_paper`  (
+DROP TABLE IF EXISTS `exam_batch_paper`;
+CREATE TABLE `exam_batch_paper`  (
   `batch_id` bigint(20) NOT NULL COMMENT 'exam_batch.id',
-  `mock_examination_paper_id` bigint(20) NOT NULL COMMENT 'mock_examination_paper.id',
-  PRIMARY KEY (`batch_id`, `mock_examination_paper_id`) USING BTREE,
-  INDEX `idx_ebmp_mock_paper`(`mock_examination_paper_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '批次可选 Mock 卷（多选）' ROW_FORMAT = Dynamic;
+  `exam_paper_id` bigint(20) NOT NULL COMMENT 'exam_paper.id',
+  `mock_examination_paper_id` bigint(20) NOT NULL COMMENT 'mock_examination_paper.id，与 exam_paper 同步',
+  PRIMARY KEY (`batch_id`, `exam_paper_id`) USING BTREE,
+  INDEX `idx_ebp_paper`(`exam_paper_id`) USING BTREE,
+  INDEX `idx_ebp_mock`(`mock_examination_paper_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '批次可选试卷（exam_paper 多选）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of exam_batch_mock_paper
+-- Records of exam_batch_paper（batch_id, exam_paper_id, mock_examination_paper_id）
 -- ----------------------------
-INSERT INTO `exam_batch_mock_paper` VALUES (3, 91);
-INSERT INTO `exam_batch_mock_paper` VALUES (3, 96);
-INSERT INTO `exam_batch_mock_paper` VALUES (3, 101);
-INSERT INTO `exam_batch_mock_paper` VALUES (3, 106);
-INSERT INTO `exam_batch_mock_paper` VALUES (3, 107);
-INSERT INTO `exam_batch_mock_paper` VALUES (1, 193);
-INSERT INTO `exam_batch_mock_paper` VALUES (2, 193);
-INSERT INTO `exam_batch_mock_paper` VALUES (3, 193);
-INSERT INTO `exam_batch_mock_paper` VALUES (2, 194);
-INSERT INTO `exam_batch_mock_paper` VALUES (3, 194);
-INSERT INTO `exam_batch_mock_paper` VALUES (3, 195);
-INSERT INTO `exam_batch_mock_paper` VALUES (3, 196);
-INSERT INTO `exam_batch_mock_paper` VALUES (3, 197);
-INSERT INTO `exam_batch_mock_paper` VALUES (3, 198);
+INSERT INTO `exam_batch_paper` VALUES (3, 8, 91);
+INSERT INTO `exam_batch_paper` VALUES (3, 9, 96);
+INSERT INTO `exam_batch_paper` VALUES (3, 10, 101);
+INSERT INTO `exam_batch_paper` VALUES (3, 11, 106);
+INSERT INTO `exam_batch_paper` VALUES (3, 12, 107);
+INSERT INTO `exam_batch_paper` VALUES (1, 2, 193);
+INSERT INTO `exam_batch_paper` VALUES (2, 2, 193);
+INSERT INTO `exam_batch_paper` VALUES (3, 2, 193);
+INSERT INTO `exam_batch_paper` VALUES (2, 3, 194);
+INSERT INTO `exam_batch_paper` VALUES (3, 3, 194);
+INSERT INTO `exam_batch_paper` VALUES (3, 4, 195);
+INSERT INTO `exam_batch_paper` VALUES (3, 5, 196);
+INSERT INTO `exam_batch_paper` VALUES (3, 6, 197);
+INSERT INTO `exam_batch_paper` VALUES (3, 7, 198);
 
 -- ----------------------------
 -- Table structure for mock_examination_paper

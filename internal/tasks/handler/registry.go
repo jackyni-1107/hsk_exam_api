@@ -34,13 +34,15 @@ func Execute(ctx context.Context, handlerName string, taskID int64, params strin
 }
 
 const (
-	DemoHandlerName              = "DemoHandler"
-	ExamScoreFinalizeHandlerName = "ExamScoreFinalizeHandler"
-	ExamBatchExpireHandlerName   = "ExamBatchExpireHandler"
+	DemoHandlerName               = "DemoHandler"
+	ExamScoreFinalizeHandlerName  = "ExamScoreFinalizeHandler"
+	ExamBatchExpireHandlerName    = "ExamBatchExpireHandler"
+	ExamDashboardStatsHandlerName = "ExamDashboardStatsHandler"
 )
 
 func init() {
 	Register(DemoHandlerName, demoHandler{})
 	Register(ExamScoreFinalizeHandlerName, examScoreFinalizeHandler{})
 	Register(ExamBatchExpireHandlerName, examBatchExpireHandler{})
+	Register(ExamDashboardStatsHandlerName, examDashboardStatsHandler{})
 }

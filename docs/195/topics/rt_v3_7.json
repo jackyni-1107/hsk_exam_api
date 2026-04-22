@@ -1,0 +1,129 @@
+{
+  "items": [
+    {
+      "index": 7,
+      "questions": [
+        {
+          "index": 57,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "药店",
+              "correct": false
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "花店",
+              "correct": true
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "奶茶店",
+              "correct": false
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 他和朋友开了一家什么？"
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        },
+        {
+          "index": 58,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "累",
+              "correct": true
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "简单",
+              "correct": false
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "有意思",
+              "correct": false
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 他觉得自己开店比上班："
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "      我以前觉得上班很累，总希望能有一家自己的店。后来我离开了公司，和朋友一起开了一家花店，才发现开店比上班累多了，很多事情都要自己来做，而且几乎没有休息日，周末比工作日还忙。"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    }
+  ]
+}

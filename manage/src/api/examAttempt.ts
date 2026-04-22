@@ -16,6 +16,8 @@ export interface AttemptListItem {
   subjective_score: number;
   total_score: number;
   has_subjective: number;
+  /** 1=已有任意主观题人工分，不可再次评分 */
+  subjective_graded?: number;
   started_at: string;
   submitted_at: string;
   ended_at: string;
@@ -26,6 +28,8 @@ export interface AttemptDetailAnswer {
   question_id: number;
   question_no: number;
   stem_text: string;
+  /** 与试卷详情小题一致，套题/富文本题干 */
+  screen_text_json?: string;
   is_example: number;
   is_subjective: number;
   score: number;
@@ -74,6 +78,10 @@ export interface AttemptDetail {
     paper_id: string;
     /** exam_paper.title */
     title: string;
+    /** exam_paper.id，用于拉取试卷 topic_json 等 */
+    exam_paper_id?: number;
+    /** 资源基址，拼接图片/音频相对路径 */
+    source_base_url?: string;
   };
   answers: AttemptDetailAnswer[];
 }
@@ -82,10 +90,14 @@ export function getAttemptList(params: {
   page?: number;
   size?: number;
   level?: string;
+  /** mock_levels.id，优先于 level 字符串 */
+  mock_level_id?: number;
   examination_paper_id?: number;
   exam_batch_id?: number;
   status?: number;
   username?: string;
+  /** 1=仅待主观题评阅 */
+  subjective_pending?: number;
 }) {
   return request.get<any, { data: { list: AttemptListItem[]; total: number } }>(
     "/admin/exam/attempt/list",
@@ -93,6 +105,36 @@ export function getAttemptList(params: {
       params,
     },
   );
+}
+
+export interface AttemptStatsData {
+  updated_at: string;
+  from_cache: boolean;
+  status_not_started: number;
+  status_in_progress: number;
+  status_submitted: number;
+  status_ended: number;
+  total: number;
+  finished_count: number;
+  subjective_pending: number;
+  today_new: number;
+  completion_rate: number;
+  avg_objective: number;
+  avg_subjective: number;
+  avg_total: number;
+  trend_7d: { date: string; count: number }[];
+  score_distribution: { bucket_low: number; count: number }[];
+  batch_member_count: number;
+  batch_completion_rate: number;
+}
+
+export function getAttemptStats(params: {
+  level?: string;
+  mock_level_id?: number;
+  examination_paper_id?: number;
+  exam_batch_id?: number;
+}) {
+  return request.get<any, { data: AttemptStatsData }>("/admin/exam/attempt/stats", { params });
 }
 
 export function getAttemptDetail(id: number) {

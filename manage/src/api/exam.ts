@@ -1,8 +1,9 @@
 import request from './request'
 
 export interface ExamPaperItem {
-  /** mock_examination_paper.id */
+  /** exam_paper.id */
   id: number
+  mock_examination_paper_id: number
   level: string
   paper_id: string
   title: string
@@ -16,7 +17,13 @@ export interface ExamPaperItem {
   create_time: string
 }
 
-export function getExamPaperList(params: { level?: string; page?: number; size?: number }) {
+export function getExamPaperList(params: {
+  level?: string
+  /** mock_levels.id，与 mock_examination_paper.level_id 一致 */
+  mock_level_id?: number
+  page?: number
+  size?: number
+}) {
   return request.get<any, { data: { list: ExamPaperItem[]; total: number } }>('/admin/exam/paper/list', {
     params,
   })
@@ -24,6 +31,7 @@ export function getExamPaperList(params: { level?: string; page?: number; size?:
 
 export interface ExamPaperDetail {
   paper: {
+    exam_paper_id: number
     /** mock_examination_paper.id */
     id: number
     level: string
@@ -33,6 +41,7 @@ export interface ExamPaperDetail {
     prepare_instruction: string
     prepare_audio_file: string
     source_base_url: string
+    duration_seconds: number
     audio_hls_prefix: string
     audio_hls_segment_count: number
     audio_hls_segment_pattern: string
@@ -87,16 +96,20 @@ export function getExamPaperDetail(id: number) {
   return request.get<any, { data: ExamPaperDetail }>(`/admin/exam/paper/${id}`)
 }
 
+/** 单大题详情（与详情中一节结构一致，含选项正误）；用于大卷按需加载 */
+export function getExamPaperSection(paperId: number, sectionId: number) {
+  return request.get<
+    any,
+    { data: { section: ExamPaperDetail['sections'][number] } }
+  >(`/admin/exam/paper/${paperId}/sections/${sectionId}`)
+}
+
 export function importExamPaper(data: {
   mock_examination_paper_id: number
-  index_url?: string
-  index_json?: string
-  level?: string
-  paper_id?: string
-  source_base_url?: string
+  /** 可选，写入 exam_paper.title；不传则用 mock 卷名称 */
+  title?: string
   audio_hls_prefix?: string
   conflict_mode?: string
-  new_paper_id?: string
 }) {
   return request.post<
     any,
@@ -113,7 +126,7 @@ export function importExamPaper(data: {
 }
 
 export function updateExamPaper(data: {
-  /** mock_examination_paper.id */
+  /** exam_paper.id */
   id: number
   audio_hls_prefix?: string
   audio_hls_segment_count: number
@@ -125,11 +138,29 @@ export function updateExamPaper(data: {
   return request.post<any, { data: Record<string, never> }>('/admin/exam/paper/update', data)
 }
 
+/** 编辑试卷元数据（exam_paper 主键） */
+export function editExamPaperMeta(data: {
+  exam_paper_id: number
+  title: string
+  prepare_title: string
+  prepare_instruction: string
+  prepare_audio_file: string
+  source_base_url: string
+  duration_seconds: number
+}) {
+  return request.post<any, { data: Record<string, never> }>('/admin/exam/paper/edit', data)
+}
+
+/** 物理删除 exam_paper（仅超级管理员；confirm_text 须为 `DELETE:${exam_paper_id}`） */
+export function purgeExamPaper(data: { exam_paper_id: number; confirm_text: string }) {
+  return request.post<any, { data: Record<string, never> }>('/admin/exam/paper/purge', data)
+}
+
 /** --- 考试批次（/admin/exam/batch） --- */
 
 export interface ExamBatchListItem {
   id: number
-  mock_examination_paper_ids: number[]
+  exam_paper_ids: number[]
   title: string
   exam_start_at: string
   exam_end_at: string
@@ -138,7 +169,10 @@ export interface ExamBatchListItem {
 }
 
 export function getExamBatchList(params: {
-  mock_examination_paper_id?: number
+  exam_paper_id?: number
+  /** 与 time_to 组成区间，筛选与批次考试时间有交集的批次；可只传一侧 */
+  time_from?: string
+  time_to?: string
   page?: number
   size?: number
 }) {
@@ -155,14 +189,14 @@ export function createExamBatch(data: {
   title?: string
   exam_start_at: string
   exam_end_at: string
-  mock_examination_paper_ids: number[]
+  exam_paper_ids: number[]
 }) {
   return request.post<any, { data: { id: number } }>('/admin/exam/batch', data)
 }
 
 export function updateExamBatch(
   id: number,
-  data: { title?: string; exam_start_at: string; exam_end_at: string; mock_examination_paper_ids: number[] }
+  data: { title?: string; exam_start_at: string; exam_end_at: string; exam_paper_ids: number[] }
 ) {
   return request.put<any, { data: Record<string, never> }>(`/admin/exam/batch/${id}`, data)
 }
@@ -173,7 +207,7 @@ export function deleteExamBatch(id: number) {
 
 export interface ExamBatchMemberItem {
   member_id: number
-  mock_examination_paper_id: number
+  exam_paper_id: number
   username: string
   nickname: string
   import_time: string
@@ -181,7 +215,7 @@ export interface ExamBatchMemberItem {
 
 export function importExamBatchMembers(
   batchId: number,
-  data: { mock_examination_paper_id: number; member_ids: number[] },
+  data: { exam_paper_id: number; member_ids: number[] },
 ) {
   return request.post<any, { data: { inserted: number } }>(
     `/admin/exam/batch/${batchId}/members/import`,
@@ -198,7 +232,7 @@ export function getExamBatchMemberList(batchId: number, params?: { page?: number
 
 export function removeExamBatchMembers(
   batchId: number,
-  data: { mock_examination_paper_id: number; member_ids: number[] },
+  data: { exam_paper_id: number; member_ids: number[] },
 ) {
   return request.post<any, { data: { removed: number } }>(
     `/admin/exam/batch/${batchId}/members/remove`,

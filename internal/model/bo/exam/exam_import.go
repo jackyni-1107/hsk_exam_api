@@ -2,14 +2,9 @@ package exam
 
 type ImportParams struct {
 	MockExaminationPaperId int64
-	IndexURL               string
-	IndexJSON              string
-	Level                  string
-	PaperID                string
-	SourceBaseURL          string
+	Title                  string
 	AudioHlsPrefix         string
 	ConflictMode           string
-	NewPaperID             string
 	Creator                string
 }
 

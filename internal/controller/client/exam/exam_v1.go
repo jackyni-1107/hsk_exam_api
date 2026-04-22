@@ -20,7 +20,7 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
 
-	d, segments, err := papersvc.Paper().PaperBootstrapForExam(ctx, req.PaperId)
+	d, segments, mock, err := papersvc.Paper().PaperBootstrapForExam(ctx, req.PaperId)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +58,9 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 	}
 	playURL, _, _ := papersvc.Paper().IssuePaperHlsPlay(ctx, data.UserId, d.Paper.Id)
 	res = &v1.PaperForExamRes{
-		Id:                   d.Paper.Id,
-		Level:                d.Paper.Level,
+		Id:                     d.Paper.Id,
+		MockExaminationPaperId: mock.Id,
+		Level:                  d.Paper.Level,
 		PaperId:              d.Paper.PaperId,
 		Title:                d.Paper.Title,
 		SourceBaseUrl:        d.Paper.SourceBaseUrl,
@@ -70,6 +71,7 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 			Instruction: d.Paper.PrepareInstruction,
 			AudioFile:   d.Paper.PrepareAudioFile,
 			Title:       d.Paper.PrepareTitle,
+			Name:        mock.Name,
 			Segments:    prepareSegments,
 		},
 		Items: make([]v1.PaperForExamItemInit, 0, len(d.Sections)),
@@ -104,7 +106,7 @@ func (c *ControllerV1) AttemptCreateByBatch(ctx context.Context, req *v1.Attempt
 	//	return nil, err
 	//}
 	var id int64
-	id, err = attemptsvc.Attempt().CreateAttemptForBatch(ctx, ctxData.UserId, req.BatchId)
+	id, err = attemptsvc.Attempt().CreateAttemptForBatch(ctx, ctxData.UserId, req.BatchId, req.ExamPaperId)
 	if err != nil {
 		return nil, err
 	}
@@ -135,6 +137,7 @@ func (c *ControllerV1) AttemptGet(ctx context.Context, req *v1.AttemptGetReq) (r
 	a := v.Attempt
 	out := &v1.AttemptGetRes{
 		Id:                 a.Id,
+		ExamPaperId:        a.ExamPaperId,
 		ExaminationPaperId: a.MockExaminationPaperId,
 		Status:             a.Status,
 		//DurationSeconds:    a.DurationSeconds,

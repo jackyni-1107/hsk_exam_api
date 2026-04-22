@@ -7,7 +7,7 @@ gfcli:
     # 勿用 `gf gen service -a` 当作「全量」：-a 是 stPattern（结构体名正则），会按默认 dst 生成根目录 package service 文件。
 
     dao:
-      - link: "mysql:root:123456@tcp(127.0.0.1:3306)/scaffold"
+      - link: "mysql:admin:Kvma2NlDaxtEBNH64od4@tcp(wohui-staging.cluster-cv3j8xtjauo3.ap-southeast-1.rds.amazonaws.com:3306)/hsk_exam"
         descriptionTag: true
         jsonCase: "Snake"
         #tables: "sys_*"

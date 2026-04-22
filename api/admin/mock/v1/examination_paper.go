@@ -13,22 +13,15 @@ type ExaminationPaperListRes struct {
 }
 
 type ExaminationPaperItem struct {
-	Id        int64  `json:"id" dc:"模拟卷ID"`
-	LevelId   int64  `json:"level_id" dc:"等级ID"`
-	Name      string `json:"name" dc:"卷名"`
-	ScoreFull int    `json:"score_full" dc:"满分"`
-	TimeFull  int    `json:"time_full" dc:"考试时长(分钟)"`
-	Status    int    `json:"status" dc:"状态"`
-	PaperType int    `json:"paper_type" dc:"试卷类型"`
-	MockType  int    `json:"mock_type" dc:"模拟类型"`
-	Imported  bool   `json:"imported" dc:"是否已在 exam 域导入（存在未删除的 exam_paper）"`
+	Id          int64  `json:"id" dc:"模拟卷ID"`
+	LevelId     int64  `json:"level_id" dc:"等级ID"`
+	Name        string `json:"name" dc:"卷名"`
+	ResourceUrl string `json:"resource_url" dc:"资源包 URL（.zip），导入时替换为 /index.json"`
+	ScoreFull   int    `json:"score_full" dc:"满分"`
+	TimeFull    int    `json:"time_full" dc:"考试时长(分钟)"`
+	Status      int    `json:"status" dc:"状态"`
+	PaperType   int    `json:"paper_type" dc:"试卷类型"`
+	MockType    int    `json:"mock_type" dc:"模拟类型"`
+	Imported    bool   `json:"imported" dc:"是否已在 exam 域导入（存在未删除的 exam_paper）"`
 }
 
-type ExaminationPaperDetailReq struct {
-	g.Meta `path:"/mock/examination-paper/{id}" method:"get" tags:"Mock-管理" summary:"模拟卷详情（管理端）"`
-	Id     int64 `json:"id" in:"path" v:"required#err.invalid_params" dc:"模拟卷ID"`
-}
-
-type ExaminationPaperDetailRes struct {
-	Paper *ExaminationPaperItem `json:"paper" dc:"模拟卷信息"`
-}

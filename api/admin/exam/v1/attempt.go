@@ -6,11 +6,54 @@ type AttemptListReq struct {
 	g.Meta             `path:"/exam/attempt/list" method:"get" tags:"考试结果" summary:"答题会话列表"`
 	Page               int    `json:"page" dc:"页码"`
 	Size               int    `json:"size" dc:"每页条数"`
-	Level              string `json:"level" dc:"试卷级别，如 hsk1"`
+	Level              string `json:"level" dc:"试卷级别字符串（兼容）；优先使用 mock_level_id"`
+	MockLevelId        int64  `json:"mock_level_id" dc:"mock_levels.id，与 exam_result.mock_level_id 一致，0 不限"`
 	ExaminationPaperId int64  `json:"examination_paper_id" dc:"mock_examination_paper.id"`
 	ExamBatchId        int64  `json:"exam_batch_id" dc:"考试批次 id，0 不限"`
 	Status             int    `json:"status" dc:"会话状态 1-4，0 表示不限"`
 	Username           string `json:"username" dc:"学员账号（模糊）"`
+	SubjectivePending  int    `json:"subjective_pending" dc:"1=仅待主观题评阅（已结束且未评）"`
+}
+
+// AttemptStatsReq 考试监控统计（全量走定时任务快照，带筛时即时聚合）。
+type AttemptStatsReq struct {
+	g.Meta             `path:"/exam/attempt/stats" method:"get" tags:"考试结果" summary:"考试监控统计"`
+	Level              string `json:"level" dc:"级别字符串（兼容）"`
+	MockLevelId        int64  `json:"mock_level_id" dc:"mock_levels.id，0 不限"`
+	ExaminationPaperId int64  `json:"examination_paper_id" dc:"mock 卷 id，0 不限"`
+	ExamBatchId        int64  `json:"exam_batch_id" dc:"批次 id，0 不限"`
+}
+
+// AttemptStatsRes 见 attempt_stats 逻辑字段说明。
+type AttemptStatsRes struct {
+	UpdatedAt           string                     `json:"updated_at" dc:"数据时间（UTC RFC3339）"`
+	FromCache           bool                       `json:"from_cache" dc:"是否来自全量快照"`
+	StatusNotStarted    int                        `json:"status_not_started" dc:"未开始人数"`
+	StatusInProgress    int                        `json:"status_in_progress" dc:"进行中人数"`
+	StatusSubmitted     int                        `json:"status_submitted" dc:"已交卷人数"`
+	StatusEnded         int                        `json:"status_ended" dc:"已结束人数"`
+	Total               int                        `json:"total" dc:"会话总数"`
+	FinishedCount       int                        `json:"finished_count" dc:"已交卷+已结束"`
+	SubjectivePending   int                        `json:"subjective_pending" dc:"待主观评阅"`
+	TodayNew            int                        `json:"today_new" dc:"今日新会话数"`
+	CompletionRate      float64                    `json:"completion_rate" dc:"完考率 finished/total"`
+	AvgObjective        float64                    `json:"avg_objective"`
+	AvgSubjective       float64                    `json:"avg_subjective"`
+	AvgTotal            float64                    `json:"avg_total"`
+	Trend7d             []AttemptStatsDayPointV1   `json:"trend_7d"`
+	ScoreDistribution   []AttemptStatsScoreChunkV1 `json:"score_distribution"`
+	BatchMemberCount    int                        `json:"batch_member_count"`
+	BatchCompletionRate float64                    `json:"batch_completion_rate"`
+}
+
+type AttemptStatsDayPointV1 struct {
+	Date  string `json:"date" dc:"YYYY-MM-DD（本地日）"`
+	Count int    `json:"count"`
+}
+
+type AttemptStatsScoreChunkV1 struct {
+	BucketLow float64 `json:"bucket_low" dc:"分档下界"`
+	Count     int     `json:"count"`
 }
 
 type AttemptListRes struct {
@@ -34,6 +77,7 @@ type AttemptListItem struct {
 	SubjectiveScore    float64 `json:"subjective_score" dc:"主观题得分"`
 	TotalScore         float64 `json:"total_score" dc:"总分"`
 	HasSubjective      int     `json:"has_subjective" dc:"是否含主观题：0否 1是"`
+	SubjectiveGraded   int     `json:"subjective_graded" dc:"主观题是否已评过（1=是，仅允许评一次）"`
 	StartedAt          string  `json:"started_at" dc:"开考时间"`
 	SubmittedAt        string  `json:"submitted_at" dc:"交卷时间"`
 	EndedAt            string  `json:"ended_at" dc:"结束时间"`
@@ -85,17 +129,20 @@ type AttemptDetailUser struct {
 }
 
 type AttemptDetailPaper struct {
-	Id      int64  `json:"id" dc:"mock_examination_paper.id"`
-	Name    string `json:"name" dc:"mock_examination_paper.name"`
-	Level   string `json:"level" dc:"试卷级别"`
-	PaperId string `json:"paper_id" dc:"远程试卷ID"`
-	Title   string `json:"title" dc:"exam_paper.title"`
+	Id            int64  `json:"id" dc:"mock_examination_paper.id"`
+	Name          string `json:"name" dc:"mock_examination_paper.name"`
+	Level         string `json:"level" dc:"试卷级别"`
+	PaperId       string `json:"paper_id" dc:"远程试卷ID"`
+	Title         string `json:"title" dc:"exam_paper.title"`
+	ExamPaperId   int64  `json:"exam_paper_id" dc:"exam_paper.id"`
+	SourceBaseUrl string `json:"source_base_url" dc:"资源基址（拼接题目包内相对路径）"`
 }
 
 type AttemptDetailAnswer struct {
 	QuestionId       int64                 `json:"question_id" dc:"题目ID"`
 	QuestionNo       int                   `json:"question_no" dc:"题号"`
 	StemText         string                `json:"stem_text" dc:"题干文本"`
+	ScreenTextJson   string                `json:"screen_text_json" dc:"屏幕文本 JSON（与试卷详情一致）"`
 	IsExample        int                   `json:"is_example" dc:"是否例题：0否 1是"`
 	IsSubjective     int                   `json:"is_subjective" dc:"是否主观题：0否 1是"`
 	Score            float64               `json:"score" dc:"题目分值"`

@@ -16,7 +16,6 @@ import (
 	examentity "exam/internal/model/entity/exam"
 	mockentity "exam/internal/model/entity/mock"
 	"exam/internal/utility"
-	"exam/internal/utility/exampaper"
 	"exam/internal/utility/examutil"
 )
 
@@ -27,8 +26,9 @@ func CreateAttempt(ctx context.Context, userID int64, mockPaperID int64) (int64,
 	return 0, gerror.NewCode(consts.CodeExamAttemptUseBatchApi)
 }
 
-// CreateAttemptForBatch 按批次与 Mock 卷创建会话（未开始）；每用户每批次每卷仅允许一条未删除记录。
-func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64) (int64, error) {
+// CreateAttemptForBatch 按批次创建会话（未开始）；每用户每批次每 exam_paper 仅允许一条未删除记录。
+// examPaperID 对应用户在 exam_batch_member 中的卷；同批次为该用户配置了多张卷时必须传入，否则返回 11124。
+func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, examPaperID int64) (int64, error) {
 	var batch examentity.ExamBatch
 	if err := dao.ExamBatch.Ctx(ctx).
 		Where("id", batchID).
@@ -44,29 +44,49 @@ func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batc
 		return 0, gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
 	}
 
-	var link examentity.ExamBatchMember
-	if err := dao.ExamBatchMember.Ctx(ctx).
+	memberQ := dao.ExamBatchMember.Ctx(ctx).
 		Where("batch_id", batchID).
-		Where("member_id", userID).
-		Limit(1).
-		Scan(&link); err != nil {
+		Where("member_id", userID)
+	if examPaperID > 0 {
+		memberQ = memberQ.Where("exam_paper_id", examPaperID)
+	} else {
+		cnt, err := dao.ExamBatchMember.Ctx(ctx).
+			Where("batch_id", batchID).
+			Where("member_id", userID).
+			Count()
+		if err != nil {
+			return 0, err
+		}
+		if cnt > 1 {
+			return 0, gerror.NewCode(consts.CodeExamPaperIdRequiredForBatchAttempt)
+		}
+	}
+
+	var link examentity.ExamBatchMember
+	if err := memberQ.Limit(1).Scan(&link); err != nil {
 		return 0, err
 	}
 	if link.BatchId == 0 {
 		return 0, gerror.NewCode(consts.CodeExamBatchMemberNotFound)
 	}
-	paper, err := exampaper.ByMockID(ctx, link.MockExaminationPaperId)
-	if err != nil {
+	var paper examentity.ExamPaper
+	if err := dao.ExamPaper.Ctx(ctx).
+		Where("id", link.ExamPaperId).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&paper); err != nil {
 		return 0, err
 	}
+	if paper.Id == 0 {
+		return 0, gerror.NewCode(consts.CodeExamPaperNotFound)
+	}
 	var mp mockentity.MockExaminationPaper
-	_ = dao.MockExaminationPaper.Ctx(ctx).Where("id", link.MockExaminationPaperId).Scan(&mp)
+	_ = dao.MockExaminationPaper.Ctx(ctx).Where("id", paper.MockExaminationPaperId).Scan(&mp)
 	levelID := mp.LevelId
 	attemptVar, err := dao.ExamAttempt.Ctx(ctx).
 		Fields("id").
 		Where("member_id", userID).
 		Where("exam_batch_id", batchID).
-		Where("mock_examination_paper_id", link.MockExaminationPaperId).
+		Where("exam_paper_id", paper.Id).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Value()
 	if err != nil {

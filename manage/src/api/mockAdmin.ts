@@ -19,6 +19,8 @@ export interface MockExaminationPaperItem {
   id: number
   level_id: number
   name: string
+  /** 资源包 .zip，导入时服务端替换为 /index.json */
+  resource_url?: string
   score_full: number
   time_full: number
   status: number
@@ -37,11 +39,5 @@ export function getMockExaminationPapers(params?: {
   return request.get<any, { data: { list: MockExaminationPaperItem[] } }>(
     '/admin/mock/examination-paper/list',
     { params },
-  )
-}
-
-export function getMockExaminationPaperDetail(id: number) {
-  return request.get<any, { data: { paper: MockExaminationPaperItem } }>(
-    `/admin/mock/examination-paper/${id}`,
   )
 }

@@ -1,7 +1,6 @@
 -- 管理端 Mock 接口 RBAC 说明（sys_menu.permission）
 -- GET /api/admin/mock/levels/list
 -- GET /api/admin/mock/examination-paper/list
--- GET /api/admin/mock/examination-paper/{id}
 -- 以上路径由 inferPermission 解析为权限标识：mock:list
 --
 -- 非超级管理员需在角色菜单中包含 permission = mock:list 的节点，否则返回 403。

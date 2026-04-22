@@ -34,6 +34,11 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 		return nil, err
 	}
 
+	var perms []string
+	if p, perr := middleware.GetUserPermissions(ctx, loginRes.UserInfo.Id); perr == nil {
+		perms = p
+	}
+
 	return &v1.LoginRes{
 		Token: loginRes.Token,
 		UserInfo: &v1.LoginUser{
@@ -41,6 +46,7 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 			Username: loginRes.UserInfo.Username,
 			Nickname: loginRes.UserInfo.Nickname,
 			Avatar:   loginRes.UserInfo.Avatar,
+			Permissions: perms,
 		},
 	}, nil
 }
