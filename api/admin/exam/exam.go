@@ -10,6 +10,7 @@ import (
 type IExam interface {
 	PaperList(ctx context.Context, req *v1.PaperListReq) (res *v1.PaperListRes, err error)
 	PaperDetail(ctx context.Context, req *v1.PaperDetailReq) (res *v1.PaperDetailRes, err error)
+	PaperSectionDetail(ctx context.Context, req *v1.PaperSectionDetailReq) (res *v1.PaperSectionDetailRes, err error)
 	PaperImport(ctx context.Context, req *v1.PaperImportReq) (res *v1.PaperImportRes, err error)
 	PaperUpdate(ctx context.Context, req *v1.PaperUpdateReq) (res *v1.PaperUpdateRes, err error)
 	PaperEdit(ctx context.Context, req *v1.PaperEditReq) (res *v1.PaperEditRes, err error)

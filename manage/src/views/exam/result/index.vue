@@ -223,89 +223,42 @@
             客观题分布：对 {{ objectiveCounts.correct }} · 错 {{ objectiveCounts.wrong }} · 其它
             {{ objectiveCounts.neutral }}
           </p>
-          <div class="answer-list">
-            <div
-              v-for="(a, idx) in filteredAnswers"
-              :key="answerRowKey(a, idx)"
-              class="answer-item"
-              :class="{
-                'is-open': isRowExpanded(a, idx),
-                'is-wrong-row': isObjectiveWrongRow(a),
-              }"
-              @click="toggleExpandRow(a, idx)"
-            >
-              <div class="answer-row-main">
-                <span
-                  class="q-badge"
-                  :class="rowBadgeClass(a)"
-                  >{{ a.question_no }}</span
-                >
-                <span class="q-type">{{
-                  a.is_example ? '例题' : a.is_subjective ? '主观' : '客观'
-                }}</span>
-                <span v-if="a.section_title" class="q-section">{{ a.section_title }}</span>
-                <div class="answer-row-trail">
-                  <span v-if="a.is_subjective && !a.is_example" class="q-award">
-                    {{ a.awarded_score != null ? formatScore(Number(a.awarded_score)) + ' 分' : '未评' }}
-                  </span>
-                  <span v-else-if="!a.is_example && !a.is_subjective" class="q-award">{{ a.score }} 分</span>
-                  <span class="q-icon-wrap">
-                    <el-icon v-if="rowIconKind(a) === 'ok'" class="ic-ok"><Check /></el-icon>
-                    <el-icon v-else-if="rowIconKind(a) === 'bad'" class="ic-bad"><Close /></el-icon>
-                    <el-icon v-else class="ic-muted"><Minus /></el-icon>
-                  </span>
-                  <el-icon class="chev" :class="{ 'chev-open': isRowExpanded(a, idx) }">
-                    <ArrowRight />
-                  </el-icon>
-                </div>
-              </div>
-              <div
-                v-show="isRowExpanded(a, idx)"
-                class="answer-expand"
-                @click.stop
-              >
-                <div class="exp-section">
-                  <div class="exp-label">题干</div>
-                  <div class="exp-body">{{ stemDisplayText(a) }}</div>
-                </div>
-                <div class="exp-section">
-                  <div class="exp-label">你的答案</div>
-                  <div class="exp-body exp-mono">{{ formatAnswerJson(a.answer_json) }}</div>
-                </div>
-                <template v-if="a.options && a.options.length > 0">
-                  <div class="exp-section">
-                    <div class="exp-label">选项</div>
-                    <ul class="opt-list">
-                      <li
-                        v-for="o in a.options"
-                        :key="o.id"
-                        class="opt-row"
-                        :class="{ 'opt-correct': o.is_correct === 1 }"
-                      >
-                        <span class="opt-flag">{{ o.flag }}</span>
-                        <span class="opt-content">{{ optionContentLabel(o) }}</span>
-                        <el-tag
-                          v-if="o.is_correct === 1"
-                          size="small"
-                          type="success"
-                          effect="plain"
-                          class="opt-tag"
-                          >标答</el-tag
-                        >
-                      </li>
-                    </ul>
-                  </div>
-                </template>
-                <div v-else class="exp-section exp-muted">
-                  <div class="exp-label">选项</div>
-                  <div class="exp-body">暂无选项数据</div>
-                </div>
-                <div v-if="a.analysis_text" class="exp-section">
-                  <div class="exp-label">解析</div>
-                  <div class="exp-body">{{ a.analysis_text }}</div>
-                </div>
-              </div>
-            </div>
+          <div class="paper-answer-wrap">
+            <template v-for="(sec, si) in groupedResultSections" :key="'sec-' + sec.sectionId + '-' + si">
+              <ExamPaperSectionPanel :title="sec.title">
+                <ExamQuestionReviewCard
+                  v-for="(row, ri) in sec.rows"
+                  :key="answerRowKey(row.answer, ri)"
+                  mode="review"
+                  :question-no="row.answer.question_no"
+                  :score="Number(row.answer.score) || 0"
+                  :is-example="row.answer.is_example"
+                  :is-subjective="row.answer.is_subjective"
+                  :stem-text="row.answer.stem_text || ''"
+                  :screen-text-json="row.answer.screen_text_json || ''"
+                  :topic-json="row.meta?.topicJson || ''"
+                  :block-index="row.meta?.blockIndex ?? 0"
+                  :question-index="row.meta?.questionIndex ?? 0"
+                  :block-passage-text="
+                    row.meta
+                      ? blockReadingPassageFromTopic(row.meta.topicJson, row.meta.blockIndex)
+                      : ''
+                  "
+                  :show-block-passage="row.showBlockPassage"
+                  :source-base-url="resolvedSourceBaseUrl"
+                  :audio-file="questionAudioById.get(row.answer.question_id) || ''"
+                  :options="row.optionsForCard"
+                  :show-correct-options="true"
+                  :answer-json="row.answer.answer_json || ''"
+                  :objective-correct="row.answer.objective_correct"
+                  :awarded-score="row.answer.awarded_score"
+                  :analysis-text="row.answer.analysis_text || ''"
+                />
+              </ExamPaperSectionPanel>
+            </template>
+            <p v-if="groupedResultSections.length === 0" class="ratio-hint paper-answer-empty">
+              暂无符合条件题目。
+            </p>
           </div>
         </el-card>
 
@@ -352,7 +305,7 @@
 import { computed, reactive, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import type { Component } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Check, Close, Minus, Trophy, Medal, ChatDotRound, ArrowRight } from '@element-plus/icons-vue'
+import { Trophy, Medal, ChatDotRound } from '@element-plus/icons-vue'
 import { formatUtcForDisplay, formatUtcText } from '@/utils/datetime'
 import {
   getAttemptList,
@@ -361,8 +314,16 @@ import {
   type AttemptListItem,
   type AttemptDetail,
   type AttemptDetailAnswer,
-  type AttemptDetailOption,
 } from '@/api/examAttempt'
+import { getExamPaperDetail, type ExamPaperDetail } from '@/api/exam'
+import ExamPaperSectionPanel from '@/components/exam/ExamPaperSectionPanel.vue'
+import ExamQuestionReviewCard from '@/components/exam/ExamQuestionReviewCard.vue'
+import type { ExamOptionDisplayRow } from '@/utils/examDisplay'
+import {
+  buildQuestionTopicMetaById,
+  blockReadingPassageFromTopic,
+  type QuestionTopicMeta,
+} from '@/utils/examPaperQuestionDisplay'
 import { getMockExaminationPapers, type MockExaminationPaperItem } from '@/api/mockAdmin'
 
 const loading = ref(false)
@@ -383,12 +344,12 @@ const paperOptions = ref<MockExaminationPaperItem[]>([])
 
 const drawer = ref(false)
 const detail = ref<AttemptDetail | null>(null)
+/** 打开详情后按需拉取，用于 topic_json / 音频等与试卷对齐 */
+const paperDetailForResult = ref<ExamPaperDetail | null>(null)
 const detailId = ref(0)
 const subjectiveScores = ref<Record<number, number>>({})
 const savingScores = ref(false)
 
-/** 统一 string key，避免接口返回 question_id 为字符串时与 number 比较导致展开态永远不命中 */
-const expandedRowKeys = ref<string[]>([])
 const answerFilter = ref<'all' | 'wrong'>('all')
 const displayScore = ref(0)
 const ringPercentage = ref(0)
@@ -424,31 +385,95 @@ const filteredAnswers = computed(() => {
   )
 })
 
+interface ResultAnswerRow {
+  answer: AttemptDetailAnswer
+  meta?: QuestionTopicMeta
+  showBlockPassage: boolean
+  optionsForCard: ExamOptionDisplayRow[]
+}
+
 function answerRowKey(a: AttemptDetailAnswer, idx: number) {
   const qid = a.question_id ?? idx
   const qno = a.question_no ?? idx
   return `q-${qid}-${qno}-${idx}`
 }
 
-/** 与列表行一一对应的展开键（含 idx 兜底，避免 id 缺失或重复） */
-function expandRowKey(a: AttemptDetailAnswer, idx: number): string {
-  const raw = a.question_id as unknown
-  if (raw !== undefined && raw !== null && String(raw) !== '') {
-    return `${String(raw)}#${idx}`
+const topicMetaByQuestionId = computed(() => buildQuestionTopicMetaById(paperDetailForResult.value))
+
+const questionAudioById = computed(() => {
+  const m = new Map<number, string>()
+  for (const sec of paperDetailForResult.value?.sections ?? []) {
+    for (const b of sec.blocks ?? []) {
+      for (const q of b.questions ?? []) {
+        const af = (q.audio_file || '').trim()
+        if (af) m.set(q.id, af)
+      }
+    }
   }
-  return `row-${idx}`
-}
+  return m
+})
 
-function isRowExpanded(a: AttemptDetailAnswer, idx: number) {
-  return expandedRowKeys.value.includes(expandRowKey(a, idx))
-}
+const resolvedSourceBaseUrl = computed(() => {
+  const fromAttempt = (detail.value?.paper?.source_base_url || '').trim()
+  if (fromAttempt) return fromAttempt
+  return (paperDetailForResult.value?.paper?.source_base_url || '').trim()
+})
 
-function toggleExpandRow(a: AttemptDetailAnswer, idx: number) {
-  const key = expandRowKey(a, idx)
-  const cur = expandedRowKeys.value
-  const i = cur.indexOf(key)
-  expandedRowKeys.value = i >= 0 ? cur.filter((x) => x !== key) : [...cur, key]
-}
+const groupedResultSections = computed(() => {
+  const list = filteredAnswers.value
+  if (!list.length) return [] as { sectionId: number; title: string; rows: ResultAnswerRow[] }[]
+  const paper = paperDetailForResult.value
+  const sectionSort = new Map<number, number>()
+  const sectionTitlePaper = new Map<number, string>()
+  if (paper?.sections?.length) {
+    for (const s of paper.sections) {
+      sectionSort.set(s.id, s.sort_order ?? 0)
+      const tt = (s.topic_title || '').trim()
+      if (tt) sectionTitlePaper.set(s.id, tt)
+    }
+  }
+  const bySec = new Map<number, AttemptDetailAnswer[]>()
+  for (const a of list) {
+    const sid = Number(a.section_id) || 0
+    if (!bySec.has(sid)) bySec.set(sid, [])
+    bySec.get(sid)!.push(a)
+  }
+  const metaMap = topicMetaByQuestionId.value
+  const ids = [...bySec.keys()].sort((x, y) => {
+    const hasX = sectionSort.has(x)
+    const hasY = sectionSort.has(y)
+    const ox = hasX ? (sectionSort.get(x) ?? x) : x + 1_000_000
+    const oy = hasY ? (sectionSort.get(y) ?? y) : y + 1_000_000
+    if (ox !== oy) return ox - oy
+    return x - y
+  })
+  return ids.map((sectionId) => {
+    const answers = (bySec.get(sectionId) || []).slice().sort((p, q) => {
+      return (Number(p.question_no) || 0) - (Number(q.question_no) || 0)
+    })
+    let prevBlockKey: string | null = null
+    const rows: ResultAnswerRow[] = answers.map((answer) => {
+      const meta = metaMap.get(Number(answer.question_id))
+      const blockKey = meta != null ? String(meta.blockIndex) : `na:${answer.question_id}`
+      const showBlock = prevBlockKey !== blockKey
+      prevBlockKey = blockKey
+      const optionsForCard: ExamOptionDisplayRow[] = (answer.options ?? []).map((o) => ({
+        id: o.id,
+        flag: o.flag,
+        content: o.content,
+        is_correct: o.is_correct,
+        option_type: o.option_type,
+        sort_order: o.sort_order,
+      }))
+      return { answer, meta, showBlockPassage: showBlock, optionsForCard }
+    })
+    const title =
+      sectionTitlePaper.get(sectionId) ||
+      (answers[0]?.section_title || '').trim() ||
+      `大题 #${sectionId}`
+    return { sectionId, title, rows }
+  })
+})
 
 const subjectiveRows = computed(() => {
   if (!detail.value) return []
@@ -642,7 +667,6 @@ watch(
   () => [drawer.value, detail.value?.attempt.id] as const,
   ([open]) => {
     if (open && detail.value) {
-      expandedRowKeys.value = []
       answerFilter.value = 'all'
       nextTick(() => startScoreAnimation())
     } else {
@@ -652,43 +676,6 @@ watch(
 )
 
 onUnmounted(() => cancelScoreAnimation())
-
-function rowBadgeClass(a: AttemptDetailAnswer) {
-  if (a.is_example || a.is_subjective) return 'badge-neutral'
-  if (a.objective_correct === true) return 'badge-ok'
-  if (a.objective_correct === false) return 'badge-bad'
-  return 'badge-neutral'
-}
-
-function rowIconKind(a: AttemptDetailAnswer): 'ok' | 'bad' | 'muted' {
-  if (a.is_example || a.is_subjective) return 'muted'
-  if (a.objective_correct === true) return 'ok'
-  if (a.objective_correct === false) return 'bad'
-  return 'muted'
-}
-
-function isObjectiveWrongRow(a: AttemptDetailAnswer) {
-  return !a.is_example && !a.is_subjective && a.objective_correct === false
-}
-
-function stemDisplayText(a: AttemptDetailAnswer) {
-  const s = (a.stem_text || '').trim()
-  if (s) return s
-  return '（无文字题干；听力/图片等题型可能仅有资源文件名，见下方选项或试卷资源）'
-}
-
-function optionContentLabel(o: AttemptDetailOption) {
-  const c = (o.content || '').trim()
-  if (!c) return '—'
-  const t = (o.option_type || '').toLowerCase()
-  if (t === 'image' || /\.(jpe?g|png|gif|webp|svg)(\?|$)/i.test(c)) {
-    return `[图片] ${c}`
-  }
-  if (t === 'audio' || /\.(mp3|wav|m4a|ogg)(\?|$)/i.test(c)) {
-    return `[音频] ${c}`
-  }
-  return c
-}
 
 function formatScore(n: number) {
   if (Number.isNaN(n)) return '—'
@@ -707,22 +694,6 @@ function statusText(s: number) {
       return '已结束'
     default:
       return String(s)
-  }
-}
-
-function formatAnswerJson(raw: string) {
-  if (!raw) return '—'
-  try {
-    const o = JSON.parse(raw) as Record<string, unknown>
-    if (typeof o.option_id === 'number') return `选项 ID: ${o.option_id}`
-    const sel = o.selected_option_ids
-    if (Array.isArray(sel) && sel.length > 0) {
-      return `选项 ID: ${sel.map((x) => String(x)).join('、')}`
-    }
-    if (typeof o.text === 'string') return o.text.length > 80 ? `${o.text.slice(0, 80)}…` : o.text
-    return JSON.stringify(o)
-  } catch {
-    return raw.length > 100 ? `${raw.slice(0, 100)}…` : raw
   }
 }
 
@@ -771,6 +742,7 @@ function resetQuery() {
 async function openDetail(row: AttemptListItem) {
   detailId.value = row.id
   drawer.value = true
+  paperDetailForResult.value = null
   try {
     const res = (await getAttemptDetail(row.id)) as { data?: AttemptDetail }
     detail.value = res?.data ?? null
@@ -785,9 +757,18 @@ async function openDetail(row: AttemptListItem) {
     }
     subjectiveScores.value = m
     answerFilter.value = 'all'
-    expandedRowKeys.value = []
+    const pid = Number(detail.value?.paper?.exam_paper_id)
+    if (detail.value && pid > 0 && !Number.isNaN(pid)) {
+      try {
+        const pr = (await getExamPaperDetail(pid)) as { data?: ExamPaperDetail }
+        paperDetailForResult.value = pr?.data ?? null
+      } catch {
+        paperDetailForResult.value = null
+      }
+    }
   } catch {
     detail.value = null
+    paperDetailForResult.value = null
   }
 }
 
@@ -1146,252 +1127,17 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
 }
 
-.answer-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-height: 480px;
+.paper-answer-wrap {
+  max-height: min(56vh, 640px);
   overflow-y: auto;
   padding-right: 4px;
 }
 
-.answer-list > .answer-item {
-  flex-shrink: 0;
+.paper-answer-empty {
+  margin-top: 4px;
 }
 
-.answer-item {
-  display: flex;
-  flex-direction: column;
-  isolation: isolate;
-  border-radius: 10px;
-  background: var(--el-fill-color-blank);
-  border: 1px solid var(--el-border-color-lighter);
-  overflow: hidden;
-  min-height: 48px;
-  cursor: pointer;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
-}
-
-.answer-item:hover {
-  border-color: var(--el-border-color);
-}
-
-.answer-item.is-open {
-  border-color: color-mix(in srgb, var(--result-brand) 35%, var(--el-border-color));
-  box-shadow: 0 2px 10px rgb(44 82 130 / 0.08);
-}
-
-.answer-item.is-wrong-row {
-  background: rgb(201 123 114 / 0.08);
-}
-
-.answer-item.is-wrong-row.is-open {
-  background: rgb(201 123 114 / 0.1);
-}
-
-.answer-row-main {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 12px 12px 14px;
-  flex-wrap: nowrap;
-  flex-shrink: 0;
-  min-height: 48px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  position: relative;
-  z-index: 1;
-  background: inherit;
-}
-
-.answer-row-trail {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 10px;
-  margin-left: auto;
-  padding-left: 8px;
-}
-
-.q-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  color: #fff;
-}
-
-.badge-ok {
-  background: var(--result-ok);
-}
-
-.badge-bad {
-  background: var(--result-bad);
-}
-
-.badge-neutral {
-  background: var(--result-muted-bg);
-  color: var(--el-text-color-regular);
-}
-
-.q-type {
-  font-size: 12px;
-  flex-shrink: 0;
-  color: var(--el-text-color-secondary);
-}
-
-.q-section {
-  font-size: 12px;
-  flex: 1 1 auto;
-  min-width: 0;
-  color: var(--el-text-color-regular);
-  max-width: min(320px, 50vw);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.q-award {
-  font-size: 13px;
-  flex-shrink: 0;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  text-align: right;
-  min-width: 3.5em;
-}
-
-.q-icon-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-}
-
-.ic-ok,
-.ic-bad,
-.ic-muted {
-  font-size: 20px;
-}
-
-.ic-ok {
-  color: var(--result-ok);
-}
-
-.ic-bad {
-  color: var(--result-bad);
-}
-
-.ic-muted {
-  color: var(--result-muted-bg);
-}
-
-.chev {
-  font-size: 18px;
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  color: var(--el-text-color-placeholder);
-  transition: transform 0.25s ease;
-}
-
-.chev-open {
-  transform: rotate(90deg);
-}
-
-.answer-expand {
-  flex: 0 0 auto;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0 14px 14px 58px;
-  border-top: 1px dashed var(--el-border-color-lighter);
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--el-text-color-regular);
-  position: relative;
-  z-index: 0;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-.exp-section {
-  margin-top: 12px;
-}
-
-.exp-section:first-child {
-  margin-top: 10px;
-}
-
-.exp-body {
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-.exp-mono {
-  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
-  font-size: 12px;
-}
-
-.exp-muted {
-  color: var(--el-text-color-placeholder);
-  font-size: 12px;
-}
-
-.exp-label {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--el-text-color-secondary);
-  margin-bottom: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.opt-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.opt-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 8px;
-  margin-bottom: 8px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--el-fill-color) 92%, transparent);
-}
-
-.opt-content {
-  flex: 1 1 140px;
-  min-width: 0;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-.opt-tag {
-  flex-shrink: 0;
-}
-
-.opt-correct {
-  font-weight: 500;
-}
-
-.opt-flag {
-  font-weight: 700;
-  flex-shrink: 0;
+.paper-answer-wrap :deep(.exam-opt-flag) {
   color: var(--result-brand);
 }
 </style>

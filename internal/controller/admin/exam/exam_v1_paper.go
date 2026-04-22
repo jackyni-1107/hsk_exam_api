@@ -55,6 +55,18 @@ func (c *ControllerV1) PaperDetail(ctx context.Context, req *v1.PaperDetailReq) 
 	return &out, nil
 }
 
+func (c *ControllerV1) PaperSectionDetail(ctx context.Context, req *v1.PaperSectionDetailReq) (res *v1.PaperSectionDetailRes, err error) {
+	d, err := papersvc.Paper().PaperDetailSection(ctx, req.Id, req.SectionId)
+	if err != nil {
+		return nil, err
+	}
+	var section v1.PaperDetailSection
+	if err := gconv.Scan(d, &section); err != nil {
+		return nil, err
+	}
+	return &v1.PaperSectionDetailRes{Section: section}, nil
+}
+
 func (c *ControllerV1) PaperImport(ctx context.Context, req *v1.PaperImportReq) (res *v1.PaperImportRes, err error) {
 	creator := ""
 	if d := middleware.GetCtxData(ctx); d != nil {

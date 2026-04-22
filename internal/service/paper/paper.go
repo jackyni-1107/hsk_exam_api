@@ -29,6 +29,8 @@ type (
 		InvalidatePaperSectionForExamCache(ctx context.Context, examPaperId int64, sectionId int64)
 		// PaperDetail 返回试卷及嵌套大题、题块、小题、选项（只读查看）。
 		PaperDetail(ctx context.Context, examPaperId int64) (*exambo.PaperDetailTree, error)
+		// PaperDetailSection 仅返回单个大题（含选项正误），与 PaperDetail 中一节结构一致。
+		PaperDetailSection(ctx context.Context, examPaperId int64, sectionId int64) (*exambo.SectionDetailView, error)
 		// UpdatePaperSettings 修改试卷听力 HLS 配置（答题时长以 mock_examination_paper 为准）。
 		UpdatePaperSettings(ctx context.Context, examPaperId int64, in exambo.PaperHlsExamAdminUpdate, updater string) error
 		// UpdatePaperMeta 管理端修改试卷元数据（不含 HLS、题目树）。

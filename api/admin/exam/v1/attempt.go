@@ -85,17 +85,20 @@ type AttemptDetailUser struct {
 }
 
 type AttemptDetailPaper struct {
-	Id      int64  `json:"id" dc:"mock_examination_paper.id"`
-	Name    string `json:"name" dc:"mock_examination_paper.name"`
-	Level   string `json:"level" dc:"试卷级别"`
-	PaperId string `json:"paper_id" dc:"远程试卷ID"`
-	Title   string `json:"title" dc:"exam_paper.title"`
+	Id            int64  `json:"id" dc:"mock_examination_paper.id"`
+	Name          string `json:"name" dc:"mock_examination_paper.name"`
+	Level         string `json:"level" dc:"试卷级别"`
+	PaperId       string `json:"paper_id" dc:"远程试卷ID"`
+	Title         string `json:"title" dc:"exam_paper.title"`
+	ExamPaperId   int64  `json:"exam_paper_id" dc:"exam_paper.id"`
+	SourceBaseUrl string `json:"source_base_url" dc:"资源基址（拼接题目包内相对路径）"`
 }
 
 type AttemptDetailAnswer struct {
 	QuestionId       int64                 `json:"question_id" dc:"题目ID"`
 	QuestionNo       int                   `json:"question_no" dc:"题号"`
 	StemText         string                `json:"stem_text" dc:"题干文本"`
+	ScreenTextJson   string                `json:"screen_text_json" dc:"屏幕文本 JSON（与试卷详情一致）"`
 	IsExample        int                   `json:"is_example" dc:"是否例题：0否 1是"`
 	IsSubjective     int                   `json:"is_subjective" dc:"是否主观题：0否 1是"`
 	Score            float64               `json:"score" dc:"题目分值"`

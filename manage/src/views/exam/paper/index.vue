@@ -394,12 +394,59 @@
                 <el-descriptions-item label="segment_code">{{
                   s.segment_code
                 }}</el-descriptions-item>
+                <el-descriptions-item label="大题ID">{{
+                  s.id
+                }}</el-descriptions-item>
               </el-descriptions>
-              <div class="sub">topic_json 预览</div>
-              <pre class="json-preview sm">{{
-                truncate(s.topic_json, 4000)
-              }}</pre>
-              <div class="sub">题块数 {{ s.blocks?.length ?? 0 }}</div>
+
+              <ExamPaperSectionPanel
+                :title="`试卷结构 · ${s.topic_title || s.topic_type}`"
+                :subtitle="`part ${s.part_code} · ${s.segment_code || ''}`.trim()"
+              >
+                <template v-if="s.blocks?.length">
+                  <template v-for="(b, bi) in s.blocks" :key="b.id">
+                    <div class="block-head">
+                      题块 {{ b.block_order }}（#{{ b.id }}）
+                    </div>
+                    <ExamQuestionReviewCard
+                      v-for="(q, qi) in b.questions"
+                      :key="q.id"
+                      mode="preview"
+                      :question-no="q.question_no"
+                      :score="q.score"
+                      :is-example="q.is_example"
+                      :is-subjective="0"
+                      :stem-text="q.stem_text"
+                      :screen-text-json="q.screen_text_json"
+                      :topic-json="s.topic_json"
+                      :block-index="bi"
+                      :question-index="qi"
+                      :block-passage-text="blockReadingPassage(s.topic_json, bi)"
+                      :show-block-passage="qi === 0"
+                      :source-base-url="examDetail.paper.source_base_url"
+                      :audio-file="q.audio_file"
+                      :options="q.options ?? []"
+                      :analysis-text="analysisLine(q.analysis_json)"
+                      :show-correct-options="true"
+                    />
+                  </template>
+                </template>
+                <el-empty v-else description="本题下无题块/小题数据" :image-size="72" />
+              </ExamPaperSectionPanel>
+
+              <el-collapse
+                v-if="s.topic_json"
+                class="topic-debug-collapse"
+              >
+                <el-collapse-item
+                  title="调试：topic_json 原始数据"
+                  :name="`topic-${s.id}`"
+                >
+                  <pre class="json-preview sm">{{
+                    truncate(s.topic_json, 4000)
+                  }}</pre>
+                </el-collapse-item>
+              </el-collapse>
             </el-collapse-item>
           </el-collapse>
         </template>
@@ -475,14 +522,17 @@ import {
   type MockExaminationPaperItem,
 } from "@/api/mockAdmin";
 import { formatUtcText } from "@/utils/datetime";
+import { analysisDisplayText } from "@/utils/examDisplay";
+import { blockReadingPassageFromTopic as blockReadingPassage } from "@/utils/examPaperQuestionDisplay";
+import ExamPaperSectionPanel from "@/components/exam/ExamPaperSectionPanel.vue";
+import ExamQuestionReviewCard from "@/components/exam/ExamQuestionReviewCard.vue";
 
 /** 与后端 sys_menu.permission、试卷物理删除接口一致 */
 const PERM_EXAM_PAPER_PURGE = "exam:paper:purge";
 
 const userStore = useUserStore();
 const canPurgeExamPaper = computed(() =>
-    console.log(userStore.userInfo)
-  (userStore.userInfo?.permissions ?? []).includes(PERM_EXAM_PAPER_PURGE)
+  (userStore.userInfo?.permissions ?? []).includes(PERM_EXAM_PAPER_PURGE),
 );
 
 const loading = ref(false);
@@ -622,6 +672,10 @@ async function submitPurge() {
 function truncate(s: string, max: number) {
   if (!s) return "";
   return s.length <= max ? s : s.slice(0, max) + "\n…（已截断）";
+}
+
+function analysisLine(raw: string | undefined) {
+  return analysisDisplayText(raw ?? "");
 }
 
 async function loadList() {
@@ -934,6 +988,25 @@ onMounted(async () => {
   margin: 8px 0 4px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+.block-head {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.block-head:first-child {
+  margin-top: 4px;
+}
+
+.topic-debug-collapse {
+  margin-top: 12px;
+}
+
+.detail-wrap :deep(.exam-opt-flag) {
+  color: var(--el-color-primary);
 }
 .mt {
   margin-top: 16px;

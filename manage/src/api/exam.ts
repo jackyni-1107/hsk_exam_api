@@ -90,6 +90,14 @@ export function getExamPaperDetail(id: number) {
   return request.get<any, { data: ExamPaperDetail }>(`/admin/exam/paper/${id}`)
 }
 
+/** 单大题详情（与详情中一节结构一致，含选项正误）；用于大卷按需加载 */
+export function getExamPaperSection(paperId: number, sectionId: number) {
+  return request.get<
+    any,
+    { data: { section: ExamPaperDetail['sections'][number] } }
+  >(`/admin/exam/paper/${paperId}/sections/${sectionId}`)
+}
+
 export function importExamPaper(data: {
   mock_examination_paper_id: number
   /** 可选，写入 exam_paper.title；不传则用 mock 卷名称 */

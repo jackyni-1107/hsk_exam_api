@@ -26,6 +26,8 @@ export interface AttemptDetailAnswer {
   question_id: number;
   question_no: number;
   stem_text: string;
+  /** 与试卷详情小题一致，套题/富文本题干 */
+  screen_text_json?: string;
   is_example: number;
   is_subjective: number;
   score: number;
@@ -74,6 +76,10 @@ export interface AttemptDetail {
     paper_id: string;
     /** exam_paper.title */
     title: string;
+    /** exam_paper.id，用于拉取试卷 topic_json 等 */
+    exam_paper_id?: number;
+    /** 资源基址，拼接图片/音频相对路径 */
+    source_base_url?: string;
   };
   answers: AttemptDetailAnswer[];
 }

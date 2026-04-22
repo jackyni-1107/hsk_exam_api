@@ -93,6 +93,16 @@ type PaperDetailReq struct {
 	Id     int64 `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"exam_paper.id"`
 }
 
+type PaperSectionDetailReq struct {
+	g.Meta    `path:"/exam/paper/{id}/sections/{sectionId}" method:"get" tags:"试卷管理" summary:"单大题详情（与试卷详情中一节一致，含选项正误）；id 为 exam_paper.id"`
+	Id        int64 `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"exam_paper.id"`
+	SectionId int64 `json:"sectionId" in:"path" v:"required|min:1#err.invalid_params" dc:"大题 exam_section.id"`
+}
+
+type PaperSectionDetailRes struct {
+	Section PaperDetailSection `json:"section" dc:"大题（题块/试题/选项）"`
+}
+
 type PaperDetailRes struct {
 	Paper    PaperDetailPaper     `json:"paper" dc:"试卷信息"`
 	Sections []PaperDetailSection `json:"sections" dc:"大题列表"`
