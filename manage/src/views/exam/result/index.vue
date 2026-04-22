@@ -404,6 +404,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import type { Component } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Trophy, Medal, ChatDotRound } from '@element-plus/icons-vue'
@@ -522,6 +523,8 @@ function buildSubjectiveGradingRows(
 const loading = ref(false)
 const rows = ref<AttemptListItem[]>([])
 const total = ref(0)
+const route = useRoute()
+
 const query = reactive({
   page: 1,
   size: 10,
@@ -530,6 +533,8 @@ const query = reactive({
   status: 0 as number,
   examination_paper_id: 0 as number,
   exam_batch_id: 0 as number,
+  /** 0 不限；1 仅待主观题评阅 */
+  subjective_pending: 0 as number,
 })
 
 const paperSel = ref<number | undefined>(undefined)
@@ -942,6 +947,7 @@ async function loadList() {
       examination_paper_id: query.examination_paper_id || undefined,
       exam_batch_id: query.exam_batch_id > 0 ? query.exam_batch_id : undefined,
       status: query.status || undefined,
+      subjective_pending: query.subjective_pending === 1 ? 1 : undefined,
     })) as { data?: { list?: AttemptListItem[]; total?: number } }
     rows.value = res?.data?.list ?? []
     total.value = res?.data?.total ?? 0
@@ -957,6 +963,7 @@ function resetQuery() {
   query.level = ''
   query.status = 0
   query.exam_batch_id = 0
+  query.subjective_pending = 0
   paperSel.value = undefined
   loadList()
 }
@@ -1117,8 +1124,38 @@ async function saveSubjectiveFromDialog() {
   }
 }
 
-onMounted(() => {
-  loadPapers()
+function applyRouteQuery() {
+  const q = route.query
+  const lv = q.level
+  if (typeof lv === 'string' && lv) query.level = lv
+  const eid = q.examination_paper_id
+  if (eid !== undefined && eid !== '') {
+    const n = Number(eid)
+    if (!Number.isNaN(n) && n > 0) {
+      query.examination_paper_id = n
+      paperSel.value = n
+    }
+  }
+  const bid = q.exam_batch_id
+  if (bid !== undefined && bid !== '') {
+    const n = Number(bid)
+    if (!Number.isNaN(n) && n > 0) query.exam_batch_id = n
+  }
+  const st = q.status
+  if (st !== undefined && st !== '') {
+    const n = Number(st)
+    if (!Number.isNaN(n) && n >= 1 && n <= 4) query.status = n
+  }
+  if (q.subjective_pending === '1' || q.subjective_pending === 1) {
+    query.subjective_pending = 1
+  }
+  const u = q.username
+  if (typeof u === 'string' && u) query.username = u
+}
+
+onMounted(async () => {
+  await loadPapers()
+  applyRouteQuery()
   loadList()
 })
 </script>

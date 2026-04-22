@@ -95,7 +95,32 @@ onMounted(async () => {
   try {
     const res = (await getUserMenus()) as { data?: { list?: MenuTreeNode[] } }
     const list = filterSidebarMenus(res?.data?.list ?? [])
-    // 临时：工作台 HLS 联调入口（不写入菜单表，上线前可删）
+    const hasDashboardPath = (nodes: MenuTreeNode[]): boolean => {
+      for (const n of nodes) {
+        if (n.path === '/dashboard') return true
+        if (n.children?.length && hasDashboardPath(n.children)) return true
+      }
+      return false
+    }
+    // 若数据库未配置「工作台」侧栏，则补一条（与 HLS 联调同级）
+    if (!hasDashboardPath(list)) {
+      list.unshift({
+        id: -998,
+        name: '工作台',
+        permission: '',
+        type: 2,
+        sort: 0,
+        parent_id: 0,
+        path: '/dashboard',
+        icon: 'Odometer',
+        component: '',
+        component_name: '',
+        status: 1,
+        visible: true,
+        children: [],
+      })
+    }
+    // 临时：HLS 联调入口（不写入菜单表，上线前可删）
     list.push({
       id: -999,
       name: 'HLS 联调',

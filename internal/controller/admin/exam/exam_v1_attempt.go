@@ -18,7 +18,7 @@ import (
 )
 
 func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) (res *v1.AttemptListRes, err error) {
-	rows, total, err := attemptsvc.Attempt().AttemptAdminList(ctx, req.Page, req.Size, req.Level, req.ExaminationPaperId, req.ExamBatchId, req.Status, req.Username)
+	rows, total, err := attemptsvc.Attempt().AttemptAdminList(ctx, req.Page, req.Size, req.Level, req.ExaminationPaperId, req.ExamBatchId, req.Status, req.Username, req.SubjectivePending)
 	if err != nil {
 		return nil, err
 	}
@@ -48,6 +48,49 @@ func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) 
 		})
 	}
 	return &v1.AttemptListRes{List: list, Total: total}, nil
+}
+
+func (c *ControllerV1) AttemptStats(ctx context.Context, req *v1.AttemptStatsReq) (res *v1.AttemptStatsRes, err error) {
+	v, err := attemptsvc.Attempt().AttemptAdminStats(ctx, req.Level, req.ExaminationPaperId, req.ExamBatchId)
+	if err != nil {
+		return nil, err
+	}
+	updatedAt := ""
+	if v.UpdatedAt != nil {
+		if v.FromCache {
+			updatedAt = utility.ToRFC3339UTC(v.UpdatedAt)
+		} else {
+			updatedAt = utility.ToRFC3339UTCShift(v.UpdatedAt)
+		}
+	}
+	trend := make([]v1.AttemptStatsDayPointV1, 0, len(v.Trend7d))
+	for _, t := range v.Trend7d {
+		trend = append(trend, v1.AttemptStatsDayPointV1{Date: t.Date, Count: t.Count})
+	}
+	bks := make([]v1.AttemptStatsScoreChunkV1, 0, len(v.Buckets))
+	for _, b := range v.Buckets {
+		bks = append(bks, v1.AttemptStatsScoreChunkV1{BucketLow: b.BucketLow, Count: b.Count})
+	}
+	return &v1.AttemptStatsRes{
+		UpdatedAt:           updatedAt,
+		FromCache:           v.FromCache,
+		StatusNotStarted:    v.StatusNotStarted,
+		StatusInProgress:    v.StatusInProgress,
+		StatusSubmitted:     v.StatusSubmitted,
+		StatusEnded:         v.StatusEnded,
+		Total:               v.Total,
+		FinishedCount:       v.FinishedCount,
+		SubjectivePending:   v.SubjectivePending,
+		TodayNew:            v.TodayNew,
+		CompletionRate:      v.CompletionRate,
+		AvgObjective:        v.AvgObjective,
+		AvgSubjective:       v.AvgSubjective,
+		AvgTotal:            v.AvgTotal,
+		Trend7d:             trend,
+		ScoreDistribution:   bks,
+		BatchMemberCount:    v.BatchMemberCount,
+		BatchCompletionRate: v.BatchCompletionRate,
+	}, nil
 }
 
 func (c *ControllerV1) AttemptDetail(ctx context.Context, req *v1.AttemptDetailReq) (res *v1.AttemptDetailRes, err error) {

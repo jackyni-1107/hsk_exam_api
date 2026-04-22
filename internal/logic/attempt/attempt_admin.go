@@ -2,7 +2,6 @@ package attempt
 
 import (
 	"context"
-	"strings"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -20,60 +19,19 @@ import (
 )
 
 // AttemptAdminList 分页查询答题会话（联表学员、试卷）。
-func (s *sAttempt) AttemptAdminList(ctx context.Context, page, size int, level string, examinationPaperId int64, examBatchId int64, status int, username string) ([]bo.AttemptAdminListRow, int, error) {
+func (s *sAttempt) AttemptAdminList(ctx context.Context, page, size int, level string, examinationPaperId int64, examBatchId int64, status int, username string, subjectivePending int) ([]bo.AttemptAdminListRow, int, error) {
 	page, size = s.getPageSize(page, size)
-	var where strings.Builder
-	where.WriteString("r.delete_flag = ?")
-	args := []interface{}{consts.DeleteFlagNotDeleted}
-	if level != "" {
-		where.WriteString(" AND p.level = ?")
-		args = append(args, level)
+	q := AttemptAdminListQuery{
+		Level:              level,
+		ExaminationPaperId: examinationPaperId,
+		ExamBatchId:        examBatchId,
+		Status:             status,
+		Username:           username,
+		SubjectivePending:  subjectivePending,
 	}
-	if examinationPaperId > 0 {
-		where.WriteString(" AND p.mock_examination_paper_id = ?")
-		args = append(args, examinationPaperId)
-	}
-	if examBatchId > 0 {
-		where.WriteString(" AND r.exam_batch_id = ?")
-		args = append(args, examBatchId)
-	}
-	if status > 0 {
-		where.WriteString(" AND r.status = ?")
-		args = append(args, status)
-	}
-	if username != "" {
-		where.WriteString(" AND u.username LIKE ?")
-		args = append(args, "%"+username+"%")
-	}
-	w := where.String()
-	// 主观题是否已有人工分：派生表 + LEFT JOIN，避免 SELECT 中相关子查询在部分环境报错，且只算一次
-	from := ` FROM exam_result r
-INNER JOIN exam_attempt a ON a.id = r.attempt_id AND a.delete_flag = ?
-LEFT JOIN (
-  SELECT eaa.attempt_id, 1 AS has_subjective_graded
-  FROM exam_attempt_answer eaa
-  INNER JOIN exam_question eq ON eq.id = eaa.exam_question_id
-    AND eq.is_subjective = 1 AND eq.is_example = 0
-    AND eq.delete_flag = 0
-  WHERE eaa.delete_flag = 0
-    AND eaa.awarded_score IS NOT NULL
-  GROUP BY eaa.attempt_id
-) subj_gr ON subj_gr.attempt_id = r.attempt_id
-LEFT JOIN sys_member u ON u.id = r.member_id AND u.delete_flag = ?
-LEFT JOIN exam_paper p ON p.id = r.exam_paper_id AND p.delete_flag = ?
-LEFT JOIN mock_examination_paper m ON m.id = p.mock_examination_paper_id AND m.delete_flag = ?
-LEFT JOIN mock_levels ml ON ml.id = r.mock_level_id AND ml.delete_flag = ?
-WHERE ` + w
-	joinArgs := []interface{}{
-		consts.DeleteFlagNotDeleted,
-		consts.DeleteFlagNotDeleted,
-		consts.DeleteFlagNotDeleted,
-		consts.DeleteFlagNotDeleted,
-		consts.DeleteFlagNotDeleted,
-	}
-
+	from, joinArgs, whereArgs := q.buildAttemptAdminListFrom()
 	countSQL := "SELECT COUNT(1) AS total" + from
-	countArgs := append(append([]interface{}{}, joinArgs...), args...)
+	countArgs := attemptAdminListCountArgs(joinArgs, whereArgs)
 	var cnt struct {
 		Total int `json:"total"`
 	}
@@ -96,7 +54,7 @@ IFNULL(u.username,'') AS username, IFNULL(u.nickname,'') AS nickname,
 	COALESCE(NULLIF(TRIM(IFNULL(ml.level_name,'')), ''), IFNULL(p.level,'')) AS paper_level,
 	IFNULL(p.paper_id,'') AS remote_paper_id` +
 		from + ` ORDER BY r.attempt_id DESC LIMIT ? OFFSET ?`
-	listArgs := append(append([]interface{}{}, joinArgs...), args...)
+	listArgs := attemptAdminListCountArgs(joinArgs, whereArgs)
 	listArgs = append(listArgs, size, offset)
 
 	var rows []bo.AttemptAdminListRow

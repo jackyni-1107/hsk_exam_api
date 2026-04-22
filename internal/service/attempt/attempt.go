@@ -16,12 +16,13 @@ import (
 type (
 	IAttempt interface {
 		// AttemptAdminList 分页查询答题会话（联表学员、试卷）。
-		AttemptAdminList(ctx context.Context, page int, size int, level string, examinationPaperId int64, examBatchId int64, status int, username string) ([]bo.AttemptAdminListRow, int, error)
+		AttemptAdminList(ctx context.Context, page int, size int, level string, examinationPaperId int64, examBatchId int64, status int, username string, subjectivePending int) ([]bo.AttemptAdminListRow, int, error)
 		// AttemptAdminDetail 按 id 加载会话、学员、试卷及答题明细（含客观题是否选对）。
 		AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.AttemptAdminDetailView, error)
-		// AttemptAdminSaveSubjectiveScores 写入主观题人工分并汇总 subjective_score、total_score；每会话仅允许首次成功保存。
+		// AttemptAdminSaveSubjectiveScores 写入主观题人工分并汇总 subjective_score、total_score。每会话仅允许首次成功保存。
 		AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, items []bo.SubjectiveScoreItem) (subjectiveSum float64, totalScore float64, err error)
-		// CreateAttemptForBatch 按批次创建会话（未开始）；examPaperID 为多卷批次必选（见 exam_batch_member.exam_paper_id）；单卷批次可传 0。
+		// CreateAttemptForBatch 按批次创建会话（未开始）；每用户每批次每 exam_paper 仅允许一条未删除记录。
+		// examPaperID 对应用户在 exam_batch_member 中的卷；同批次为该用户配置了多张卷时必须传入，否则返回 11124。
 		CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, examPaperID int64) (int64, error)
 		// StartAttempt 开考：进入进行中并写入截止时间。
 		StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDurationSeconds int) error
@@ -39,6 +40,10 @@ type (
 		MarkSubmittedByBatchExpired(ctx context.Context, attemptID int64) error
 		// FinalizeAttempt 对已交卷（待算分）会话计算客观分并置为已结束，写入 exam_result。仅应由 ExamScoreFinalizeHandler（sys_task）调用。
 		FinalizeAttempt(ctx context.Context, attemptID int64) error
+		// AttemptAdminStats 无筛时读全量快照；有筛时即时计算。
+		AttemptAdminStats(ctx context.Context, level string, examinationPaperId int64, examBatchId int64) (*bo.AttemptAdminStatsView, error)
+		// RefreshAttemptDashboardSnapshot 定时任务：全量重算并写入快照表。
+		RefreshAttemptDashboardSnapshot(ctx context.Context) error
 		// GetAttemptByID 获取答题会话详情
 		GetAttemptByID(ctx context.Context, id int64) (*examentity.ExamAttempt, error)
 		// IsWindowOpen 判断考试窗口是否开启（含起止边界时刻）。

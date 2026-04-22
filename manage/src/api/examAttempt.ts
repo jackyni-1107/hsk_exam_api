@@ -94,6 +94,8 @@ export function getAttemptList(params: {
   exam_batch_id?: number;
   status?: number;
   username?: string;
+  /** 1=仅待主观题评阅 */
+  subjective_pending?: number;
 }) {
   return request.get<any, { data: { list: AttemptListItem[]; total: number } }>(
     "/admin/exam/attempt/list",
@@ -101,6 +103,35 @@ export function getAttemptList(params: {
       params,
     },
   );
+}
+
+export interface AttemptStatsData {
+  updated_at: string;
+  from_cache: boolean;
+  status_not_started: number;
+  status_in_progress: number;
+  status_submitted: number;
+  status_ended: number;
+  total: number;
+  finished_count: number;
+  subjective_pending: number;
+  today_new: number;
+  completion_rate: number;
+  avg_objective: number;
+  avg_subjective: number;
+  avg_total: number;
+  trend_7d: { date: string; count: number }[];
+  score_distribution: { bucket_low: number; count: number }[];
+  batch_member_count: number;
+  batch_completion_rate: number;
+}
+
+export function getAttemptStats(params: {
+  level?: string;
+  examination_paper_id?: number;
+  exam_batch_id?: number;
+}) {
+  return request.get<any, { data: AttemptStatsData }>("/admin/exam/attempt/stats", { params });
 }
 
 export function getAttemptDetail(id: number) {

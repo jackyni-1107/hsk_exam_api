@@ -36,6 +36,7 @@ func triggerHandlerInit() error {
 	_ = handler.Get(handler.DemoHandlerName)
 	_ = handler.Get(handler.ExamScoreFinalizeHandlerName)
 	_ = handler.Get(handler.ExamBatchExpireHandlerName)
+	_ = handler.Get(handler.ExamDashboardStatsHandlerName)
 	return nil
 }
 
