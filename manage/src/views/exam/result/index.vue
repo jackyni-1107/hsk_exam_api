@@ -7,7 +7,20 @@
           <el-input v-model="query.username" clearable placeholder="模糊" style="width: 160px" />
         </el-form-item>
         <el-form-item label="试卷级别">
-          <el-input v-model="query.level" clearable placeholder="如 hsk1" style="width: 120px" />
+          <el-select
+            v-model="query.mock_level_id"
+            clearable
+            filterable
+            placeholder="全部"
+            style="width: 220px"
+          >
+            <el-option
+              v-for="lv in mockLevelOptions"
+              :key="lv.id"
+              :label="mockLevelOptionLabel(lv)"
+              :value="lv.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="Mock 卷">
           <el-select
@@ -434,7 +447,8 @@ import {
   questionStemRichRaw,
   type QuestionTopicMeta,
 } from '@/utils/examPaperQuestionDisplay'
-import { getMockExaminationPapers, type MockExaminationPaperItem } from '@/api/mockAdmin'
+import { getMockExaminationPapers, getMockLevelsList, type MockExaminationPaperItem, type MockLevelItem } from '@/api/mockAdmin'
+import { mockLevelOptionLabel } from '@/utils/mockLevel'
 
 type SubjectiveGradeTableRow = AttemptDetailAnswer & {
   sectionTitle: string
@@ -529,7 +543,8 @@ const query = reactive({
   page: 1,
   size: 10,
   username: '',
-  level: '',
+  /** mock_levels.id，未选为 undefined */
+  mock_level_id: undefined as number | undefined,
   status: 0 as number,
   examination_paper_id: 0 as number,
   exam_batch_id: 0 as number,
@@ -539,6 +554,7 @@ const query = reactive({
 
 const paperSel = ref<number | undefined>(undefined)
 const paperOptions = ref<MockExaminationPaperItem[]>([])
+const mockLevelOptions = ref<MockLevelItem[]>([])
 
 const drawer = ref(false)
 const detail = ref<AttemptDetail | null>(null)
@@ -935,6 +951,15 @@ async function loadPapers() {
   }
 }
 
+async function loadMockLevels() {
+  try {
+    const res = (await getMockLevelsList()) as { data?: { list?: MockLevelItem[] } }
+    mockLevelOptions.value = res?.data?.list ?? []
+  } catch {
+    mockLevelOptions.value = []
+  }
+}
+
 async function loadList() {
   loading.value = true
   try {
@@ -943,7 +968,8 @@ async function loadList() {
       page: query.page,
       size: query.size,
       username: query.username || undefined,
-      level: query.level || undefined,
+      mock_level_id:
+        query.mock_level_id != null && query.mock_level_id > 0 ? query.mock_level_id : undefined,
       examination_paper_id: query.examination_paper_id || undefined,
       exam_batch_id: query.exam_batch_id > 0 ? query.exam_batch_id : undefined,
       status: query.status || undefined,
@@ -960,7 +986,7 @@ function resetQuery() {
   query.page = 1
   query.size = 10
   query.username = ''
-  query.level = ''
+  query.mock_level_id = undefined
   query.status = 0
   query.exam_batch_id = 0
   query.subjective_pending = 0
@@ -1126,8 +1152,11 @@ async function saveSubjectiveFromDialog() {
 
 function applyRouteQuery() {
   const q = route.query
-  const lv = q.level
-  if (typeof lv === 'string' && lv) query.level = lv
+  const ml = q.mock_level_id
+  if (ml !== undefined && ml !== '') {
+    const n = Number(ml)
+    if (!Number.isNaN(n) && n > 0) query.mock_level_id = n
+  }
   const eid = q.examination_paper_id
   if (eid !== undefined && eid !== '') {
     const n = Number(eid)
@@ -1154,7 +1183,7 @@ function applyRouteQuery() {
 }
 
 onMounted(async () => {
-  await loadPapers()
+  await Promise.all([loadPapers(), loadMockLevels()])
   applyRouteQuery()
   loadList()
 })

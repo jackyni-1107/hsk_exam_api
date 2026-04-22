@@ -9,13 +9,21 @@
       </template>
       <el-form :inline="true" class="filter" @submit.prevent="loadList">
         <el-form-item label="级别">
-          <el-input
-            v-model="query.level"
+          <el-select
+            v-model="query.mock_level_id"
             clearable
-            placeholder="如 hsk1、new1"
-            style="width: 180px"
+            filterable
+            placeholder="全部"
+            style="width: 240px"
             @clear="loadList"
-          />
+          >
+            <el-option
+              v-for="lv in mockLevels"
+              :key="lv.id"
+              :label="mockLevelOptionLabel(lv)"
+              :value="lv.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="loadList">查询</el-button>
@@ -120,9 +128,7 @@
               <el-option
                 v-for="lv in mockLevels"
                 :key="lv.id"
-                :label="
-                  lv.level_name || lv.app_level_name || String(lv.level_id)
-                "
+                :label="mockLevelOptionLabel(lv)"
                 :value="lv.id"
               />
             </el-select>
@@ -523,6 +529,7 @@ import {
 } from "@/api/mockAdmin";
 import { formatUtcText } from "@/utils/datetime";
 import { analysisDisplayText } from "@/utils/examDisplay";
+import { mockLevelOptionLabel } from "@/utils/mockLevel";
 import { blockReadingPassageFromTopic as blockReadingPassage } from "@/utils/examPaperQuestionDisplay";
 import ExamPaperSectionPanel from "@/components/exam/ExamPaperSectionPanel.vue";
 import ExamQuestionReviewCard from "@/components/exam/ExamQuestionReviewCard.vue";
@@ -541,8 +548,8 @@ const total = ref(0);
 const query = reactive({
   page: 1,
   size: 10,
-  /** exam_paper.level，空表示全部 */
-  level: "",
+  /** mock_levels.id，按 mock 卷 level_id 筛，0 表示全部 */
+  mock_level_id: undefined as number | undefined,
 });
 
 const editDlg = ref(false);
@@ -684,7 +691,7 @@ async function loadList() {
     const res = (await getExamPaperList({
       page: query.page,
       size: query.size,
-      level: query.level.trim() || undefined,
+      mock_level_id: query.mock_level_id && query.mock_level_id > 0 ? query.mock_level_id : undefined,
     })) as { data?: { list?: ExamPaperItem[]; total?: number } };
     rows.value = res?.data?.list ?? [];
     total.value = res?.data?.total ?? 0;
@@ -696,7 +703,7 @@ async function loadList() {
 function resetQuery() {
   query.page = 1;
   query.size = 10;
-  query.level = "";
+  query.mock_level_id = undefined;
   loadList();
 }
 
@@ -924,6 +931,12 @@ async function openDetail(row: ExamPaperItem) {
 }
 
 onMounted(async () => {
+  try {
+    const res = (await getMockLevelsList()) as { data?: { list?: MockLevelItem[] } };
+    mockLevels.value = res?.data?.list ?? [];
+  } catch {
+    mockLevels.value = [];
+  }
   await loadList();
 });
 </script>

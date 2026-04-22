@@ -90,6 +90,8 @@ export function getAttemptList(params: {
   page?: number;
   size?: number;
   level?: string;
+  /** mock_levels.id，优先于 level 字符串 */
+  mock_level_id?: number;
   examination_paper_id?: number;
   exam_batch_id?: number;
   status?: number;
@@ -128,6 +130,7 @@ export interface AttemptStatsData {
 
 export function getAttemptStats(params: {
   level?: string;
+  mock_level_id?: number;
   examination_paper_id?: number;
   exam_batch_id?: number;
 }) {

@@ -22,8 +22,8 @@ const (
 )
 
 // AttemptAdminStats 无筛时读全量快照；有筛时即时计算。
-func (s *sAttempt) AttemptAdminStats(ctx context.Context, level string, examinationPaperId, examBatchId int64) (*bo.AttemptAdminStatsView, error) {
-	empty := level == "" && examinationPaperId == 0 && examBatchId == 0
+func (s *sAttempt) AttemptAdminStats(ctx context.Context, level string, examinationPaperId, examBatchId, mockLevelId int64) (*bo.AttemptAdminStatsView, error) {
+	empty := level == "" && examinationPaperId == 0 && examBatchId == 0 && mockLevelId == 0
 	if empty {
 		if v, ok, err := s.readGlobalDashboardSnapshot(ctx); err != nil {
 			return nil, err
@@ -33,6 +33,7 @@ func (s *sAttempt) AttemptAdminStats(ctx context.Context, level string, examinat
 	}
 	return s.computeAttemptAdminStatsView(ctx, AttemptAdminListQuery{
 		Level:              level,
+		MockLevelId:        mockLevelId,
 		ExaminationPaperId: examinationPaperId,
 		ExamBatchId:        examBatchId,
 	})

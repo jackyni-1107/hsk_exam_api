@@ -8,7 +8,10 @@ import (
 
 // AttemptAdminListQuery 管理端 exam_result 列表/统计共用的联表筛选（与 AttemptAdminList 原语义一致）。
 type AttemptAdminListQuery struct {
-	Level              string
+	// Level 按 exam_paper.level 字符串筛（兼容旧参数）；若 MockLevelId>0 则优先按 r.mock_level_id
+	Level string
+	// MockLevelId 对应 mock_levels.id，与 exam_result.mock_level_id 一致
+	MockLevelId        int64
 	ExaminationPaperId int64
 	ExamBatchId        int64
 	Status             int // 0: 不限
@@ -51,7 +54,10 @@ func (q AttemptAdminListQuery) buildAttemptAdminWhere() (where string, args []in
 	var w strings.Builder
 	w.WriteString("r.delete_flag = ?")
 	args = []interface{}{consts.DeleteFlagNotDeleted}
-	if q.Level != "" {
+	if q.MockLevelId > 0 {
+		w.WriteString(" AND r.mock_level_id = ?")
+		args = append(args, q.MockLevelId)
+	} else if q.Level != "" {
 		w.WriteString(" AND p.level = ?")
 		args = append(args, q.Level)
 	}

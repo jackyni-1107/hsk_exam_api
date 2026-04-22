@@ -582,7 +582,7 @@ func insertOneQuestion(ctx context.Context, tx gdb.TX, examPaperId, mockPaperID,
 }
 
 // PaperList 分页试卷列表（管理端）
-func (s *sPaper) PaperList(ctx context.Context, page, size int, level string) (list []examentity.ExamPaper, total int, err error) {
+func (s *sPaper) PaperList(ctx context.Context, page, size int, level string, mockLevelId int64) (list []examentity.ExamPaper, total int, err error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -590,7 +590,22 @@ func (s *sPaper) PaperList(ctx context.Context, page, size int, level string) (l
 		size = 10
 	}
 	m := dao.ExamPaper.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted)
-	if level != "" {
+	if mockLevelId > 0 {
+		var mockRows []struct {
+			Id int64 `json:"id"`
+		}
+		if err := dao.MockExaminationPaper.Ctx(ctx).Fields("id").Where("level_id", mockLevelId).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&mockRows); err != nil {
+			return nil, 0, err
+		}
+		if len(mockRows) == 0 {
+			return []examentity.ExamPaper{}, 0, nil
+		}
+		ids := make([]interface{}, len(mockRows))
+		for i := range mockRows {
+			ids[i] = mockRows[i].Id
+		}
+		m = m.WhereIn("mock_examination_paper_id", ids)
+	} else if level != "" {
 		m = m.Where("level", level)
 	}
 	n, err := m.Count()

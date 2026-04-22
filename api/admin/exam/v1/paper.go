@@ -5,10 +5,11 @@ import (
 )
 
 type PaperListReq struct {
-	g.Meta `path:"/exam/paper/list" method:"get" tags:"试卷管理" summary:"exam_paper 试卷列表"`
-	Level  string `json:"level" dc:"级别筛选，如 hsk1"`
-	Page   int    `json:"page" dc:"页码"`
-	Size   int    `json:"size" dc:"每页条数"`
+	g.Meta      `path:"/exam/paper/list" method:"get" tags:"试卷管理" summary:"exam_paper 试卷列表"`
+	Level       string `json:"level" dc:"级别字符串筛选（兼容）；优先 mock_level_id"`
+	MockLevelId int64  `json:"mock_level_id" dc:"mock_levels.id，按 mock 卷 level_id 筛，0 不限"`
+	Page        int    `json:"page" dc:"页码"`
+	Size        int    `json:"size" dc:"每页条数"`
 }
 
 type PaperListRes struct {

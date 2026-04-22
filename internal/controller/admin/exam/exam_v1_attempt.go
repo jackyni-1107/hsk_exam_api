@@ -18,7 +18,7 @@ import (
 )
 
 func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) (res *v1.AttemptListRes, err error) {
-	rows, total, err := attemptsvc.Attempt().AttemptAdminList(ctx, req.Page, req.Size, req.Level, req.ExaminationPaperId, req.ExamBatchId, req.Status, req.Username, req.SubjectivePending)
+	rows, total, err := attemptsvc.Attempt().AttemptAdminList(ctx, req.Page, req.Size, req.Level, req.ExaminationPaperId, req.ExamBatchId, req.Status, req.Username, req.SubjectivePending, req.MockLevelId)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) 
 }
 
 func (c *ControllerV1) AttemptStats(ctx context.Context, req *v1.AttemptStatsReq) (res *v1.AttemptStatsRes, err error) {
-	v, err := attemptsvc.Attempt().AttemptAdminStats(ctx, req.Level, req.ExaminationPaperId, req.ExamBatchId)
+	v, err := attemptsvc.Attempt().AttemptAdminStats(ctx, req.Level, req.ExaminationPaperId, req.ExamBatchId, req.MockLevelId)
 	if err != nil {
 		return nil, err
 	}

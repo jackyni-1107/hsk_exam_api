@@ -17,7 +17,7 @@ import (
 )
 
 func (c *ControllerV1) PaperList(ctx context.Context, req *v1.PaperListReq) (res *v1.PaperListRes, err error) {
-	list, total, err := papersvc.Paper().PaperList(ctx, req.Page, req.Size, req.Level)
+	list, total, err := papersvc.Paper().PaperList(ctx, req.Page, req.Size, req.Level, req.MockLevelId)
 	if err != nil {
 		return nil, err
 	}

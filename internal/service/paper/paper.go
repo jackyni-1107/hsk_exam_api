@@ -24,7 +24,7 @@ type (
 		// ImportFromIndex 根据 mock_examination_paper.resource_url 推导 index.json 地址并导入到 exam_* 表。
 		ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*exambo.ImportResult, error)
 		// PaperList 分页试卷列表（管理端）
-		PaperList(ctx context.Context, page int, size int, level string) (list []examentity.ExamPaper, total int, err error)
+		PaperList(ctx context.Context, page int, size int, level string, mockLevelId int64) (list []examentity.ExamPaper, total int, err error)
 		InvalidatePaperForExamCache(ctx context.Context, examPaperId int64)
 		InvalidatePaperSectionForExamCache(ctx context.Context, examPaperId int64, sectionId int64)
 		// PaperDetail 返回试卷及嵌套大题、题块、小题、选项（只读查看）。

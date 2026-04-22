@@ -17,7 +17,13 @@ export interface ExamPaperItem {
   create_time: string
 }
 
-export function getExamPaperList(params: { level?: string; page?: number; size?: number }) {
+export function getExamPaperList(params: {
+  level?: string
+  /** mock_levels.id，与 mock_examination_paper.level_id 一致 */
+  mock_level_id?: number
+  page?: number
+  size?: number
+}) {
   return request.get<any, { data: { list: ExamPaperItem[]; total: number } }>('/admin/exam/paper/list', {
     params,
   })

@@ -16,7 +16,20 @@
 
       <el-form :inline="true" class="dash-filter" @submit.prevent="loadStats">
         <el-form-item :label="t('dashboard.paperLevel')">
-          <el-input v-model="level" clearable :placeholder="t('dashboard.paperLevelPh')" style="width: 120px" />
+          <el-select
+            v-model="mockLevelId"
+            clearable
+            filterable
+            :placeholder="t('common.all')"
+            style="width: 220px"
+          >
+            <el-option
+              v-for="lv in mockLevelOptions"
+              :key="lv.id"
+              :label="mockLevelOptionLabel(lv)"
+              :value="lv.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item :label="t('dashboard.mockPaper')">
           <el-select
@@ -102,19 +115,21 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getAttemptStats, type AttemptStatsData } from '@/api/examAttempt'
-import { getMockExaminationPapers, type MockExaminationPaperItem } from '@/api/mockAdmin'
+import { getMockExaminationPapers, getMockLevelsList, type MockExaminationPaperItem, type MockLevelItem } from '@/api/mockAdmin'
 import { getExamBatchList, type ExamBatchListItem } from '@/api/exam'
+import { mockLevelOptionLabel } from '@/utils/mockLevel'
 
 const { t } = useI18n()
 const router = useRouter()
 
 const loading = ref(false)
 const stats = ref<AttemptStatsData | null>(null)
-const level = ref('')
+const mockLevelId = ref<number | undefined>(undefined)
 const paperId = ref<number | undefined>(undefined)
 const batchId = ref<number | undefined>(undefined)
 const paperOptions = ref<MockExaminationPaperItem[]>([])
 const batchOptions = ref<ExamBatchListItem[]>([])
+const mockLevelOptions = ref<MockLevelItem[]>([])
 
 const autoRefresh = ref(false)
 let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -160,25 +175,28 @@ const kpiCards = computed(() => {
 
 async function loadOptions() {
   try {
-    const [pr, br] = await Promise.all([
+    const [pr, br, lr] = await Promise.all([
       getMockExaminationPapers({ import_status: 'imported' }) as Promise<{
         data?: { list?: MockExaminationPaperItem[] }
       }>,
       getExamBatchList({ page: 1, size: 200 }) as Promise<{
         data?: { list?: ExamBatchListItem[] }
       }>,
+      getMockLevelsList() as Promise<{ data?: { list?: MockLevelItem[] } }>,
     ])
     paperOptions.value = pr?.data?.list ?? []
     batchOptions.value = br?.data?.list ?? []
+    mockLevelOptions.value = lr?.data?.list ?? []
   } catch {
     paperOptions.value = []
     batchOptions.value = []
+    mockLevelOptions.value = []
   }
 }
 
 function statsParams() {
   return {
-    level: level.value || undefined,
+    mock_level_id: mockLevelId.value && mockLevelId.value > 0 ? mockLevelId.value : undefined,
     examination_paper_id: paperId.value && paperId.value > 0 ? paperId.value : undefined,
     exam_batch_id: batchId.value && batchId.value > 0 ? batchId.value : undefined,
   }
@@ -197,7 +215,7 @@ async function loadStats() {
 }
 
 function resetFilter() {
-  level.value = ''
+  mockLevelId.value = undefined
   paperId.value = undefined
   batchId.value = undefined
   loadStats()
@@ -205,7 +223,7 @@ function resetFilter() {
 
 function baseQuery() {
   const q: Record<string, string> = {}
-  if (level.value) q.level = level.value
+  if (mockLevelId.value && mockLevelId.value > 0) q.mock_level_id = String(mockLevelId.value)
   if (paperId.value && paperId.value > 0) q.examination_paper_id = String(paperId.value)
   if (batchId.value && batchId.value > 0) q.exam_batch_id = String(batchId.value)
   return q

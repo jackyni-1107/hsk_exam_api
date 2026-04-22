@@ -6,7 +6,8 @@ type AttemptListReq struct {
 	g.Meta             `path:"/exam/attempt/list" method:"get" tags:"考试结果" summary:"答题会话列表"`
 	Page               int    `json:"page" dc:"页码"`
 	Size               int    `json:"size" dc:"每页条数"`
-	Level              string `json:"level" dc:"试卷级别，如 hsk1"`
+	Level              string `json:"level" dc:"试卷级别字符串（兼容）；优先使用 mock_level_id"`
+	MockLevelId        int64  `json:"mock_level_id" dc:"mock_levels.id，与 exam_result.mock_level_id 一致，0 不限"`
 	ExaminationPaperId int64  `json:"examination_paper_id" dc:"mock_examination_paper.id"`
 	ExamBatchId        int64  `json:"exam_batch_id" dc:"考试批次 id，0 不限"`
 	Status             int    `json:"status" dc:"会话状态 1-4，0 表示不限"`
@@ -17,7 +18,8 @@ type AttemptListReq struct {
 // AttemptStatsReq 考试监控统计（全量走定时任务快照，带筛时即时聚合）。
 type AttemptStatsReq struct {
 	g.Meta             `path:"/exam/attempt/stats" method:"get" tags:"考试结果" summary:"考试监控统计"`
-	Level              string `json:"level" dc:"试卷级别"`
+	Level              string `json:"level" dc:"级别字符串（兼容）"`
+	MockLevelId        int64  `json:"mock_level_id" dc:"mock_levels.id，0 不限"`
 	ExaminationPaperId int64  `json:"examination_paper_id" dc:"mock 卷 id，0 不限"`
 	ExamBatchId        int64  `json:"exam_batch_id" dc:"批次 id，0 不限"`
 }
