@@ -154,6 +154,35 @@ func (s *sSysRole) PermissionCodesByUser(ctx context.Context, userId int64) ([]s
 	return perms, nil
 }
 
+func (s *sSysRole) HasActiveRoleCode(ctx context.Context, userId int64, roleCode string) (bool, error) {
+	roleCode = strings.TrimSpace(roleCode)
+	if userId <= 0 || roleCode == "" {
+		return false, nil
+	}
+	if userId == consts.SuperAdminUserId && roleCode == consts.RoleCodeSuperAdmin {
+		return true, nil
+	}
+
+	roleIDs, err := activeRoleIDsByUser(ctx, userId)
+	if err != nil {
+		return false, err
+	}
+	if len(roleIDs) == 0 {
+		return false, nil
+	}
+
+	cnt, err := dao.SystemRole.Ctx(ctx).
+		WhereIn("id", roleIDs).
+		Where("code", roleCode).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Where("status", consts.StatusNormal).
+		Count()
+	if err != nil {
+		return false, err
+	}
+	return cnt > 0, nil
+}
+
 func (s *sSysRole) MenuIDsByUser(ctx context.Context, userId int64) ([]int64, error) {
 	menus, err := activeMenusByUser(ctx, userId)
 	if err != nil {

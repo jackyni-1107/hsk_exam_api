@@ -53,6 +53,14 @@ func getUserPermissions(ctx context.Context, userId int64) ([]string, error) {
 	return rolesvc.SysRole().PermissionCodesByUser(ctx, userId)
 }
 
+func GetUserPermissions(ctx context.Context, userId int64) ([]string, error) {
+	return getUserPermissions(ctx, userId)
+}
+
+func UserHasActiveRoleCode(ctx context.Context, userId int64, roleCode string) (bool, error) {
+	return rolesvc.SysRole().HasActiveRoleCode(ctx, userId, roleCode)
+}
+
 func GetUserMenuIds(ctx context.Context, userId int64) ([]int64, error) {
 	return rolesvc.SysRole().MenuIDsByUser(ctx, userId)
 }

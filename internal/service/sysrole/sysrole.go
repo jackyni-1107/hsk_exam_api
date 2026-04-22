@@ -17,6 +17,7 @@ type (
 		RoleMenuIDsByRoleIDs(ctx context.Context, roleIDs []int64) (map[int64][]int64, error)
 		RoleCreate(ctx context.Context, name string, code string, remark string, creator string, status int, sort int, typ int) (int64, error)
 		PermissionCodesByUser(ctx context.Context, userId int64) ([]string, error)
+		HasActiveRoleCode(ctx context.Context, userId int64, roleCode string) (bool, error)
 		MenuIDsByUser(ctx context.Context, userId int64) ([]int64, error)
 		RoleUpdate(ctx context.Context, id int64, name string, code string, remark string, updater string, status int, sort int, typ int) error
 		RoleDelete(ctx context.Context, id int64, updater string) error
