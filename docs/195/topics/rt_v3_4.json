@@ -1,0 +1,77 @@
+{
+  "items": [
+    {
+      "index": 4,
+      "questions": [
+        {
+          "index": 54,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "不能太胖",
+              "correct": false
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "老人要多睡觉",
+              "correct": false
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "经常笑对身体好",
+              "correct": true
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 根据这段话，可以知道什么？"
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "中国人常说：“笑一笑，十年少。”经常笑能让人身体健康，看起来更年轻。"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    }
+  ]
+}

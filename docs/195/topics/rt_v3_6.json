@@ -1,0 +1,77 @@
+{
+  "items": [
+    {
+      "index": 6,
+      "questions": [
+        {
+          "index": 56,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "变化快",
+              "correct": true
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "热极了",
+              "correct": false
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "一般不下雨",
+              "correct": false
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 六月的天气："
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "“六月的天，孩子的脸，说变就变。”刚才还是大晴天，现在就要用伞了。雨越下越大，天也变得越来越黑，街上一辆出租车也打不到了。"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    }
+  ]
+}

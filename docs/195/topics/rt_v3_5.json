@@ -1,0 +1,77 @@
+{
+  "items": [
+    {
+      "index": 5,
+      "questions": [
+        {
+          "index": 55,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "会很晚睡觉",
+              "correct": false
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "会忘记时间",
+              "correct": true
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "手机会关机",
+              "correct": false
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 他玩游戏时："
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "他有个很不好的习惯，一玩起游戏就会忘记时间，经常不吃不喝地玩几个小时。"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    }
+  ]
+}

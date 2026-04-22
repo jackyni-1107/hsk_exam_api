@@ -1,0 +1,77 @@
+{
+  "items": [
+    {
+      "index": 3,
+      "questions": [
+        {
+          "index": 53,
+          "score": 3.334,
+          "answers": [
+            {
+              "flag": "A",
+              "type": "text",
+              "index": 1,
+              "content": "球没踢进",
+              "correct": true
+            },
+            {
+              "flag": "B",
+              "type": "text",
+              "index": 2,
+              "content": "朋友没来",
+              "correct": false
+            },
+            {
+              "flag": "C",
+              "type": "text",
+              "index": 3,
+              "content": "雨伞丢了",
+              "correct": false
+            }
+          ],
+          "analysis": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          },
+          "screen_text": [
+            {
+              "type": "text",
+              "content": "★ 他为什么生气？"
+            }
+          ],
+          "question_type": "",
+          "question_description_obj": {
+            "cn": "",
+            "en": "",
+            "ja": "",
+            "ko": "",
+            "ru": "",
+            "th": "",
+            "zh": ""
+          }
+        }
+      ],
+      "is_example": false,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "今天放学后，我和朋友们一起去球场踢足球，让我生气的是，一个下午，我一个球都没有踢进。"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    }
+  ]
+}

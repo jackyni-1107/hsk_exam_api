@@ -1,0 +1,58 @@
+{
+  "items": [
+    {
+      "answers": [
+        {
+          "flag": "A",
+          "type": "text",
+          "index": 1,
+          "content": "8:00",
+          "correct": false
+        },
+        {
+          "flag": "B",
+          "type": "text",
+          "index": 2,
+          "content": "8:30",
+          "correct": false
+        },
+        {
+          "flag": "C",
+          "type": "text",
+          "index": 3,
+          "content": "9:00",
+          "correct": true
+        }
+      ],
+      "analysis": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": ""
+      },
+      "is_example": true,
+      "screen_text": [
+        {
+          "type": "text",
+          "content": "您是来参加今天会议的吗？您来早了一点儿，现在才八点半。您先进来坐吧。"
+        },
+        {
+          "type": "text",
+          "content": "★ 会议最可能几点开始？"
+        }
+      ],
+      "question_description_obj": {
+        "cn": "",
+        "en": "",
+        "ja": "",
+        "ko": "",
+        "ru": "",
+        "th": "",
+        "zh": "第51-60题"
+      }
+    }
+  ]
+}
