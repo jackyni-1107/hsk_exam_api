@@ -35,7 +35,7 @@ func (c *ControllerV1) BatchList(ctx context.Context, req *v1.BatchListReq) (res
 	if req.Size <= 0 {
 		req.Size = 10
 	}
-	rows, total, err := batch.Batch().ExamBatchList(ctx, req.ExamPaperId, req.Page, req.Size, "")
+	rows, total, err := batch.Batch().ExamBatchList(ctx, req.ExamPaperId, req.Page, req.Size, req.TimeFrom, req.TimeTo)
 	if err != nil {
 		return nil, err
 	}

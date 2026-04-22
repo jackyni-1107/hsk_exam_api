@@ -164,6 +164,9 @@ export interface ExamBatchListItem {
 
 export function getExamBatchList(params: {
   exam_paper_id?: number
+  /** 与 time_to 组成区间，筛选与批次考试时间有交集的批次；可只传一侧 */
+  time_from?: string
+  time_to?: string
   page?: number
   size?: number
 }) {

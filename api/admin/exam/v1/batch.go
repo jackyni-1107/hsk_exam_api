@@ -4,9 +4,11 @@ import "github.com/gogf/gf/v2/frame/g"
 
 type BatchListReq struct {
 	g.Meta      `path:"/exam/batch/list" method:"get" tags:"考试批次" summary:"批次分页列表"`
-	ExamPaperId int64 `json:"exam_paper_id" dc:"按 exam_paper.id 筛选，0 表示不限"`
-	Page        int   `json:"page" dc:"页码"`
-	Size        int   `json:"size" dc:"每页条数"`
+	ExamPaperId int64  `json:"exam_paper_id" dc:"按 exam_paper.id 筛选，0 表示不限"`
+	TimeFrom    string `json:"time_from" dc:"可选，与 time_to 组成查询区间；筛选与批次 [exam_start_at, exam_end_at] 有交集的批次（可只传一侧）"`
+	TimeTo      string `json:"time_to" dc:"可选，见 time_from；同时传时须 time_from <= time_to"`
+	Page        int    `json:"page" dc:"页码"`
+	Size        int    `json:"size" dc:"每页条数"`
 }
 
 type BatchListRes struct {

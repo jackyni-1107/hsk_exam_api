@@ -18,15 +18,36 @@ import (
 	"exam/internal/utility"
 )
 
+// examBatchEnded 当前时间已达或晚于批次的考试结束时间（exam_end_at）时返回 true。
+func examBatchEnded(b examentity.ExamBatch) bool {
+	if b.ExamEndAt == nil {
+		return false
+	}
+	return !gtime.Now().Before(b.ExamEndAt)
+}
+
 // ExamBatchList 分页查询考试批次列表
-func (s *sBatch) ExamBatchList(ctx context.Context, examPaperID int64, page int, size int, key string) (list []bo.ExamBatchAdminItem, total int, err error) {
+// timeFrom/timeTo 可选；与批次区间 [exam_start_at, exam_end_at] 有交集：exam_end_at >= timeFrom（若给）且 exam_start_at <= timeTo（若给）
+func (s *sBatch) ExamBatchList(ctx context.Context, examPaperID int64, page int, size int, timeFrom, timeTo string) (list []bo.ExamBatchAdminItem, total int, err error) {
 	if page <= 0 {
 		page = 1
 	}
 	if size <= 0 {
 		size = 10
 	}
+	tf := s.parseTime(strings.TrimSpace(timeFrom))
+	tt := s.parseTime(strings.TrimSpace(timeTo))
+	if tf != nil && tt != nil && tf.After(tt) {
+		return nil, 0, gerror.NewCode(consts.CodeInvalidParams)
+	}
 	q := dao.ExamBatch.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted)
+	cols := dao.ExamBatch.Columns()
+	if tf != nil {
+		q = q.WhereGTE(cols.ExamEndAt, tf)
+	}
+	if tt != nil {
+		q = q.WhereLTE(cols.ExamStartAt, tt)
+	}
 	if examPaperID > 0 {
 		var ebpRows []struct {
 			BatchId int64 `orm:"batch_id"`
@@ -159,8 +180,12 @@ func (s *sBatch) ExamBatchCreate(ctx context.Context, title, examStartAt, examEn
 
 // ExamBatchUpdate 更新考试批次
 func (s *sBatch) ExamBatchUpdate(ctx context.Context, id int64, title, examStartAt, examEndAt string, examPaperIDs []int64, updater string) error {
-	if _, err := examBatchByID(ctx, id); err != nil {
+	b, err := examBatchByID(ctx, id)
+	if err != nil {
 		return err
+	}
+	if examBatchEnded(b) {
+		return gerror.NewCode(consts.CodeExamBatchEnded)
 	}
 	st := s.parseTime(examStartAt)
 	en := s.parseTime(examEndAt)
@@ -258,8 +283,12 @@ func (s *sBatch) ExamBatchDelete(ctx context.Context, id int64) error {
 
 // ExamBatchMembersAdd 批量向指定批次和试卷（exam_paper.id）添加学员
 func (s *sBatch) ExamBatchMembersAdd(ctx context.Context, batchID int64, examPaperID int64, memberIDs []int64, creator string) (inserted int, err error) {
-	if _, err := examBatchByID(ctx, batchID); err != nil {
+	b, err := examBatchByID(ctx, batchID)
+	if err != nil {
 		return 0, err
+	}
+	if examBatchEnded(b) {
+		return 0, gerror.NewCode(consts.CodeExamBatchEnded)
 	}
 	if err := ensureExamPaperInBatch(ctx, batchID, examPaperID); err != nil {
 		return 0, err

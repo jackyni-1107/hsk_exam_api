@@ -46,8 +46,19 @@ func (s *sAttempt) AttemptAdminList(ctx context.Context, page, size int, level s
 		args = append(args, "%"+username+"%")
 	}
 	w := where.String()
+	// 主观题是否已有人工分：派生表 + LEFT JOIN，避免 SELECT 中相关子查询在部分环境报错，且只算一次
 	from := ` FROM exam_result r
 INNER JOIN exam_attempt a ON a.id = r.attempt_id AND a.delete_flag = ?
+LEFT JOIN (
+  SELECT eaa.attempt_id, 1 AS has_subjective_graded
+  FROM exam_attempt_answer eaa
+  INNER JOIN exam_question eq ON eq.id = eaa.exam_question_id
+    AND eq.is_subjective = 1 AND eq.is_example = 0
+    AND eq.delete_flag = 0
+  WHERE eaa.delete_flag = 0
+    AND eaa.awarded_score IS NOT NULL
+  GROUP BY eaa.attempt_id
+) subj_gr ON subj_gr.attempt_id = r.attempt_id
 LEFT JOIN sys_member u ON u.id = r.member_id AND u.delete_flag = ?
 LEFT JOIN exam_paper p ON p.id = r.exam_paper_id AND p.delete_flag = ?
 LEFT JOIN mock_examination_paper m ON m.id = p.mock_examination_paper_id AND m.delete_flag = ?
@@ -74,9 +85,11 @@ WHERE ` + w
 		return nil, 0, nil
 	}
 	offset := (page - 1) * size
+	// 列顺序须与 model/bo.AttemptAdminListRow 字段一致，否则 Raw().Scan 错位导致 subjective_graded 等乱值
 	listSQL := `SELECT r.attempt_id AS id, r.member_id, IFNULL(p.mock_examination_paper_id,0) AS examination_paper_id,
 IFNULL(r.exam_batch_id,0) AS exam_batch_id, IFNULL(r.mock_level_id,0) AS mock_level_id, r.status,
 r.objective_score, r.subjective_score, r.total_score, r.has_subjective,
+IFNULL(subj_gr.has_subjective_graded, 0) AS subjective_graded,
 a.started_at, a.submitted_at, a.ended_at, a.create_time,
 IFNULL(u.username,'') AS username, IFNULL(u.nickname,'') AS nickname,
 	IFNULL(TRIM(IFNULL(m.name,'')), '') AS paper_title,
@@ -191,7 +204,26 @@ func (s *sAttempt) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo
 	return out, nil
 }
 
-// AttemptAdminSaveSubjectiveScores 写入主观题人工分并汇总 subjective_score、total_score（允许部分题目已评）。
+// hasAnySubjectiveAwarded 该会话下是否已有主观题写入人工分（每会话仅允许保存一次）。
+func hasAnySubjectiveAwarded(ctx context.Context, attemptID int64, paperID int64) (bool, error) {
+	if attemptID <= 0 || paperID <= 0 {
+		return false, nil
+	}
+	var cnt int
+	if err := g.DB().Ctx(ctx).Raw(
+		`SELECT COUNT(1) AS c FROM exam_attempt_answer eaa
+INNER JOIN exam_question eq ON eq.id = eaa.exam_question_id
+  AND eq.exam_paper_id = ? AND eq.is_subjective = 1 AND eq.is_example = 0
+  AND eq.delete_flag = ?
+WHERE eaa.attempt_id = ? AND eaa.delete_flag = ? AND eaa.awarded_score IS NOT NULL`,
+		paperID, consts.DeleteFlagNotDeleted, attemptID, consts.DeleteFlagNotDeleted,
+	).Scan(&cnt); err != nil {
+		return false, err
+	}
+	return cnt > 0, nil
+}
+
+// AttemptAdminSaveSubjectiveScores 写入主观题人工分并汇总 subjective_score、total_score。每会话仅允许首次成功保存。
 func (s *sAttempt) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, items []bo.SubjectiveScoreItem) (subjectiveSum float64, totalScore float64, err error) {
 	if attemptID <= 0 {
 		return 0, 0, gerror.NewCode(consts.CodeInvalidParams)
@@ -214,6 +246,13 @@ func (s *sAttempt) AttemptAdminSaveSubjectiveScores(ctx context.Context, attempt
 	}
 	if att.HasSubjective != 1 {
 		return 0, 0, gerror.NewCode(consts.CodeExamAttemptNoSubjective)
+	}
+	graded, err := hasAnySubjectiveAwarded(ctx, att.Id, att.ExamPaperId)
+	if err != nil {
+		return 0, 0, err
+	}
+	if graded {
+		return 0, 0, gerror.NewCode(consts.CodeExamSubjectiveAlreadyGraded)
 	}
 
 	byQ := make(map[int64]bo.SubjectiveScoreItem, len(items))

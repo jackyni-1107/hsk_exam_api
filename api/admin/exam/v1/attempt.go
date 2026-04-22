@@ -34,6 +34,7 @@ type AttemptListItem struct {
 	SubjectiveScore    float64 `json:"subjective_score" dc:"主观题得分"`
 	TotalScore         float64 `json:"total_score" dc:"总分"`
 	HasSubjective      int     `json:"has_subjective" dc:"是否含主观题：0否 1是"`
+	SubjectiveGraded   int     `json:"subjective_graded" dc:"主观题是否已评过（1=是，仅允许评一次）"`
 	StartedAt          string  `json:"started_at" dc:"开考时间"`
 	SubmittedAt        string  `json:"submitted_at" dc:"交卷时间"`
 	EndedAt            string  `json:"ended_at" dc:"结束时间"`

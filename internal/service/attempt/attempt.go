@@ -19,7 +19,7 @@ type (
 		AttemptAdminList(ctx context.Context, page int, size int, level string, examinationPaperId int64, examBatchId int64, status int, username string) ([]bo.AttemptAdminListRow, int, error)
 		// AttemptAdminDetail 按 id 加载会话、学员、试卷及答题明细（含客观题是否选对）。
 		AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.AttemptAdminDetailView, error)
-		// AttemptAdminSaveSubjectiveScores 写入主观题人工分并汇总 subjective_score、total_score（允许部分题目已评）。
+		// AttemptAdminSaveSubjectiveScores 写入主观题人工分并汇总 subjective_score、total_score；每会话仅允许首次成功保存。
 		AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, items []bo.SubjectiveScoreItem) (subjectiveSum float64, totalScore float64, err error)
 		// CreateAttemptForBatch 按批次创建会话（未开始）；examPaperID 为多卷批次必选（见 exam_batch_member.exam_paper_id）；单卷批次可传 0。
 		CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, examPaperID int64) (int64, error)

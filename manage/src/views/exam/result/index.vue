@@ -75,9 +75,30 @@
         </el-table-column>
         <el-table-column prop="submitted_at" label="交卷时间" width="172" show-overflow-tooltip :formatter="formatUtcForDisplay" />
         <el-table-column prop="submitted_at" label="开始时间" width="172" show-overflow-tooltip :formatter="formatUtcForDisplay" />
-        <el-table-column label="操作" width="88" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+            <div class="result-list-ops">
+              <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+              <el-tooltip
+                v-if="showSubjectiveGradeButton(row)"
+                content="主观题已评分，不可再次修改"
+                placement="top"
+                :disabled="!isSubjectiveGradeButtonDisabled(row)"
+                :show-after="200"
+              >
+                <span class="result-list-op__sub-clip">
+                  <el-button
+                    class="result-list-op--subjective"
+                    link
+                    type="primary"
+                    :disabled="isSubjectiveGradeButtonDisabled(row)"
+                    @click="openSubjectiveGrade(row)"
+                  >
+                    主观题评分
+                  </el-button>
+                </span>
+              </el-tooltip>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -223,81 +244,161 @@
             客观题分布：对 {{ objectiveCounts.correct }} · 错 {{ objectiveCounts.wrong }} · 其它
             {{ objectiveCounts.neutral }}
           </p>
-          <div class="paper-answer-wrap">
-            <template v-for="(sec, si) in groupedResultSections" :key="'sec-' + sec.sectionId + '-' + si">
-              <ExamPaperSectionPanel :title="sec.title">
-                <ExamQuestionReviewCard
-                  v-for="(row, ri) in sec.rows"
-                  :key="answerRowKey(row.answer, ri)"
-                  mode="review"
-                  :question-no="row.answer.question_no"
-                  :score="Number(row.answer.score) || 0"
-                  :is-example="row.answer.is_example"
-                  :is-subjective="row.answer.is_subjective"
-                  :stem-text="row.answer.stem_text || ''"
-                  :screen-text-json="row.answer.screen_text_json || ''"
-                  :topic-json="row.meta?.topicJson || ''"
-                  :block-index="row.meta?.blockIndex ?? 0"
-                  :question-index="row.meta?.questionIndex ?? 0"
-                  :block-passage-text="
-                    row.meta
-                      ? blockReadingPassageFromTopic(row.meta.topicJson, row.meta.blockIndex)
-                      : ''
-                  "
-                  :show-block-passage="row.showBlockPassage"
-                  :source-base-url="resolvedSourceBaseUrl"
-                  :audio-file="questionAudioById.get(row.answer.question_id) || ''"
-                  :options="row.optionsForCard"
-                  :show-correct-options="true"
-                  :answer-json="row.answer.answer_json || ''"
-                  :objective-correct="row.answer.objective_correct"
-                  :awarded-score="row.answer.awarded_score"
-                  :analysis-text="row.answer.analysis_text || ''"
-                />
-              </ExamPaperSectionPanel>
-            </template>
-            <p v-if="groupedResultSections.length === 0" class="ratio-hint paper-answer-empty">
-              暂无符合条件题目。
-            </p>
-          </div>
-        </el-card>
-
-        <template v-if="canGradeSubjective">
-          <el-card shadow="never" class="grade-card">
-            <template #header><span class="card-h-strong">主观题评分</span></template>
-            <p class="hint">每题得分不超过该题满分；保存后更新主观分与总分。</p>
-            <el-table :data="subjectiveRows" border size="small">
-              <el-table-column prop="question_no" label="题号" width="72" />
-              <el-table-column label="题干" min-width="160" show-overflow-tooltip>
-                <template #default="{ row }">{{ row.stem_text || '—' }}</template>
-              </el-table-column>
-              <el-table-column label="满分" width="80" align="right">
-                <template #default="{ row }">{{ row.score }}</template>
-              </el-table-column>
-              <el-table-column label="得分" width="140">
-                <template #default="{ row }">
-                  <el-input-number
-                    v-model="subjectiveScores[row.question_id]"
-                    :min="0"
-                    :max="row.score"
-                    :precision="2"
-                    :step="0.5"
-                    size="small"
-                    controls-position="right"
-                    style="width: 120px"
-                  />
-                </template>
-              </el-table-column>
-            </el-table>
-            <div class="grade-actions">
-              <el-button type="primary" :loading="savingScores" @click="saveSubjective"
-                >保存主观分</el-button
-              >
+          <div v-if="groupedResultSections.length" class="paper-answer-by-section">
+            <div v-if="groupedResultSections.length === 1" class="paper-answer-sec-body">
+              <ExamQuestionReviewCard
+                v-for="(row, ri) in groupedResultSections[0]!.rows"
+                :key="answerRowKey(row.answer, ri)"
+                mode="review"
+                :question-no="row.answer.question_no"
+                :score="Number(row.answer.score) || 0"
+                :is-example="row.answer.is_example"
+                :is-subjective="row.answer.is_subjective"
+                :stem-text="row.answer.stem_text || ''"
+                :screen-text-json="row.answer.screen_text_json || ''"
+                :topic-json="row.meta?.topicJson || ''"
+                :block-index="row.meta?.blockIndex ?? 0"
+                :question-index="row.meta?.questionIndex ?? 0"
+                :block-passage-text="
+                  row.meta
+                    ? blockReadingPassageFromTopic(row.meta.topicJson, row.meta.blockIndex)
+                    : ''
+                "
+                :show-block-passage="row.showBlockPassage"
+                :source-base-url="resolvedSourceBaseUrl"
+                :audio-file="questionAudioById.get(row.answer.question_id) || ''"
+                :options="row.optionsForCard"
+                :show-correct-options="true"
+                :answer-json="row.answer.answer_json || ''"
+                :objective-correct="row.answer.objective_correct"
+                :awarded-score="row.answer.awarded_score"
+                :analysis-text="row.answer.analysis_text || ''"
+              />
             </div>
-          </el-card>
-        </template>
+            <el-tabs v-else v-model="resultAnswersActiveTab" class="result-sec-tabs">
+              <el-tab-pane
+                v-for="(sec, si) in groupedResultSections"
+                :key="'sec-tab-' + sec.sectionId + '-' + si"
+                :label="sec.title"
+                :name="'sec-' + sec.sectionId + '-' + si"
+              >
+                <div class="paper-answer-sec-body">
+                  <ExamQuestionReviewCard
+                    v-for="(row, ri) in sec.rows"
+                    :key="answerRowKey(row.answer, ri)"
+                    mode="review"
+                    :question-no="row.answer.question_no"
+                    :score="Number(row.answer.score) || 0"
+                    :is-example="row.answer.is_example"
+                    :is-subjective="row.answer.is_subjective"
+                    :stem-text="row.answer.stem_text || ''"
+                    :screen-text-json="row.answer.screen_text_json || ''"
+                    :topic-json="row.meta?.topicJson || ''"
+                    :block-index="row.meta?.blockIndex ?? 0"
+                    :question-index="row.meta?.questionIndex ?? 0"
+                    :block-passage-text="
+                      row.meta
+                        ? blockReadingPassageFromTopic(row.meta.topicJson, row.meta.blockIndex)
+                        : ''
+                    "
+                    :show-block-passage="row.showBlockPassage"
+                    :source-base-url="resolvedSourceBaseUrl"
+                    :audio-file="questionAudioById.get(row.answer.question_id) || ''"
+                    :options="row.optionsForCard"
+                    :show-correct-options="true"
+                    :answer-json="row.answer.answer_json || ''"
+                    :objective-correct="row.answer.objective_correct"
+                    :awarded-score="row.answer.awarded_score"
+                    :analysis-text="row.answer.analysis_text || ''"
+                  />
+                </div>
+              </el-tab-pane>
+            </el-tabs>
+          </div>
+          <p v-else class="ratio-hint paper-answer-empty">暂无符合条件题目。</p>
+        </el-card>
       </div>
     </el-drawer>
+
+    <el-dialog
+      v-model="subjectiveDlgVisible"
+      class="subjective-grade-dialog"
+      title="主观题评分"
+      width="min(960px, 98vw)"
+      top="4vh"
+      destroy-on-close
+      append-to-body
+      :close-on-click-modal="false"
+      @closed="onSubjectiveGradeDlgClosed"
+    >
+      <p class="subjective-dlg-hint">每题得分不超过该题满分；保存后更新主观分与总分。</p>
+      <p v-if="subjectiveDlgMetaLine" class="subjective-dlg-meta">{{ subjectiveDlgMetaLine }}</p>
+      <el-skeleton v-if="subjectiveDlgLoading" :rows="5" animated />
+      <el-table
+        v-else
+        :data="subjectiveGradingDialogRows"
+        border
+        stripe
+        size="small"
+        class="subjective-dlg-table"
+        :max-height="480"
+      >
+        <el-table-column label="大题" min-width="100" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.sectionTitle }}</template>
+        </el-table-column>
+        <el-table-column prop="question_no" label="题号" width="64" />
+        <el-table-column label="题干" min-width="220">
+          <template #default="{ row }">
+            <div v-if="row.stemIsBlocks" class="subjective-stem-block subjective-stem-wrap">
+              <ExamScreenTextBlocks
+                :raw="row.stemBlocksRaw"
+                :source-base-url="subjectiveDlgSourceBase"
+              />
+            </div>
+            <div
+              v-else-if="row.stemHtml"
+              class="subjective-stem-wrap exam-rich-html"
+              v-html="row.stemHtml"
+            />
+            <span v-else class="subjective-stem-plain">{{ row.stemPreview || '—' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="作答内容" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.answerText || '—' }}</template>
+        </el-table-column>
+        <el-table-column label="满分" width="72" align="right">
+          <template #default="{ row }">{{ row.score }}</template>
+        </el-table-column>
+        <el-table-column label="得分" width="128" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-input-number
+              v-model="subjectiveDlgScores[row.question_id]"
+              :min="0"
+              :max="row.score"
+              :precision="2"
+              :step="0.5"
+              size="small"
+              controls-position="right"
+              style="width: 110px"
+            />
+          </template>
+        </el-table-column>
+      </el-table>
+      <p v-if="!subjectiveDlgLoading && !subjectiveGradingDialogRows.length" class="subjective-dlg-empty">
+        暂无主观题可评
+      </p>
+      <template #footer>
+        <el-button @click="subjectiveDlgVisible = false">取消</el-button>
+        <el-button
+          type="primary"
+          :disabled="!subjectiveGradingDialogRows.length"
+          :loading="savingSubjectiveScores"
+          @click="saveSubjectiveFromDialog"
+        >
+          保存主观分
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -316,15 +417,107 @@ import {
   type AttemptDetailAnswer,
 } from '@/api/examAttempt'
 import { getExamPaperDetail, type ExamPaperDetail } from '@/api/exam'
-import ExamPaperSectionPanel from '@/components/exam/ExamPaperSectionPanel.vue'
 import ExamQuestionReviewCard from '@/components/exam/ExamQuestionReviewCard.vue'
-import type { ExamOptionDisplayRow } from '@/utils/examDisplay'
+import ExamScreenTextBlocks from '@/components/exam/ExamScreenTextBlocks.vue'
+import {
+  formatAnswerJson,
+  looksLikeHtml,
+  sanitizeHtmlForDisplay,
+  type ExamOptionDisplayRow,
+} from '@/utils/examDisplay'
 import {
   buildQuestionTopicMetaById,
   blockReadingPassageFromTopic,
+  effectivePaperQuestionStem,
+  hasQuestionStemSegments,
+  questionStemRichRaw,
   type QuestionTopicMeta,
 } from '@/utils/examPaperQuestionDisplay'
 import { getMockExaminationPapers, type MockExaminationPaperItem } from '@/api/mockAdmin'
+
+type SubjectiveGradeTableRow = AttemptDetailAnswer & {
+  sectionTitle: string
+  stemPreview: string
+  answerText: string
+  stemIsBlocks: boolean
+  stemBlocksRaw: unknown
+  /** 经 sanitize 的 html，与 ExamQuestionStem 的「纯 html 题干」一致 */
+  stemHtml: string
+}
+
+/** 与详情抽屉无关，供主观题评分解析列表（大题/题干/作答/满分） */
+function buildSubjectiveGradingRows(
+  d: AttemptDetail | null,
+  paper: ExamPaperDetail | null,
+): SubjectiveGradeTableRow[] {
+  if (!d) return []
+  const list = (d.answers ?? []).filter((a) => a.is_subjective && !a.is_example)
+  const metaMap = buildQuestionTopicMetaById(paper)
+  const orderMap = new Map<number, number>()
+  paper?.sections?.forEach((s, i) => {
+    orderMap.set(s.id, s.sort_order ?? i)
+  })
+  const sectionTitleById = new Map<number, string>()
+  for (const s of paper?.sections ?? []) {
+    sectionTitleById.set(s.id, (s.topic_title || '').trim() || `大题 #${s.id}`)
+  }
+  for (const a of d.answers ?? []) {
+    const sid = Number(a.section_id) || 0
+    if (sid && !sectionTitleById.has(sid) && (a.section_title || '').trim()) {
+      sectionTitleById.set(sid, (a.section_title || '').trim())
+    }
+  }
+  return list
+    .slice()
+    .sort((a, b) => {
+      const sa = orderMap.get(Number(a.section_id)) ?? 10_000
+      const sb = orderMap.get(Number(b.section_id)) ?? 10_000
+      if (sa !== sb) return sa - sb
+      return (Number(a.question_no) || 0) - (Number(b.question_no) || 0)
+    })
+    .map((a) => {
+      const sid = Number(a.section_id) || 0
+      const st = (a.section_title || '').trim()
+      const fromPaper = sectionTitleById.get(sid)
+      const sectionTitle = (fromPaper || st || (sid ? `大题 #${sid}` : '—')) as string
+      const meta = metaMap.get(Number(a.question_id))
+      const bi = meta?.blockIndex ?? 0
+      const qi = meta?.questionIndex ?? 0
+      const tj = meta?.topicJson
+
+      let stemIsBlocks = false
+      let stemBlocksRaw: unknown
+      let stemHtml = ''
+      if (hasQuestionStemSegments(a.stem_text, a.screen_text_json, tj, bi, qi)) {
+        const raw = questionStemRichRaw(a.stem_text, a.screen_text_json, tj, bi, qi)
+        if (raw != null) {
+          stemIsBlocks = true
+          stemBlocksRaw = raw
+        }
+      }
+      if (!stemIsBlocks) {
+        const h = (a.stem_text || '').trim()
+        if (looksLikeHtml(h)) {
+          stemHtml = sanitizeHtmlForDisplay(h)
+        } else {
+          const scj = (a.screen_text_json || '').trim()
+          if (scj && looksLikeHtml(scj) && !/^\s*\[/.test(scj)) {
+            stemHtml = sanitizeHtmlForDisplay(scj)
+          }
+        }
+      }
+
+      const stemPreview = effectivePaperQuestionStem(
+        a.stem_text,
+        a.screen_text_json,
+        meta?.topicJson,
+        bi,
+        qi,
+      )
+      const answerText = formatAnswerJson(a.answer_json || '')
+      return { ...a, sectionTitle, stemPreview, answerText, stemIsBlocks, stemBlocksRaw, stemHtml }
+    })
+}
 
 const loading = ref(false)
 const rows = ref<AttemptListItem[]>([])
@@ -347,8 +540,14 @@ const detail = ref<AttemptDetail | null>(null)
 /** 打开详情后按需拉取，用于 topic_json / 音频等与试卷对齐 */
 const paperDetailForResult = ref<ExamPaperDetail | null>(null)
 const detailId = ref(0)
-const subjectiveScores = ref<Record<number, number>>({})
-const savingScores = ref(false)
+
+const subjectiveDlgVisible = ref(false)
+const subjectiveDlgLoading = ref(false)
+const subjectiveDlgAttemptId = ref(0)
+const subjectiveGradeDetail = ref<AttemptDetail | null>(null)
+const subjectiveGradePaper = ref<ExamPaperDetail | null>(null)
+const subjectiveDlgScores = ref<Record<number, number>>({})
+const savingSubjectiveScores = ref(false)
 
 const answerFilter = ref<'all' | 'wrong'>('all')
 const displayScore = ref(0)
@@ -475,15 +674,38 @@ const groupedResultSections = computed(() => {
   })
 })
 
-const subjectiveRows = computed(() => {
-  if (!detail.value) return []
-  return (detail.value.answers ?? []).filter((a) => a.is_subjective && !a.is_example)
+const subjectiveGradingDialogRows = computed(() =>
+  buildSubjectiveGradingRows(subjectiveGradeDetail.value, subjectiveGradePaper.value),
+)
+
+const subjectiveDlgSourceBase = computed(() => {
+  const a = (subjectiveGradeDetail.value?.paper?.source_base_url || '').trim()
+  if (a) return a
+  return (subjectiveGradePaper.value?.paper?.source_base_url || '').trim()
 })
 
-const canGradeSubjective = computed(() => {
-  const a = detail.value?.attempt
-  return !!(a && a.status === 4 && a.has_subjective === 1)
+const subjectiveDlgMetaLine = computed(() => {
+  const d = subjectiveGradeDetail.value
+  if (!d) return ''
+  const u = d.user
+  const name = (u.nickname || '').trim() || u.username || '—'
+  const paperN = (d.paper.name || d.paper.title || '').trim() || '—'
+  return `学员 ${u.username}（${name}）· 试卷 ${paperN} · 会话 #${d.attempt.id}`
 })
+
+const resultAnswersActiveTab = ref('')
+
+watch(
+  () => groupedResultSections.value,
+  (sections) => {
+    if (sections.length <= 1) return
+    const names = sections.map((s, i) => `sec-${s.sectionId}-${i}`)
+    if (!resultAnswersActiveTab.value || !names.includes(resultAnswersActiveTab.value)) {
+      resultAnswersActiveTab.value = names[0] ?? 'sec-0-0'
+    }
+  },
+  { immediate: true },
+)
 
 const paperMaxScore = computed(() => {
   if (!detail.value) return 0
@@ -746,16 +968,6 @@ async function openDetail(row: AttemptListItem) {
   try {
     const res = (await getAttemptDetail(row.id)) as { data?: AttemptDetail }
     detail.value = res?.data ?? null
-    const m: Record<number, number> = {}
-    for (const a of detail.value?.answers ?? []) {
-      if (a.is_subjective && !a.is_example) {
-        const qid = Number(a.question_id)
-        if (!Number.isNaN(qid)) {
-          m[qid] = a.awarded_score != null ? Number(a.awarded_score) : 0
-        }
-      }
-    }
-    subjectiveScores.value = m
     answerFilter.value = 'all'
     const pid = Number(detail.value?.paper?.exam_paper_id)
     if (detail.value && pid > 0 && !Number.isNaN(pid)) {
@@ -772,30 +984,136 @@ async function openDetail(row: AttemptListItem) {
   }
 }
 
-async function saveSubjective() {
-  if (!detail.value) return
-  const items = subjectiveRows.value.map((r) => ({
+function onSubjectiveGradeDlgClosed() {
+  subjectiveDlgAttemptId.value = 0
+  subjectiveGradeDetail.value = null
+  subjectiveGradePaper.value = null
+  subjectiveDlgScores.value = {}
+}
+
+/** 含主观题且已结束会话时显示「主观题评分」入口；已评过分则仅置灰不可点 */
+function showSubjectiveGradeButton(row: AttemptListItem) {
+  return row.has_subjective === 1 && row.status === 4
+}
+
+/** 列表行主观题是否已评（兼容 camelCase 等） */
+function rowSubjectiveGradedFlag(row: AttemptListItem) {
+  const r = row as unknown as Record<string, unknown>
+  const v = r.subjective_graded ?? r.subjectiveGraded
+  if (v === true || v === 'true' || v === 1 || v === '1') return 1
+  return Number(v) === 1 ? 1 : 0
+}
+
+function isSubjectiveGradeButtonDisabled(row: AttemptListItem) {
+  return rowSubjectiveGradedFlag(row) === 1
+}
+
+function isDetailSubjectiveAlreadyGraded(d: AttemptDetail) {
+  for (const a of d.answers ?? []) {
+    if (a.is_subjective && !a.is_example && a.awarded_score != null) return true
+  }
+  return false
+}
+
+async function openSubjectiveGrade(row: AttemptListItem) {
+  if (row.has_subjective !== 1) {
+    ElMessage.info('该场次未包含主观题')
+    return
+  }
+  if (row.status !== 4) {
+    ElMessage.warning('仅「已结束」的会话可评分')
+    return
+  }
+  if (rowSubjectiveGradedFlag(row) === 1) {
+    ElMessage.warning('主观题已评过分，不可再次修改')
+    return
+  }
+  subjectiveDlgAttemptId.value = row.id
+  subjectiveDlgVisible.value = true
+  subjectiveDlgLoading.value = true
+  subjectiveGradeDetail.value = null
+  subjectiveGradePaper.value = null
+  subjectiveDlgScores.value = {}
+  try {
+    const res = (await getAttemptDetail(row.id)) as { data?: AttemptDetail }
+    const d = res?.data ?? null
+    if (!d) {
+      ElMessage.error('未加载到会话详情')
+      subjectiveDlgVisible.value = false
+      return
+    }
+    if (isDetailSubjectiveAlreadyGraded(d)) {
+      ElMessage.warning('主观题已评过分，不可再次修改')
+      subjectiveDlgVisible.value = false
+      return
+    }
+    subjectiveGradeDetail.value = d
+    const m: Record<number, number> = {}
+    for (const a of d.answers ?? []) {
+      if (a.is_subjective && !a.is_example) {
+        const qid = Number(a.question_id)
+        if (!Number.isNaN(qid)) {
+          m[qid] = a.awarded_score != null ? Number(a.awarded_score) : 0
+        }
+      }
+    }
+    subjectiveDlgScores.value = m
+    const pid = Number(d.paper?.exam_paper_id)
+    if (pid > 0 && !Number.isNaN(pid)) {
+      try {
+        const pr = (await getExamPaperDetail(pid)) as { data?: ExamPaperDetail }
+        subjectiveGradePaper.value = pr?.data ?? null
+      } catch {
+        subjectiveGradePaper.value = null
+      }
+    }
+  } catch {
+    ElMessage.error('加载失败')
+    subjectiveDlgVisible.value = false
+  } finally {
+    subjectiveDlgLoading.value = false
+  }
+}
+
+async function saveSubjectiveFromDialog() {
+  const attemptId = subjectiveDlgAttemptId.value
+  if (!attemptId || !subjectiveGradeDetail.value) return
+  const items = buildSubjectiveGradingRows(
+    subjectiveGradeDetail.value,
+    subjectiveGradePaper.value,
+  ).map((r) => ({
     question_id: r.question_id,
-    score: subjectiveScores.value[r.question_id] ?? 0,
+    score: subjectiveDlgScores.value[r.question_id] ?? 0,
   }))
   if (items.length === 0) {
     ElMessage.warning('没有可保存的主观题')
     return
   }
-  savingScores.value = true
+  savingSubjectiveScores.value = true
   try {
-    const res = (await saveAttemptSubjectiveScores(detailId.value, items)) as {
+    const res = (await saveAttemptSubjectiveScores(attemptId, items)) as {
       data?: { subjective_score: number; total_score: number }
     }
-    ElMessage.success('保存成功')
-    if (res?.data && detail.value) {
+    if (res?.data && subjectiveGradeDetail.value) {
+      subjectiveGradeDetail.value.attempt.subjective_score = res.data.subjective_score
+      subjectiveGradeDetail.value.attempt.total_score = res.data.total_score
+    }
+    if (res?.data && detail.value && detailId.value === attemptId) {
       detail.value.attempt.subjective_score = res.data.subjective_score
       detail.value.attempt.total_score = res.data.total_score
     }
+    ElMessage.success('保存成功')
+    subjectiveDlgVisible.value = false
     loadList()
-    nextTick(() => startScoreAnimation())
+    nextTick(() => {
+      if (drawer.value && detailId.value === attemptId) {
+        startScoreAnimation()
+      }
+    })
+  } catch {
+    // 业务错误由 request 拦截器统一 ElMessage
   } finally {
-    savingScores.value = false
+    savingSubjectiveScores.value = false
   }
 }
 
@@ -831,13 +1149,24 @@ onMounted(() => {
   font-weight: 700;
   color: var(--result-brand);
 }
-.hint {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  margin: 0 0 10px;
+
+.result-list-ops {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
 }
-.grade-actions {
-  margin-top: 12px;
+.result-list-op__sub-clip {
+  display: inline-block;
+  line-height: 1;
+}
+/* link 型按钮 disabled 时仍易偏主色，强制为禁用色 */
+.result-list-ops :deep(.result-list-op--subjective.is-disabled) {
+  color: var(--el-text-color-disabled) !important;
+  cursor: not-allowed;
+}
+.result-list-ops :deep(.result-list-op--subjective.is-disabled:hover) {
+  color: var(--el-text-color-disabled) !important;
 }
 
 .result-detail {
@@ -1059,8 +1388,7 @@ onMounted(() => {
 }
 
 .info-card,
-.answers-card,
-.grade-card {
+.answers-card {
   margin-bottom: 14px;
   border-radius: 10px;
 }
@@ -1127,17 +1455,70 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
 }
 
-.paper-answer-wrap {
-  max-height: min(56vh, 640px);
-  overflow-y: auto;
-  padding-right: 4px;
+.paper-answer-by-section {
+  margin-top: 2px;
+}
+
+.paper-answer-sec-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 大题分 Tab 查看；仅抽屉主体滚动，避免与内层再套一层竖向滚动条 */
+.result-sec-tabs {
+  --el-tabs-header-height: auto;
+}
+
+.result-sec-tabs :deep(.el-tabs__content) {
+  padding: 8px 0 0;
+}
+
+.result-sec-tabs :deep(.el-tabs__item) {
+  max-width: min(200px, 32vw);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .paper-answer-empty {
   margin-top: 4px;
 }
 
-.paper-answer-wrap :deep(.exam-opt-flag) {
+.paper-answer-by-section :deep(.exam-opt-flag) {
   color: var(--result-brand);
+}
+
+.subjective-dlg-hint {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.subjective-dlg-meta {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  line-height: 1.5;
+  word-break: break-word;
+}
+.subjective-dlg-empty {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--el-text-color-placeholder);
+}
+
+/* 表内富文本题干：与试卷详情 exam-rich-html 同系 */
+.subjective-stem-wrap {
+  max-width: 480px;
+  line-height: 1.55;
+  word-break: break-word;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+}
+.subjective-stem-wrap :deep(.exam-screen-text) {
+  white-space: normal;
+}
+.subjective-stem-plain {
+  color: var(--el-text-color-regular);
 }
 </style>

@@ -16,6 +16,8 @@ export interface AttemptListItem {
   subjective_score: number;
   total_score: number;
   has_subjective: number;
+  /** 1=已有任意主观题人工分，不可再次评分 */
+  subjective_graded?: number;
   started_at: string;
   submitted_at: string;
   ended_at: string;

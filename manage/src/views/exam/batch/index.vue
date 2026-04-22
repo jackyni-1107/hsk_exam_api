@@ -19,6 +19,18 @@
             />
           </el-select>
         </el-form-item>
+        <el-form-item label="考试时间">
+          <el-date-picker
+            v-model="query.timeRange"
+            type="datetimerange"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            range-separator="至"
+            start-placeholder="起"
+            end-placeholder="止"
+            clearable
+            style="width: 400px"
+          />
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="loadList">查询</el-button>
           <el-button @click="resetQuery">重置</el-button>
@@ -38,7 +50,15 @@
         <el-table-column prop="create_time" label="创建时间" width="172" show-overflow-tooltip :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+            <el-button
+              link
+              type="primary"
+              :disabled="isExamBatchEnded(row)"
+              :title="isExamBatchEnded(row) ? '考试已结束，不可编辑' : ''"
+              @click="openEdit(row)"
+            >
+              编辑
+            </el-button>
             <el-button link type="primary" @click="openMembers(row)">成员</el-button>
             <el-button link type="danger" @click="onDelete(row)">删除</el-button>
           </template>
@@ -107,6 +127,15 @@
     <el-drawer v-model="memberDrawer" title="批次成员" size="min(640px, 92vw)" destroy-on-close @opened="loadMemberList">
       <template v-if="currentBatch">
         <p class="hint">批次 #{{ currentBatch.id }} · {{ currentBatch.title || '（无标题）' }}</p>
+        <el-alert
+          v-if="isExamBatchEnded(currentBatch)"
+          type="warning"
+          :closable="false"
+          class="mb"
+          show-icon
+        >
+          该批次考试已结束，无法导入新学员
+        </el-alert>
         <el-form class="member-import-form mb" label-width="120px">
           <el-form-item label="导入试卷" required>
             <el-select
@@ -115,6 +144,7 @@
               class="import-mock-paper-select"
               filterable
               clearable
+              :disabled="isExamBatchEnded(currentBatch)"
             >
               <el-option
                 v-for="id in currentBatch.exam_paper_ids || []"
@@ -132,15 +162,35 @@
             :rows="2"
             placeholder="输入要导入的会员 ID，逗号或换行分隔"
             style="width: 320px"
+            :disabled="isExamBatchEnded(currentBatch)"
           />
-          <el-button type="primary" :loading="importing" @click="doImport">导入</el-button>
+          <el-button
+            type="primary"
+            :loading="importing"
+            :disabled="isExamBatchEnded(currentBatch)"
+            @click="doImport"
+          >
+            导入
+          </el-button>
         </el-space>
         <el-form :inline="true" class="filter" @submit.prevent="loadMemberList">
           <el-form-item label="账号">
-            <el-input v-model="memberSearch.username" clearable placeholder="模糊" style="width: 140px" />
+            <el-input
+              v-model="memberSearch.username"
+              clearable
+              placeholder="模糊"
+              style="width: 140px"
+              :disabled="isExamBatchEnded(currentBatch)"
+            />
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="searchMembersToPick">搜索会员</el-button>
+            <el-button
+              type="primary"
+              :disabled="isExamBatchEnded(currentBatch)"
+              @click="searchMembersToPick"
+            >
+              搜索会员
+            </el-button>
           </el-form-item>
         </el-form>
         <el-table v-if="pickMembers.length" :data="pickMembers" size="small" max-height="200" border class="mb">
@@ -149,7 +199,14 @@
           <el-table-column prop="nickname" label="昵称" />
           <el-table-column label="" width="100">
             <template #default="{ row }">
-              <el-button link type="primary" @click="addPickId(row.id)">加入导入</el-button>
+              <el-button
+                link
+                type="primary"
+                :disabled="isExamBatchEnded(currentBatch)"
+                @click="addPickId(row.id)"
+              >
+                加入导入
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -233,6 +290,8 @@ function examPaperIdsCell(ids: number[] | undefined): string {
 
 const query = reactive({
   exam_paper_id: undefined as number | undefined,
+  /** [time_from, time_to]，与列表筛选区间求交集 */
+  timeRange: null as [string, string] | null,
   page: 1,
   size: 10,
 })
@@ -245,8 +304,11 @@ async function loadExamPapersForSelect() {
 async function loadList() {
   loading.value = true
   try {
+    const tr = query.timeRange
     const res = await getExamBatchList({
       exam_paper_id: query.exam_paper_id || undefined,
+      time_from: tr?.[0],
+      time_to: tr?.[1],
       page: query.page,
       size: query.size,
     })
@@ -259,6 +321,7 @@ async function loadList() {
 
 function resetQuery() {
   query.exam_paper_id = undefined
+  query.timeRange = null
   query.page = 1
   loadList()
 }
@@ -294,7 +357,18 @@ function openCreate() {
   formVisible.value = true
 }
 
+function isExamBatchEnded(row: { exam_end_at: string } | null | undefined): boolean {
+  if (!row?.exam_end_at) return false
+  const t = new Date(row.exam_end_at).getTime()
+  if (Number.isNaN(t)) return false
+  return t <= Date.now()
+}
+
 function openEdit(row: ExamBatchListItem) {
+  if (isExamBatchEnded(row)) {
+    ElMessage.warning('该考试批次已结束，不能编辑')
+    return
+  }
   formMode.value = 'edit'
   editingId.value = row.id
   form.exam_paper_ids = [...(row.exam_paper_ids || [])]
@@ -389,6 +463,10 @@ function parseIdList(text: string): number[] {
 
 async function doImport() {
   if (!currentBatch.value) return
+  if (isExamBatchEnded(currentBatch.value)) {
+    ElMessage.warning('该考试批次已结束，不能导入学员')
+    return
+  }
   if (!importExamPaperId.value) {
     ElMessage.warning('请选择试卷')
     return

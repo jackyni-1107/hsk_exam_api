@@ -15,8 +15,8 @@ import (
 
 type (
 	IBatch interface {
-		// ExamBatchList 分页查询考试批次列表（examPaperID 按 exam_paper.id 筛选，0 表示不限）
-		ExamBatchList(ctx context.Context, examPaperID int64, page int, size int, key string) (list []bo.ExamBatchAdminItem, total int, err error)
+		// ExamBatchList 分页查询考试批次列表（examPaperID 按 exam_paper.id 筛选，0 表示不限；timeFrom/timeTo 与批次考试时间区间求交集，空串表示不限）
+		ExamBatchList(ctx context.Context, examPaperID int64, page int, size int, timeFrom, timeTo string) (list []bo.ExamBatchAdminItem, total int, err error)
 		// ExamBatchDetail 批次详情（含 exam_paper.id 列表与学员数）。
 		ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdminItem, error)
 		// ExamBatchCreate 创建考试批次
