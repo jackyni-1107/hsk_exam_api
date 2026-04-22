@@ -12,10 +12,11 @@ type LoginInput struct {
 }
 
 type LoginUserInfo struct {
-	Id       int64
-	Username string
-	Nickname string
-	Avatar   string
+	Id          int64
+	Username    string
+	Nickname    string
+	Avatar      string
+	Permissions []string
 }
 
 type LoginResult struct {

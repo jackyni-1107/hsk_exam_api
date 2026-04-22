@@ -10,6 +10,7 @@ import (
 	sysdo "exam/internal/model/do/sys"
 	"exam/internal/service/audit"
 	membersvc "exam/internal/service/member"
+	rolesvc "exam/internal/service/sysrole"
 	"exam/internal/service/sysuser"
 	"exam/internal/utility"
 
@@ -73,6 +74,13 @@ func (s *sSecurity) Login(ctx context.Context, input bo.LoginInput) (*bo.LoginRe
 		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
 	}
 
+	permissions, err := s.loadLoginPermissions(ctx, input.UserType, account.Id)
+	if err != nil {
+		g.Log().Errorf(ctx, "load login permissions failed: userType=%d, userId=%d, err=%v", input.UserType, account.Id, err)
+		s.recordLoginFailure(ctx, input, account.Id, "load permissions failed", false)
+		return nil, gerror.NewCode(consts.CodeLoginFailed)
+	}
+
 	token, err := s.IssueToken(ctx, input.UserType, account.Id, account.Username)
 	if err != nil {
 		g.Log().Errorf(ctx, "issue login token failed: userType=%d, userId=%d, err=%v", input.UserType, account.Id, err)
@@ -87,10 +95,11 @@ func (s *sSecurity) Login(ctx context.Context, input bo.LoginInput) (*bo.LoginRe
 	return &bo.LoginResult{
 		Token: token,
 		UserInfo: bo.LoginUserInfo{
-			Id:       account.Id,
-			Username: account.Username,
-			Nickname: account.Nickname,
-			Avatar:   account.Avatar,
+			Id:          account.Id,
+			Username:    account.Username,
+			Nickname:    account.Nickname,
+			Avatar:      account.Avatar,
+			Permissions: permissions,
 		},
 	}, nil
 }
@@ -144,6 +153,13 @@ func (s *sSecurity) recordLoginFailure(ctx context.Context, input bo.LoginInput,
 	if increaseFailureCount {
 		s.RecordLoginFailure(ctx, input.UserType, input.Username, input.IP, input.UserAgent, input.TraceId)
 	}
+}
+
+func (s *sSecurity) loadLoginPermissions(ctx context.Context, userType int, userId int64) ([]string, error) {
+	if userType != consts.UserTypeAdmin || userId <= 0 {
+		return nil, nil
+	}
+	return rolesvc.SysRole().PermissionCodesByUser(ctx, userId)
 }
 
 func (s *sSecurity) bestEffortUpdateLoginMeta(ctx context.Context, userType int, userId int64, ip string) {

@@ -2,14 +2,20 @@ package member
 
 import (
 	"context"
+	"strings"
 
 	"exam/internal/auditutil"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	sysdo "exam/internal/model/do/sys"
 	sysentity "exam/internal/model/entity/sys"
+	secsvc "exam/internal/service/security"
+	"exam/internal/utility"
 
+	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gtime"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -20,6 +26,7 @@ func (s *sMember) MemberList(ctx context.Context, page, size int, username strin
 	if size <= 0 {
 		size = 10
 	}
+	username = normalizeMemberUsername(username)
 	model := dao.SysMember.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted)
 	if username != "" {
 		model = model.WhereLike("username", "%"+username+"%")
@@ -32,14 +39,24 @@ func (s *sMember) MemberList(ctx context.Context, page, size int, username strin
 		return nil, 0, err
 	}
 	var list []sysentity.SysMember
-	err = model.Page(page, size).OrderDesc("id").Scan(&list)
-	if err != nil {
+	if err = model.Page(page, size).OrderDesc("id").Scan(&list); err != nil {
 		return nil, 0, err
 	}
 	return list, total, nil
 }
 
 func (s *sMember) MemberCreate(ctx context.Context, username, password, nickname, email, mobile, creator string, status int) (int64, error) {
+	username = normalizeMemberUsername(username)
+	if username == "" {
+		return 0, gerror.NewCode(consts.CodeInvalidParams)
+	}
+	if err := secsvc.Security().ValidatePasswordPolicy(ctx, password); err != nil {
+		return 0, err
+	}
+	passwordHash, err := hashMemberPassword(password)
+	if err != nil {
+		return 0, err
+	}
 	cnt, err := dao.SysMember.Ctx(ctx).
 		Where("username", username).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -51,24 +68,18 @@ func (s *sMember) MemberCreate(ctx context.Context, username, password, nickname
 		return 0, gerror.NewCode(consts.CodeMemberExists)
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return 0, err
-	}
-
-	if status != consts.StatusNormal && status != consts.StatusDisabled {
-		status = consts.StatusNormal
-	}
-
+	status = normalizeMemberStatus(status)
+	nickname, email, mobile = normalizeMemberProfile(nickname, email, mobile)
 	id, err := dao.SysMember.Ctx(ctx).InsertAndGetId(sysdo.SysMember{
-		Username: username,
-		Password: string(hash),
-		Nickname: nickname,
-		Email:    email,
-		Mobile:   mobile,
-		Status:   status,
-		Creator:  creator,
-		Updater:  creator,
+		Username:          username,
+		Password:          passwordHash,
+		PasswordChangedAt: gtime.Now(),
+		Nickname:          nickname,
+		Email:             email,
+		Mobile:            mobile,
+		Status:            status,
+		Creator:           creator,
+		Updater:           creator,
 	})
 	if err != nil {
 		return 0, err
@@ -81,85 +92,160 @@ func (s *sMember) MemberCreate(ctx context.Context, username, password, nickname
 }
 
 func (s *sMember) MemberUpdate(ctx context.Context, id int64, password, nickname, email, mobile, updater string, status int) error {
-	var before sysentity.SysMember
-	if err := dao.SysMember.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+	before, err := loadMemberByID(ctx, id)
+	if err != nil {
 		return err
 	}
-	if before.Id == 0 {
-		return gerror.NewCode(consts.CodeUserNotFound)
-	}
+
+	nickname, email, mobile = normalizeMemberProfile(nickname, email, mobile)
 	data := sysdo.SysMember{
 		Nickname: nickname,
 		Email:    email,
 		Mobile:   mobile,
 		Updater:  updater,
 	}
+	shouldRevokeSessions := false
 	if status == consts.StatusNormal || status == consts.StatusDisabled {
 		data.Status = status
+		if before.Status != status && status == consts.StatusDisabled {
+			shouldRevokeSessions = true
+		}
 	}
+
+	passwordChanged := false
 	if password != "" {
-		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		passwordHash, err := prepareMemberPasswordChange(ctx, before.Id, before.Password, password)
 		if err != nil {
 			return err
 		}
-		data.Password = string(hash)
+		data.Password = passwordHash
+		data.PasswordChangedAt = gtime.Now()
+		shouldRevokeSessions = true
+		passwordChanged = true
 	}
-	_, err := dao.SysMember.Ctx(ctx).Where("id", id).Data(data).Update()
+
+	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		if _, err := tx.Model(dao.SysMember.Table()).Ctx(ctx).Where("id", id).Data(data).Update(); err != nil {
+			return err
+		}
+		if passwordChanged {
+			return secsvc.Security().SavePasswordHistory(ctx, consts.UserTypeClient, id, before.Password)
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
+	if shouldRevokeSessions {
+		bestEffortRevokeClientSessions(ctx, id)
+	}
+
 	var after sysentity.SysMember
 	if err := dao.SysMember.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
-		auditutil.RecordEntityDiff(ctx, dao.SysMember.Table(), id, &before, &after)
+		auditutil.RecordEntityDiff(ctx, dao.SysMember.Table(), id, before, &after)
 	}
 	return nil
 }
 
 func (s *sMember) MemberDelete(ctx context.Context, id int64, updater string) error {
-	var before sysentity.SysMember
-	if err := dao.SysMember.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
+	before, err := loadMemberByID(ctx, id)
+	if err != nil {
 		return err
 	}
-	if before.Id == 0 {
-		return gerror.NewCode(consts.CodeUserNotFound)
-	}
-	_, err := dao.SysMember.Ctx(ctx).Where("id", id).Data(sysdo.SysMember{
+	_, err = dao.SysMember.Ctx(ctx).Where("id", id).Data(sysdo.SysMember{
 		DeleteFlag: consts.DeleteFlagDeleted,
 		Updater:    updater,
 	}).Update()
 	if err != nil {
 		return err
 	}
+	bestEffortRevokeClientSessions(ctx, id)
+
 	var after sysentity.SysMember
 	if err := dao.SysMember.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
-		auditutil.RecordEntityDiff(ctx, dao.SysMember.Table(), id, &before, &after)
+		auditutil.RecordEntityDiff(ctx, dao.SysMember.Table(), id, before, &after)
 	}
 	return nil
 }
 
 func (s *sMember) MemberProfile(ctx context.Context, memberId int64) (*sysentity.SysMember, error) {
-	var m sysentity.SysMember
-	err := dao.SysMember.Ctx(ctx).Where("id", memberId).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&m)
-	if err != nil {
-		return nil, err
-	}
-	if m.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeUserNotFound)
-	}
-	return &m, nil
+	return loadMemberByID(ctx, memberId)
 }
 
 func (s *sMember) FindByUsername(ctx context.Context, username string) (*sysentity.SysMember, error) {
-	var m sysentity.SysMember
+	username = normalizeMemberUsername(username)
+	if username == "" {
+		return nil, gerror.NewCode(consts.CodeInvalidParams)
+	}
+	var member sysentity.SysMember
 	err := dao.SysMember.Ctx(ctx).
 		Where("username", username).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&m)
+		Scan(&member)
 	if err != nil {
 		return nil, err
 	}
-	if m.Id == 0 {
+	if member.Id == 0 {
 		return nil, nil
 	}
-	return &m, nil
+	return &member, nil
+}
+
+func normalizeMemberUsername(username string) string {
+	return strings.TrimSpace(username)
+}
+
+func normalizeMemberProfile(nickname, email, mobile string) (string, string, string) {
+	return strings.TrimSpace(nickname), strings.TrimSpace(email), strings.TrimSpace(mobile)
+}
+
+func normalizeMemberStatus(status int) int {
+	if status == consts.StatusNormal || status == consts.StatusDisabled {
+		return status
+	}
+	return consts.StatusNormal
+}
+
+func loadMemberByID(ctx context.Context, memberID int64) (*sysentity.SysMember, error) {
+	var member sysentity.SysMember
+	if err := dao.SysMember.Ctx(ctx).
+		Where("id", memberID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&member); err != nil {
+		return nil, err
+	}
+	if member.Id == 0 {
+		return nil, gerror.NewCode(consts.CodeUserNotFound)
+	}
+	return &member, nil
+}
+
+func prepareMemberPasswordChange(ctx context.Context, memberID int64, currentHash, newPassword string) (string, error) {
+	if err := secsvc.Security().ValidatePasswordPolicy(ctx, newPassword); err != nil {
+		return "", err
+	}
+	if utility.CheckPassword(currentHash, newPassword) {
+		return "", gerror.NewCode(consts.CodePasswordReuse)
+	}
+	if err := secsvc.Security().ValidatePasswordNotInHistory(ctx, consts.UserTypeClient, memberID, newPassword); err != nil {
+		return "", err
+	}
+	return hashMemberPassword(newPassword)
+}
+
+func hashMemberPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
+}
+
+func bestEffortRevokeClientSessions(ctx context.Context, memberID int64) {
+	if memberID <= 0 {
+		return
+	}
+	if err := secsvc.Security().RevokeAllUserSessions(ctx, consts.UserTypeClient, memberID); err != nil {
+		g.Log().Warningf(ctx, "revoke client sessions failed member_id=%d: %v", memberID, err)
+	}
 }
