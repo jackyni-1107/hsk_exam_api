@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"fmt"
@@ -45,7 +46,7 @@ func worker(ctx context.Context, queueKey string, workerID int) {
 			result, err := g.Redis().BLPop(ctx, 5, queueKey)
 			if err != nil {
 				// 超时正常
-				if err == context.DeadlineExceeded {
+				if errors.Is(err, context.DeadlineExceeded) {
 					continue
 				}
 				g.Log().Errorf(ctx, "worker-%d Redis error: %v", workerID, err)
