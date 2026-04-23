@@ -8,7 +8,7 @@ import (
 	examentity "exam/internal/model/entity/exam"
 )
 
-// PaperList 分页试卷列表。
+// PaperList 分页查询试卷列表。
 func (s *sPaper) PaperList(ctx context.Context, page, size int, level string, mockLevelId int64) (list []examentity.ExamPaper, total int, err error) {
 	if page <= 0 {
 		page = 1

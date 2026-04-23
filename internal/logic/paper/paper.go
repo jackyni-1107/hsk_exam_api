@@ -18,7 +18,7 @@ import (
 	"exam/internal/utility"
 )
 
-// PaperDetail 返回试卷及嵌套大题、题块、小题、选项（只读查看）。
+// PaperDetail 返回试卷及嵌套的大题、题块、题目、选项。
 func (s *sPaper) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.PaperDetailTree, error) {
 	var paper examentity.ExamPaper
 	err := examdao.ExamPaper.Ctx(ctx).
@@ -145,7 +145,7 @@ func (s *sPaper) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.Pa
 	return out, nil
 }
 
-// sectionDetailViewFromData 将单个大题下的题块/小题/选项拼装为 SectionDetailView（含选项正误，管理端全量）。
+// sectionDetailViewFromData 将一个大题下的题块、题目、选项拼装为详情视图。
 func sectionDetailViewFromData(
 	sec examentity.ExamSection,
 	blocks []examentity.ExamQuestionBlock,
@@ -202,7 +202,7 @@ func sectionDetailViewFromData(
 	return sv
 }
 
-// PaperDetailSection 仅加载单个大题下的题块/小题/选项（与 PaperDetail 中一节结构一致，含选项正误）。
+// PaperDetailSection 只加载单个大题的完整详情。
 func (s *sPaper) PaperDetailSection(ctx context.Context, examPaperId, sectionId int64) (*exambo.SectionDetailView, error) {
 	var paper examentity.ExamPaper
 	err := examdao.ExamPaper.Ctx(ctx).
@@ -291,7 +291,7 @@ func (s *sPaper) PaperDetailSection(ctx context.Context, examPaperId, sectionId 
 	return &sv, nil
 }
 
-// UpdatePaperSettings 修改试卷听力 HLS 配置（答题时长以 mock_examination_paper 为准）。
+// UpdatePaperSettings 修改试卷的 HLS 配置。
 func (s *sPaper) UpdatePaperSettings(ctx context.Context, examPaperId int64, in exambo.PaperHlsExamAdminUpdate, updater string) error {
 	if examPaperId <= 0 {
 		return gerror.NewCode(consts.CodeInvalidParams)
@@ -331,7 +331,7 @@ func (s *sPaper) UpdatePaperSettings(ctx context.Context, examPaperId int64, in 
 	return nil
 }
 
-// UpdatePaperMeta 管理端修改试卷元数据（不含 HLS、题目树）。
+// UpdatePaperMeta 修改试卷元数据，不包含 HLS 与题目树。
 func (s *sPaper) UpdatePaperMeta(ctx context.Context, examPaperId int64, in exambo.PaperMetaAdminUpdate, updater string) error {
 	if examPaperId <= 0 {
 		return gerror.NewCode(consts.CodeInvalidParams)

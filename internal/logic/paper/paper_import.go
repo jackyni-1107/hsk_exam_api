@@ -22,203 +22,254 @@ import (
 	"github.com/gogf/gf/v2/os/gtime"
 )
 
-// ImportFromIndex 根据 mock_examination_paper.resource_url 推导 index.json 地址并导入到 exam_* 表。
+type importIndexSource struct {
+	mockPaper      mockentity.MockExaminationPaper
+	mockID         int64
+	baseURL        string
+	level          string
+	paperID        string
+	indexJSON      *gjson.Json
+	indexSnapshot  string
+	title          string
+	prepareTitle   string
+	prepareInstr   string
+	prepareAudio   string
+	audioHlsPrefix string
+}
+
+type importConflictPlan struct {
+	existing         examentity.ExamPaper
+	overwritePaperID int64
+}
+
+// ImportFromIndex 根据 mock_examination_paper.resource_url 推导 index.json 并导入 exam_* 表。
 func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*exambo.ImportResult, error) {
 	res := &exambo.ImportResult{}
-	var mockPaper mockentity.MockExaminationPaper
-	if err := dao.MockExaminationPaper.Ctx(ctx).
-		Where(dao.MockExaminationPaper.Columns().Id, p.MockExaminationPaperId).
-		Where(dao.MockExaminationPaper.Columns().DeleteFlag, consts.DeleteFlagNotDeleted).
-		Scan(&mockPaper); err != nil {
-		return nil, err
-	}
-	if mockPaper.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeMockExamPaperNotFound)
-	}
-	indexURL, err := indexJSONURLFromMockResourceURL(mockPaper.ResourceUrl)
-	if err != nil {
-		return nil, err
-	}
-	indexStr, err := fetchRemote(ctx, indexURL)
-	if err != nil {
-		return nil, err
-	}
-	baseURL, level, paperID, err := parseIndexURL(indexURL)
-	if err != nil {
-		return nil, err
-	}
-	audioHlsPrefix := strings.Trim(p.AudioHlsPrefix, "/")
-	mode, err := normalizeExamImportConflictMode(p.ConflictMode)
+
+	source, err := loadImportIndexSource(ctx, p)
 	if err != nil {
 		return nil, err
 	}
 
-	idx := gjson.New(indexStr)
-	title := strings.TrimSpace(p.Title)
-	if title == "" {
-		title = strings.TrimSpace(mockPaper.Name)
-	}
-	if title == "" {
-		title = strings.TrimSpace(idx.Get("title").String())
-	}
-	prepareTitle := idx.Get("prepare.title").String()
-	if prepareTitle == "" {
-		prepareTitle = idx.Get("prepare_title").String()
-	}
-	prepareInstr := idx.Get("prepare.instruction").String()
-	if prepareInstr == "" {
-		prepareInstr = idx.Get("prepare_instruction").String()
-	}
-	prepareAudio := idx.Get("prepare.audio_file").String()
-	if prepareAudio == "" {
-		prepareAudio = idx.Get("prepare_audio_file").String()
-	}
-
-	mockID := p.MockExaminationPaperId
-	var exist examentity.ExamPaper
-	if err := dao.ExamPaper.Ctx(ctx).
-		Where("mock_examination_paper_id", mockID).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&exist); err != nil {
+	plan, err := buildImportConflictPlan(ctx, p.ConflictMode, source.mockID)
+	if err != nil {
 		return nil, err
 	}
-
-	overwritePaperID := int64(0)
-	if exist.Id > 0 {
-		switch mode {
-		case consts.ExamImportConflictFail:
-			res.Conflict = true
-			res.ExistingMockExaminationPaperID = mockID
-			return res, nil
-		case consts.ExamImportConflictOverwrite, consts.ExamImportConflictNew:
-			// 与「覆盖」相同实现，见 docs/exam-paper-import.md。
-			overwritePaperID = exist.Id
-		default:
-			return nil, gerror.NewCode(consts.CodeExamConflictModeInvalid)
-		}
-	}
-
-	indexSnapshot := gjson.New(indexStr).MustToJsonString()
-
-	// 覆盖 / 替换且未传 HLS 前缀时保留库内原值（与「伪删除保留历史」一致）
-	audioHlsForPaper := audioHlsPrefix
-	if exist.Id > 0 && strings.TrimSpace(p.AudioHlsPrefix) == "" {
-		audioHlsForPaper = strings.Trim(exist.AudioHlsPrefix, "/")
+	if plan.existing.Id > 0 && plan.overwritePaperID == 0 {
+		res.Conflict = true
+		res.ExistingMockExaminationPaperID = source.mockID
+		return res, nil
 	}
 
 	var importedExamPaperID int64
 	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		var pid int64
-		if overwritePaperID > 0 {
-			if err := softDeletePaperTreeTx(ctx, tx, overwritePaperID, p.Creator); err != nil {
-				return err
-			}
-			_, err := tx.Model(dao.ExamPaper.Table()).Ctx(ctx).Where("id", overwritePaperID).Data(examdo.ExamPaper{
-				Level:                   level,
-				PaperId:                 paperID,
-				MockExaminationPaperId:  mockID,
-				Title:                   title,
-				PrepareTitle:            prepareTitle,
-				PrepareInstruction:      prepareInstr,
-				PrepareAudioFile:        prepareAudio,
-				SourceBaseUrl:           baseURL,
-				AudioHlsPrefix:          audioHlsForPaper,
-				AudioHlsSegmentCount:    exist.AudioHlsSegmentCount,
-				AudioHlsSegmentPattern:  exist.AudioHlsSegmentPattern,
-				AudioHlsKeyObject:       exist.AudioHlsKeyObject,
-				AudioHlsIvHex:           exist.AudioHlsIvHex,
-				AudioHlsSegmentDuration: exist.AudioHlsSegmentDuration,
-				IndexJson:               indexSnapshot,
-				DurationSeconds:         exist.DurationSeconds,
-				Updater:                 p.Creator,
-				UpdateTime:              gtime.Now(),
-				DeleteFlag:              consts.DeleteFlagNotDeleted,
-			}).Update()
-			if err != nil {
-				return err
-			}
-			pid = overwritePaperID
-		} else {
-			paperDO := examdo.ExamPaper{
-				Level:                  level,
-				PaperId:                paperID,
-				MockExaminationPaperId: mockID,
-				Title:                  title,
-				PrepareTitle:           prepareTitle,
-				PrepareInstruction:     prepareInstr,
-				PrepareAudioFile:       prepareAudio,
-				SourceBaseUrl:          baseURL,
-				AudioHlsPrefix:         audioHlsForPaper,
-				IndexJson:              indexSnapshot,
-				Creator:                p.Creator,
-				Updater:                p.Creator,
-				DeleteFlag:             consts.DeleteFlagNotDeleted,
-				CreateTime:             gtime.Now(),
-				UpdateTime:             gtime.Now(),
-			}
-			inserted, err := tx.Model(dao.ExamPaper.Table()).Ctx(ctx).InsertAndGetId(paperDO)
-			if err != nil {
-				return err
-			}
-			pid = inserted
+		paperID, err := upsertImportedPaper(ctx, tx, p.Creator, source, plan)
+		if err != nil {
+			return err
 		}
-		res.MockExaminationPaperID = mockID
 
-		items := idx.Get("items").Array()
-		secCount := 0
-		qCount := 0
-		for i, it := range items {
-			item := gjson.New(it)
-			topicFile := item.Get("topic_items").String()
-			if topicFile == "" {
-				continue
-			}
-			topicURL := baseURL + topicFile
-			body, err := fetchRemote(ctx, topicURL)
-			if err != nil {
-				return gerror.Wrapf(err, "fetch topic %s", topicFile)
-			}
-			topicSnap := gjson.New(body).MustToJsonString()
-
-			secDO := examdo.ExamSection{
-				ExamPaperId:            pid,
-				MockExaminationPaperId: mockID,
-				SortOrder:              i,
-				TopicTitle:             item.Get("topic_title").String(),
-				TopicSubtitle:          item.Get("topic_subtitle").String(),
-				TopicType:              item.Get("topic_type").String(),
-				PartCode:               item.Get("part_code").Int(),
-				SegmentCode:            item.Get("segment_code").String(),
-				TopicItemsFile:         topicFile,
-				TopicJson:              topicSnap,
-				Creator:                p.Creator,
-				Updater:                p.Creator,
-				DeleteFlag:             consts.DeleteFlagNotDeleted,
-				CreateTime:             gtime.Now(),
-				UpdateTime:             gtime.Now(),
-			}
-			sid, err := tx.Model(dao.ExamSection.Table()).Ctx(ctx).InsertAndGetId(secDO)
-			if err != nil {
-				return err
-			}
-			secCount++
-
-			n, err := insertTopicContent(ctx, tx, pid, mockID, sid, body, p.Creator)
-			if err != nil {
-				return err
-			}
-			qCount += n
+		sectionCount, questionCount, err := importPaperSections(ctx, tx, paperID, source, p.Creator)
+		if err != nil {
+			return err
 		}
-		res.SectionCount = secCount
-		res.QuestionCount = qCount
-		importedExamPaperID = pid
+
+		res.MockExaminationPaperID = source.mockID
+		res.SectionCount = sectionCount
+		res.QuestionCount = questionCount
+		importedExamPaperID = paperID
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	invalidatePaperCaches(ctx, importedExamPaperID, mockID)
+
+	invalidatePaperCaches(ctx, importedExamPaperID, source.mockID)
 	return res, nil
+}
+
+func loadImportIndexSource(ctx context.Context, p exambo.ImportParams) (importIndexSource, error) {
+	var source importIndexSource
+	if err := dao.MockExaminationPaper.Ctx(ctx).
+		Where(dao.MockExaminationPaper.Columns().Id, p.MockExaminationPaperId).
+		Where(dao.MockExaminationPaper.Columns().DeleteFlag, consts.DeleteFlagNotDeleted).
+		Scan(&source.mockPaper); err != nil {
+		return source, err
+	}
+	if source.mockPaper.Id == 0 {
+		return source, gerror.NewCode(consts.CodeMockExamPaperNotFound)
+	}
+
+	indexURL, err := indexJSONURLFromMockResourceURL(source.mockPaper.ResourceUrl)
+	if err != nil {
+		return source, err
+	}
+	indexBody, err := fetchRemote(ctx, indexURL)
+	if err != nil {
+		return source, err
+	}
+	baseURL, level, paperID, err := parseIndexURL(indexURL)
+	if err != nil {
+		return source, err
+	}
+
+	idx := gjson.New(indexBody)
+	source = importIndexSource{
+		mockPaper:      source.mockPaper,
+		mockID:         p.MockExaminationPaperId,
+		baseURL:        baseURL,
+		level:          level,
+		paperID:        paperID,
+		indexJSON:      idx,
+		indexSnapshot:  idx.MustToJsonString(),
+		audioHlsPrefix: strings.Trim(p.AudioHlsPrefix, "/"),
+		title: firstNonEmpty(
+			strings.TrimSpace(p.Title),
+			strings.TrimSpace(source.mockPaper.Name),
+			strings.TrimSpace(idx.Get("title").String()),
+		),
+		prepareTitle: firstNonEmpty(idx.Get("prepare.title").String(), idx.Get("prepare_title").String()),
+		prepareInstr: firstNonEmpty(idx.Get("prepare.instruction").String(), idx.Get("prepare_instruction").String()),
+		prepareAudio: firstNonEmpty(idx.Get("prepare.audio_file").String(), idx.Get("prepare_audio_file").String()),
+	}
+	return source, nil
+}
+
+func buildImportConflictPlan(ctx context.Context, conflictMode string, mockID int64) (importConflictPlan, error) {
+	var plan importConflictPlan
+	mode, err := normalizeExamImportConflictMode(conflictMode)
+	if err != nil {
+		return plan, err
+	}
+
+	if err := dao.ExamPaper.Ctx(ctx).
+		Where("mock_examination_paper_id", mockID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&plan.existing); err != nil {
+		return plan, err
+	}
+	if plan.existing.Id == 0 {
+		return plan, nil
+	}
+	if mode == consts.ExamImportConflictFail {
+		return plan, nil
+	}
+
+	plan.overwritePaperID = plan.existing.Id
+	return plan, nil
+}
+
+func upsertImportedPaper(ctx context.Context, tx gdb.TX, creator string, source importIndexSource, plan importConflictPlan) (int64, error) {
+	audioHlsPrefix := source.audioHlsPrefix
+	if plan.overwritePaperID > 0 && audioHlsPrefix == "" {
+		audioHlsPrefix = strings.Trim(plan.existing.AudioHlsPrefix, "/")
+	}
+
+	if plan.overwritePaperID > 0 {
+		if err := softDeletePaperTreeTx(ctx, tx, plan.overwritePaperID, creator); err != nil {
+			return 0, err
+		}
+		_, err := tx.Model(dao.ExamPaper.Table()).Ctx(ctx).Where("id", plan.overwritePaperID).Data(examdo.ExamPaper{
+			Level:                   source.level,
+			PaperId:                 source.paperID,
+			MockExaminationPaperId:  source.mockID,
+			Title:                   source.title,
+			PrepareTitle:            source.prepareTitle,
+			PrepareInstruction:      source.prepareInstr,
+			PrepareAudioFile:        source.prepareAudio,
+			SourceBaseUrl:           source.baseURL,
+			AudioHlsPrefix:          audioHlsPrefix,
+			AudioHlsSegmentCount:    plan.existing.AudioHlsSegmentCount,
+			AudioHlsSegmentPattern:  plan.existing.AudioHlsSegmentPattern,
+			AudioHlsKeyObject:       plan.existing.AudioHlsKeyObject,
+			AudioHlsIvHex:           plan.existing.AudioHlsIvHex,
+			AudioHlsSegmentDuration: plan.existing.AudioHlsSegmentDuration,
+			IndexJson:               source.indexSnapshot,
+			DurationSeconds:         plan.existing.DurationSeconds,
+			Updater:                 creator,
+			UpdateTime:              gtime.Now(),
+			DeleteFlag:              consts.DeleteFlagNotDeleted,
+		}).Update()
+		if err != nil {
+			return 0, err
+		}
+		return plan.overwritePaperID, nil
+	}
+
+	inserted, err := tx.Model(dao.ExamPaper.Table()).Ctx(ctx).InsertAndGetId(examdo.ExamPaper{
+		Level:                  source.level,
+		PaperId:                source.paperID,
+		MockExaminationPaperId: source.mockID,
+		Title:                  source.title,
+		PrepareTitle:           source.prepareTitle,
+		PrepareInstruction:     source.prepareInstr,
+		PrepareAudioFile:       source.prepareAudio,
+		SourceBaseUrl:          source.baseURL,
+		AudioHlsPrefix:         audioHlsPrefix,
+		IndexJson:              source.indexSnapshot,
+		Creator:                creator,
+		Updater:                creator,
+		DeleteFlag:             consts.DeleteFlagNotDeleted,
+		CreateTime:             gtime.Now(),
+		UpdateTime:             gtime.Now(),
+	})
+	if err != nil {
+		return 0, err
+	}
+	return inserted, nil
+}
+
+func importPaperSections(ctx context.Context, tx gdb.TX, examPaperID int64, source importIndexSource, creator string) (sectionCount int, questionCount int, err error) {
+	items := source.indexJSON.Get("items").Array()
+	for i, it := range items {
+		item := gjson.New(it)
+		topicFile := item.Get("topic_items").String()
+		if topicFile == "" {
+			continue
+		}
+
+		topicBody, err := fetchRemote(ctx, source.baseURL+topicFile)
+		if err != nil {
+			return 0, 0, gerror.Wrapf(err, "fetch topic %s", topicFile)
+		}
+
+		sectionID, err := tx.Model(dao.ExamSection.Table()).Ctx(ctx).InsertAndGetId(examdo.ExamSection{
+			ExamPaperId:            examPaperID,
+			MockExaminationPaperId: source.mockID,
+			SortOrder:              i,
+			TopicTitle:             item.Get("topic_title").String(),
+			TopicSubtitle:          item.Get("topic_subtitle").String(),
+			TopicType:              item.Get("topic_type").String(),
+			PartCode:               item.Get("part_code").Int(),
+			SegmentCode:            item.Get("segment_code").String(),
+			TopicItemsFile:         topicFile,
+			TopicJson:              gjson.New(topicBody).MustToJsonString(),
+			Creator:                creator,
+			Updater:                creator,
+			DeleteFlag:             consts.DeleteFlagNotDeleted,
+			CreateTime:             gtime.Now(),
+			UpdateTime:             gtime.Now(),
+		})
+		if err != nil {
+			return 0, 0, err
+		}
+		sectionCount++
+
+		n, err := insertTopicContent(ctx, tx, examPaperID, source.mockID, sectionID, topicBody, creator)
+		if err != nil {
+			return 0, 0, err
+		}
+		questionCount += n
+	}
+	return sectionCount, questionCount, nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
 }
 
 func normalizeExamImportConflictMode(mode string) (string, error) {
