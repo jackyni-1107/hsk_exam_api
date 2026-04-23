@@ -35,8 +35,14 @@ func (s *sBatch) ExamBatchList(ctx context.Context, examPaperID int64, page int,
 	if size <= 0 {
 		size = 10
 	}
-	tf := s.parseTime(strings.TrimSpace(timeFrom))
-	tt := s.parseTime(strings.TrimSpace(timeTo))
+	tf, err := s.parseTime(strings.TrimSpace(timeFrom))
+	if err != nil {
+		return nil, 0, err
+	}
+	tt, err := s.parseTime(strings.TrimSpace(timeTo))
+	if err != nil {
+		return nil, 0, err
+	}
 	if tf != nil && tt != nil && tf.After(tt) {
 		return nil, 0, gerror.NewCode(consts.CodeInvalidParams)
 	}
@@ -126,9 +132,14 @@ func (s *sBatch) ExamBatchCreate(ctx context.Context, title, examStartAt, examEn
 	if err != nil {
 		return 0, err
 	}
-	st := s.parseTime(examStartAt)
-
-	en := s.parseTime(examEndAt)
+	st, err := s.parseTime(examStartAt)
+	if err != nil || st == nil {
+		return 0, gerror.NewCode(consts.CodeInvalidParams)
+	}
+	en, err := s.parseTime(examEndAt)
+	if err != nil || en == nil {
+		return 0, gerror.NewCode(consts.CodeInvalidParams)
+	}
 	if !en.After(st) {
 		return 0, gerror.NewCode(consts.CodeExamBatchTimeInvalid)
 	}
@@ -187,8 +198,14 @@ func (s *sBatch) ExamBatchUpdate(ctx context.Context, id int64, title, examStart
 	if examBatchEnded(b) {
 		return gerror.NewCode(consts.CodeExamBatchEnded)
 	}
-	st := s.parseTime(examStartAt)
-	en := s.parseTime(examEndAt)
+	st, err := s.parseTime(examStartAt)
+	if err != nil || st == nil {
+		return gerror.NewCode(consts.CodeInvalidParams)
+	}
+	en, err := s.parseTime(examEndAt)
+	if err != nil || en == nil {
+		return gerror.NewCode(consts.CodeInvalidParams)
+	}
 	if !en.After(st) {
 		return gerror.NewCode(consts.CodeExamBatchTimeInvalid)
 	}
@@ -209,10 +226,6 @@ func (s *sBatch) ExamBatchUpdate(ctx context.Context, id int64, title, examStart
 	}
 	if hasOrphan {
 		return gerror.NewCode(consts.CodeExamBatchPaperHasMembers)
-	}
-	beforeBatch, err := examBatchByID(ctx, id)
-	if err != nil {
-		return err
 	}
 	beforePapers, err := loadExamPaperIDsForBatch(ctx, id)
 	if err != nil {
@@ -250,7 +263,7 @@ func (s *sBatch) ExamBatchUpdate(ctx context.Context, id int64, title, examStart
 		return err
 	}
 	if afterBatch, err := examBatchByID(ctx, id); err == nil {
-		auditutil.RecordEntityDiff(ctx, dao.ExamBatch.Table(), id, &beforeBatch, &afterBatch)
+		auditutil.RecordEntityDiff(ctx, dao.ExamBatch.Table(), id, &b, &afterBatch)
 	}
 	if afterPapers, err := loadExamPaperIDsForBatch(ctx, id); err == nil {
 		afterPaperStr := utility.JoinSortedInt64IDs(afterPapers)
@@ -267,10 +280,21 @@ func (s *sBatch) ExamBatchDelete(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
-	_, err = dao.ExamBatch.Ctx(ctx).Where("id", id).Data(g.Map{
-		dao.ExamBatch.Columns().DeleteFlag: consts.DeleteFlagDeleted,
-		dao.ExamBatch.Columns().UpdateTime: gtime.Now(),
-	}).Update()
+	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		if _, err := tx.Model(dao.ExamBatchPaper.Table()).Ctx(ctx).Where("batch_id", id).Delete(); err != nil {
+			return err
+		}
+		if _, err := tx.Model(dao.ExamBatchMember.Table()).Ctx(ctx).Where("batch_id", id).Delete(); err != nil {
+			return err
+		}
+		if _, err := tx.Model(dao.ExamBatch.Table()).Ctx(ctx).Where("id", id).Data(g.Map{
+			dao.ExamBatch.Columns().DeleteFlag: consts.DeleteFlagDeleted,
+			dao.ExamBatch.Columns().UpdateTime: gtime.Now(),
+		}).Update(); err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}

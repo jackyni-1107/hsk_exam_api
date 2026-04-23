@@ -3,6 +3,7 @@ package batch
 import (
 	"context"
 	"strings"
+	"time"
 
 	"exam/internal/consts"
 	"exam/internal/dao"
@@ -71,10 +72,14 @@ func (s *sBatch) dedupIDs(ids []int64) []int64 {
 }
 
 // parseTime 统一时间解析
-func (s *sBatch) parseTime(str string) *gtime.Time {
+func (s *sBatch) parseTime(str string) (*gtime.Time, error) {
 	str = strings.TrimSpace(str)
 	if str == "" {
-		return nil
+		return nil, nil
 	}
-	return gtime.NewFromStr(str)
+	parsed, err := time.Parse(time.RFC3339, str)
+	if err != nil {
+		return nil, gerror.NewCode(consts.CodeInvalidParams)
+	}
+	return gtime.NewFromTimeStamp(parsed.UTC().Unix()), nil
 }
