@@ -1175,7 +1175,11 @@ function applyRouteQuery() {
     const n = Number(st)
     if (!Number.isNaN(n) && n >= 1 && n <= 4) query.status = n
   }
-  if (q.subjective_pending === '1' || q.subjective_pending === 1) {
+  const subjectivePending = q.subjective_pending
+  if (
+    subjectivePending === '1' ||
+    (Array.isArray(subjectivePending) && subjectivePending.includes('1'))
+  ) {
     query.subjective_pending = 1
   }
   const u = q.username

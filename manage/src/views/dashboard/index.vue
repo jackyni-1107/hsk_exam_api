@@ -134,6 +134,14 @@ const mockLevelOptions = ref<MockLevelItem[]>([])
 const autoRefresh = ref(false)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
+type DrillQuery = Partial<Record<'status' | 'subjective_pending', number>>
+type KpiCard = {
+  key: string
+  label: string
+  val: number | string
+  drill: DrillQuery | null
+}
+
 const trendTable = computed(() => {
   const t7 = stats.value?.trend_7d ?? []
   return t7.map((x) => ({ date: x.date, count: x.count }))
@@ -154,7 +162,7 @@ const bucketTable = computed(() => {
   })
 })
 
-const kpiCards = computed(() => {
+const kpiCards = computed<KpiCard[]>(() => {
   if (!stats.value) return []
   const s = stats.value
   return [
@@ -229,7 +237,7 @@ function baseQuery() {
   return q
 }
 
-function goDrill(drill: Record<string, number>) {
+function goDrill(drill: DrillQuery) {
   const q: Record<string, string> = { ...baseQuery() }
   for (const [k, v] of Object.entries(drill)) {
     q[k] = String(v)

@@ -8,5 +8,5 @@ import (
 
 func startBackgroundRuntimes(ctx context.Context) {
 	go SyncAnswer(ctx)
-	tasks.StartScheduler(ctx)
+	tasks.StartRuntime(ctx)
 }

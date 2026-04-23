@@ -33,4 +33,9 @@ const (
 	TaskClusterExecLockTTLSeconds = 300
 	TaskSemKeyFmt                 = "hskexam:task:sem:%d"
 	TaskSemExpireSeconds          = 3600
+	TaskDelayQueueKey             = "hskexam:task:delay_queue"
+	TaskDelayScannerLockKey       = "hskexam:task:delay_queue:scanner_lock"
+	TaskDelayScannerLockTTLMillis = 1500
+	TaskDelayPollIntervalSeconds  = 1
+	TaskDelayBatchSize            = 100
 )

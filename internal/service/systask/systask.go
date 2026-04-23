@@ -7,17 +7,19 @@ package systask
 
 import (
 	"context"
+	"exam/internal/model/bo"
 	sysentity "exam/internal/model/entity/sys"
 )
 
 type (
 	ISysTask interface {
 		TaskList(ctx context.Context, page int, size int, name string, code string, handler string, typ int, status *int) ([]sysentity.SysTask, int, error)
-		TaskCreate(ctx context.Context, name string, code string, cronExpr string, handler string, params string, alertReceivers string, remark string, creator string, typ int, delaySeconds int, retryTimes int, retryInterval int, concurrency int, alertOnFail int, status int) (int64, error)
-		TaskUpdate(ctx context.Context, id int64, name string, code string, cronExpr string, handler string, params string, alertReceivers string, remark string, typ int, delaySeconds int, retryTimes int, retryInterval int, concurrency int, alertOnFail int, status int) error
+		TaskCreate(ctx context.Context, input bo.TaskCreateInput) (int64, error)
+		TaskUpdate(ctx context.Context, input bo.TaskUpdateInput) error
 		TaskDelete(ctx context.Context, id int64) error
 		TaskRun(ctx context.Context, id int64) (string, error)
 		TaskLogList(ctx context.Context, page int, size int, taskId int64, runId string, status *int) ([]sysentity.SysTaskLog, int, error)
+		TaskRuntimeStats(ctx context.Context) (*bo.TaskRuntimeStats, error)
 	}
 )
 

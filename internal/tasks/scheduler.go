@@ -2,14 +2,13 @@ package tasks
 
 import (
 	"context"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gcron"
-	"github.com/gogf/gf/v2/os/gtime"
-	"github.com/gogf/gf/v2/util/gconv"
 
 	"exam/internal/consts"
 	sysdao "exam/internal/dao/sys"
@@ -17,22 +16,22 @@ import (
 	"exam/internal/tasks/handler"
 )
 
+type cronEntry struct {
+	name string
+	expr string
+}
+
+type cronReloadPlan struct {
+	removeIDs   []int64
+	upsertTasks []sysentity.SysTask
+}
+
 var (
-	cronEntries = make(map[int64]string)
+	cronEntries = make(map[int64]cronEntry)
 	cronMu      sync.RWMutex
 )
 
-// StartScheduler 启动定时任务调度：加载 Cron 任务并启动延迟 Worker。
-func StartScheduler(ctx context.Context) {
-	logClusterTimeZoneHint(ctx)
-	_ = triggerHandlerInit()
-	loadCronTasks(ctx)
-	go refreshCronLoop(ctx)
-	go delayWorkerLoop(ctx)
-}
-
 func triggerHandlerInit() error {
-	// 触发 handler 包加载，确保内置 Handler 已注册
 	_ = handler.Get(handler.DemoHandlerName)
 	_ = handler.Get(handler.ExamScoreFinalizeHandlerName)
 	_ = handler.Get(handler.ExamBatchExpireHandlerName)
@@ -51,29 +50,14 @@ func loadCronTasks(ctx context.Context) {
 		g.Log().Error(ctx, "load cron tasks failed", err)
 		return
 	}
-	// 移除库中已删除任务的 cron 注册
+
 	cronMu.Lock()
-	toRemove := make([]int64, 0)
-	for tid := range cronEntries {
-		found := false
-		for _, t := range list {
-			if t.Id == tid {
-				found = true
-				break
-			}
-		}
-		if !found {
-			toRemove = append(toRemove, tid)
-		}
+	plan := buildCronReloadPlan(cronEntries, list)
+	for _, taskID := range plan.removeIDs {
+		removeCronTaskLocked(ctx, taskID)
 	}
-	for _, tid := range toRemove {
-		removeCronTaskLocked(ctx, tid)
-	}
-	// 注册新任务
-	for _, t := range list {
-		if _, ok := cronEntries[t.Id]; !ok {
-			addCronTaskLocked(ctx, &t)
-		}
+	for i := range plan.upsertTasks {
+		addCronTaskLocked(ctx, &plan.upsertTasks[i])
 	}
 	cronMu.Unlock()
 }
@@ -85,10 +69,9 @@ func addCronTaskLocked(ctx context.Context, t *sysentity.SysTask) {
 	name := "task-" + strconv.FormatInt(t.Id, 10)
 	taskID := t.Id
 	_, err := gcron.AddSingleton(ctx, t.CronExpr, func(ctx context.Context) {
-		runID := gconv.String(gtime.Now().TimestampMilli())
 		Execute(ctx, ExecRequest{
 			TaskID:      taskID,
-			RunID:       runID,
+			RunID:       newRunID(),
 			TriggerType: consts.TriggerTypeCron,
 			RetryCount:  0,
 		})
@@ -97,16 +80,16 @@ func addCronTaskLocked(ctx context.Context, t *sysentity.SysTask) {
 		g.Log().Errorf(ctx, "add cron task failed id=%d: %v", t.Id, err)
 		return
 	}
-	cronEntries[t.Id] = name
+	cronEntries[t.Id] = cronEntry{name: name, expr: t.CronExpr}
 	g.Log().Infof(ctx, "[Scheduler] cron registered task_id=%d expr=%s", t.Id, t.CronExpr)
 }
 
 func removeCronTaskLocked(ctx context.Context, taskID int64) {
-	name, ok := cronEntries[taskID]
+	entryMeta, ok := cronEntries[taskID]
 	if !ok {
 		return
 	}
-	entry := gcron.Search(name)
+	entry := gcron.Search(entryMeta.name)
 	if entry != nil {
 		entry.Stop()
 	}
@@ -130,4 +113,38 @@ func refreshCronLoop(ctx context.Context) {
 			loadCronTasks(ctx)
 		}
 	}
+}
+
+func buildCronReloadPlan(existing map[int64]cronEntry, tasks []sysentity.SysTask) cronReloadPlan {
+	activeTasks := make(map[int64]sysentity.SysTask, len(tasks))
+	for _, task := range tasks {
+		activeTasks[task.Id] = task
+	}
+
+	plan := cronReloadPlan{
+		removeIDs:   make([]int64, 0),
+		upsertTasks: make([]sysentity.SysTask, 0),
+	}
+
+	for taskID, entry := range existing {
+		task, ok := activeTasks[taskID]
+		if !ok || entry.expr != task.CronExpr {
+			plan.removeIDs = append(plan.removeIDs, taskID)
+		}
+	}
+
+	for _, task := range tasks {
+		entry, ok := existing[task.Id]
+		if !ok || entry.expr != task.CronExpr {
+			plan.upsertTasks = append(plan.upsertTasks, task)
+		}
+	}
+
+	sort.Slice(plan.removeIDs, func(i, j int) bool {
+		return plan.removeIDs[i] < plan.removeIDs[j]
+	})
+	sort.Slice(plan.upsertTasks, func(i, j int) bool {
+		return plan.upsertTasks[i].Id < plan.upsertTasks[j].Id
+	})
+	return plan
 }

@@ -18,6 +18,18 @@ type TaskListRes struct {
 	Total int         `json:"total" dc:"总数"`
 }
 
+type TaskRuntimeStatsReq struct {
+	g.Meta `path:"/task/runtime" method:"get" tags:"浠诲姟" summary:"浠诲姟杩愯鏃舵€佺粺璁?"`
+}
+
+type TaskRuntimeStatsRes struct {
+	DelayQueueSize        int    `json:"delay_queue_size" dc:"寤惰繜闃熷垪鎬绘暟"`
+	DelayDueCount         int    `json:"delay_due_count" dc:"宸插埌鏈熷緟鎵ц鏁伴噺"`
+	DelayScannerActive    bool   `json:"delay_scanner_active" dc:"寤惰繜鎵弿鍣ㄦ槸鍚︽椿璺?`
+	DelayScannerTTLMillis int64  `json:"delay_scanner_ttl_millis" dc:"寤惰繜鎵弿閿佸墿浣欑敓瀛樻椂闂?`
+	DelayOldestDueAt      string `json:"delay_oldest_due_at" dc:"闃熷垪鏈€鏃╁埌鏈熸椂闂?`
+}
+
 type TaskItem struct {
 	Id             int64  `json:"id" dc:"任务ID"`
 	Name           string `json:"name" dc:"任务名称"`

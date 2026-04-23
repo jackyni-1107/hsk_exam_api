@@ -2,22 +2,23 @@ package tasks
 
 import (
 	"context"
-	"time"
+
+	"github.com/gogf/gf/v2/frame/g"
 )
 
-// EnqueueRetry 在间隔后异步重试执行同一任务（简化实现：goroutine + sleep）。
+// EnqueueRetry schedules a delayed retry for the same task execution.
 func EnqueueRetry(ctx context.Context, taskID int64, runID string, triggerType int, retryCount int, delaySec int) {
 	if delaySec <= 0 {
 		return
 	}
-	go func() {
-		time.Sleep(time.Duration(delaySec) * time.Second)
-		bg := context.Background()
-		_ = Execute(bg, ExecRequest{
-			TaskID:      taskID,
-			RunID:       runID,
-			TriggerType: triggerType,
-			RetryCount:  retryCount,
-		})
-	}()
+	req := ExecRequest{
+		TaskID:      taskID,
+		RunID:       runID,
+		TriggerType: triggerType,
+		RetryCount:  retryCount,
+	}
+	if err := scheduleAsync(ctx, req, delaySec); err != nil {
+		g.Log().Errorf(ctx, "enqueue retry failed task_id=%d run_id=%s: %v", taskID, runID, err)
+		scheduleAsyncFallback(ctx, req, delaySec)
+	}
 }

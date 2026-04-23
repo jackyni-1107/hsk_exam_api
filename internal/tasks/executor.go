@@ -30,8 +30,15 @@ type ExecRequest struct {
 func Execute(ctx context.Context, req ExecRequest) error {
 	var t sysentity.SysTask
 	err := sysdao.SysTask.Ctx(ctx).Where("id", req.TaskID).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&t)
-	if err != nil || t.Id == 0 {
+	if err != nil {
 		return err
+	}
+	if t.Id == 0 {
+		return nil
+	}
+	if t.Status != consts.TaskStatusEnabled {
+		g.Log().Infof(ctx, "[Task] skip disabled task_id=%d run_id=%s", req.TaskID, req.RunID)
+		return nil
 	}
 	params := t.Params
 	if req.Params != "" {

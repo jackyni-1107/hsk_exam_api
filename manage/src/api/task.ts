@@ -35,6 +35,14 @@ export interface TaskLogItem {
   create_time: string
 }
 
+export interface TaskRuntimeStats {
+  delay_queue_size: number
+  delay_due_count: number
+  delay_scanner_active: boolean
+  delay_scanner_ttl_millis: number
+  delay_oldest_due_at: string
+}
+
 export function fetchTaskList(params: {
   page?: number
   size?: number
@@ -54,6 +62,10 @@ export function fetchTaskList(params: {
   if (params.status != null && params.status >= 0) q.status = params.status
   if (params.handler) q.handler = params.handler
   return request.get<unknown, { data?: { list?: TaskItem[]; total?: number } }>('/admin/task/list', { params: q })
+}
+
+export function fetchTaskRuntimeStats() {
+  return request.get<unknown, { data?: TaskRuntimeStats }>('/admin/task/runtime')
 }
 
 export function createTask(payload: Record<string, unknown>) {

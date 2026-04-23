@@ -34,6 +34,20 @@
           <el-button @click="resetQuery">重置</el-button>
         </el-form-item>
       </el-form>
+      <el-row :gutter="12" class="runtime-stats">
+        <el-col v-for="card in runtimeCards" :key="card.key" :xs="24" :sm="12" :md="6">
+          <el-card shadow="hover" class="runtime-stat-card">
+            <div class="runtime-stat-head">
+              <span class="runtime-stat-label">{{ card.label }}</span>
+              <el-tag v-if="card.tagText" size="small" effect="light" :type="card.tagType">{{ card.tagText }}</el-tag>
+            </div>
+            <div class="runtime-stat-value" :class="{ 'runtime-stat-value--time': card.key === 'oldest_due' }">
+              {{ card.value }}
+            </div>
+            <div class="runtime-stat-sub">{{ card.sub }}</div>
+          </el-card>
+        </el-col>
+      </el-row>
       <el-table v-loading="loading" :data="rows" border stripe>
         <el-table-column prop="id" label="ID" width="72" />
         <el-table-column prop="name" label="名称" min-width="140" />
@@ -105,7 +119,7 @@
           <el-input-number v-model="form.retry_interval" :min="0" />
         </el-form-item>
         <el-form-item label="并发数">
-          <el-input-number v-model="form.concurrency" :min="1" />
+          <el-input-number v-model="form.concurrency" :min="0" />
         </el-form-item>
         <el-form-item label="失败告警">
           <el-radio-group v-model="form.alert_on_fail">
@@ -141,11 +155,13 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   fetchTaskList,
+  fetchTaskRuntimeStats,
   createTask,
   updateTask,
   deleteTask,
   runTask,
   type TaskItem,
+  type TaskRuntimeStats,
 } from '@/api/task'
 import { formatUtcForDisplay } from '@/utils/datetime'
 
@@ -154,6 +170,7 @@ const loading = ref(false)
 const saving = ref(false)
 const rows = ref<TaskItem[]>([])
 const total = ref(0)
+const runtimeStats = ref<TaskRuntimeStats | null>(null)
 const dlg = ref(false)
 const mode = ref<'create' | 'edit'>('create')
 const formRef = ref<FormInstance>()
@@ -196,6 +213,60 @@ const rules = computed<FormRules>(() => ({
     form.type === 2 ? [{ required: true, message: '延迟须大于 0', trigger: 'change' }] : [],
 }))
 
+type RuntimeCard = {
+  key: string
+  label: string
+  value: string | number
+  sub: string
+  tagText?: string
+  tagType?: 'success' | 'info' | 'warning' | 'danger'
+}
+
+const runtimeCards = computed<RuntimeCard[]>(() => {
+  const stats = runtimeStats.value
+  return [
+    {
+      key: 'delay_queue',
+      label: '延迟队列',
+      value: stats?.delay_queue_size ?? '-',
+      sub: '持久化的延迟任务与重试任务。',
+    },
+    {
+      key: 'due_now',
+      label: '到期待执行',
+      value: stats?.delay_due_count ?? '-',
+      sub: '已到执行时间，等待扫描器领取。',
+    },
+    {
+      key: 'scanner',
+      label: '扫描器',
+      value: stats ? (stats.delay_scanner_active ? '运行中' : '待命') : '-',
+      sub: stats
+        ? (stats.delay_scanner_active
+            ? `锁租约剩余 ${formatDuration(stats.delay_scanner_ttl_millis)}`
+            : '正在等待当前扫描器租约释放。')
+        : '正在加载运行态信息。',
+      tagText: stats ? (stats.delay_scanner_active ? '活跃' : '空闲') : undefined,
+      tagType: stats?.delay_scanner_active ? 'success' : 'info',
+    },
+    {
+      key: 'oldest_due',
+      label: '最早到期',
+      value: stats?.delay_oldest_due_at
+        ? formatUtcForDisplay(null, null, stats.delay_oldest_due_at)
+        : '--',
+      sub: stats?.delay_oldest_due_at ? '当前队列里最早仍未处理的任务。' : '当前没有等待中的延迟任务。',
+    },
+  ]
+})
+
+function formatDuration(ms: number) {
+  if (!Number.isFinite(ms) || ms <= 0) return '0 ms'
+  if (ms < 1000) return `${ms} ms`
+  if (ms < 60_000) return `${(ms / 1000).toFixed(ms >= 10_000 ? 0 : 1)} s`
+  return `${(ms / 60_000).toFixed(ms >= 600_000 ? 0 : 1)} min`
+}
+
 function payload() {
   return {
     name: form.name,
@@ -233,6 +304,11 @@ async function loadList() {
   }
 }
 
+async function loadRuntimeStats() {
+  const res = (await fetchTaskRuntimeStats()) as { data?: TaskRuntimeStats }
+  runtimeStats.value = res?.data ?? null
+}
+
 function resetQuery() {
   query.page = 1
   query.size = 10
@@ -240,7 +316,7 @@ function resetQuery() {
   query.code = ''
   query.type = undefined
   query.status = undefined
-  loadList()
+  void Promise.all([loadList(), loadRuntimeStats()])
 }
 
 function resetForm() {
@@ -283,7 +359,7 @@ function openEdit(row: TaskItem) {
   form.params = row.params || ''
   form.retry_times = row.retry_times
   form.retry_interval = row.retry_interval
-  form.concurrency = row.concurrency || 1
+  form.concurrency = typeof row.concurrency === 'number' ? row.concurrency : 1
   form.alert_on_fail = row.alert_on_fail
   form.alert_receivers = row.alert_receivers || ''
   form.status = row.status
@@ -304,7 +380,7 @@ async function submit() {
         ElMessage.success('已保存')
       }
       dlg.value = false
-      await loadList()
+      await Promise.all([loadList(), loadRuntimeStats()])
     } catch {
       /* */
     } finally {
@@ -318,7 +394,7 @@ function onDelete(row: TaskItem) {
     .then(async () => {
       await deleteTask(row.id)
       ElMessage.success('已删除')
-      await loadList()
+      await Promise.all([loadList(), loadRuntimeStats()])
     })
     .catch(() => {})
 }
@@ -326,7 +402,13 @@ function onDelete(row: TaskItem) {
 async function onRun(row: TaskItem) {
   try {
     const res = (await runTask(row.id)) as { data?: { run_id?: string } }
+    if (row.type === 2) {
+      ElMessage.success(`已加入延迟队列，run_id: ${res?.data?.run_id ?? '-'}`)
+      await loadRuntimeStats()
+      return
+    }
     ElMessage.success(`已触发执行，run_id: ${res?.data?.run_id ?? '-'}`)
+    await loadRuntimeStats()
   } catch {
     /* */
   }
@@ -336,7 +418,9 @@ function goLog(row: TaskItem) {
   router.push({ path: '/task/log', query: { task_id: String(row.id) } })
 }
 
-onMounted(loadList)
+onMounted(async () => {
+  await Promise.all([loadList(), loadRuntimeStats()])
+})
 </script>
 
 <style scoped>
@@ -351,6 +435,50 @@ onMounted(loadList)
 }
 .filter {
   margin-bottom: 12px;
+}
+.runtime-stats {
+  margin-bottom: 12px;
+}
+.runtime-stat-card {
+  height: 100%;
+  border-color: #e4e7ed;
+}
+.runtime-stat-card :deep(.el-card__body) {
+  height: 100%;
+  min-height: 132px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+}
+.runtime-stat-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.runtime-stat-label {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.4;
+}
+.runtime-stat-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+.runtime-stat-value--time {
+  font-size: 18px;
+  line-height: 1.45;
+}
+.runtime-stat-sub {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.5;
+  min-height: 36px;
 }
 .pager {
   margin-top: 16px;
