@@ -2,7 +2,6 @@ package paper
 
 import (
 	"context"
-	"sort"
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -10,136 +9,26 @@ import (
 
 	"exam/internal/consts"
 	examdao "exam/internal/dao/exam"
-	mockdao "exam/internal/dao/mock"
 	exambo "exam/internal/model/bo/exam"
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
-	mockentity "exam/internal/model/entity/mock"
 	"exam/internal/utility"
 )
 
 // PaperDetail 返回试卷及嵌套的大题、题块、题目、选项。
 func (s *sPaper) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.PaperDetailTree, error) {
-	var paper examentity.ExamPaper
-	err := examdao.ExamPaper.Ctx(ctx).
-		Where("id", examPaperId).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&paper)
+	data, err := loadPaperDetailData(ctx, examPaperId)
 	if err != nil {
 		return nil, err
 	}
-	if paper.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeExamPaperNotFound)
-	}
-	var mockPaper mockentity.MockExaminationPaper
-	if err := mockdao.MockExaminationPaper.Ctx(ctx).
-		Fields(mockdao.MockExaminationPaper.Columns().Id, mockdao.MockExaminationPaper.Columns().Name).
-		Where(mockdao.MockExaminationPaper.Columns().Id, paper.MockExaminationPaperId).
-		Where(mockdao.MockExaminationPaper.Columns().DeleteFlag, consts.DeleteFlagNotDeleted).
-		Scan(&mockPaper); err != nil {
-		return nil, err
-	}
-
-	var sections []examentity.ExamSection
-	if err := examdao.ExamSection.Ctx(ctx).
-		Where("exam_paper_id", examPaperId).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		OrderAsc("sort_order").
-		Scan(&sections); err != nil {
-		return nil, err
-	}
-
-	sectionIDs := make([]interface{}, 0, len(sections))
-	for _, sec := range sections {
-		sectionIDs = append(sectionIDs, sec.Id)
-	}
-
-	var allBlocks []examentity.ExamQuestionBlock
-	if len(sectionIDs) > 0 {
-		if err := examdao.ExamQuestionBlock.Ctx(ctx).
-			WhereIn("section_id", sectionIDs).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Scan(&allBlocks); err != nil {
-			return nil, err
-		}
-	}
-	blocksBySection := make(map[int64][]examentity.ExamQuestionBlock, len(sectionIDs))
-	for _, blk := range allBlocks {
-		blocksBySection[blk.SectionId] = append(blocksBySection[blk.SectionId], blk)
-	}
-	for sid, blks := range blocksBySection {
-		sort.Slice(blks, func(i, j int) bool {
-			if blks[i].BlockOrder != blks[j].BlockOrder {
-				return blks[i].BlockOrder < blks[j].BlockOrder
-			}
-			return blks[i].Id < blks[j].Id
-		})
-		blocksBySection[sid] = blks
-	}
-
-	blockIDs := make([]interface{}, 0, len(allBlocks))
-	for _, blk := range allBlocks {
-		blockIDs = append(blockIDs, blk.Id)
-	}
-
-	var allQuestions []examentity.ExamQuestion
-	if len(blockIDs) > 0 {
-		if err := examdao.ExamQuestion.Ctx(ctx).
-			WhereIn("block_id", blockIDs).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Scan(&allQuestions); err != nil {
-			return nil, err
-		}
-	}
-	questionsByBlock := make(map[int64][]examentity.ExamQuestion, len(blockIDs))
-	for _, q := range allQuestions {
-		questionsByBlock[q.BlockId] = append(questionsByBlock[q.BlockId], q)
-	}
-	for bid, qs := range questionsByBlock {
-		sort.Slice(qs, func(i, j int) bool {
-			if qs[i].SortInBlock != qs[j].SortInBlock {
-				return qs[i].SortInBlock < qs[j].SortInBlock
-			}
-			return qs[i].Id < qs[j].Id
-		})
-		questionsByBlock[bid] = qs
-	}
-
-	qIDs := make([]interface{}, 0, len(allQuestions))
-	for _, q := range allQuestions {
-		qIDs = append(qIDs, q.Id)
-	}
-
-	var allOptions []examentity.ExamOption
-	if len(qIDs) > 0 {
-		if err := examdao.ExamOption.Ctx(ctx).
-			WhereIn("question_id", qIDs).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Scan(&allOptions); err != nil {
-			return nil, err
-		}
-	}
-	optionsByQuestion := make(map[int64][]examentity.ExamOption, len(qIDs))
-	for _, o := range allOptions {
-		optionsByQuestion[o.QuestionId] = append(optionsByQuestion[o.QuestionId], o)
-	}
-	for qid, opts := range optionsByQuestion {
-		sort.Slice(opts, func(i, j int) bool {
-			if opts[i].SortOrder != opts[j].SortOrder {
-				return opts[i].SortOrder < opts[j].SortOrder
-			}
-			return opts[i].Id < opts[j].Id
-		})
-		optionsByQuestion[qid] = opts
-	}
 
 	out := &exambo.PaperDetailTree{
-		Paper: examPaperEntityToBOHead(paper, mockPaper.Name),
+		Paper: examPaperEntityToBOHead(data.paper, data.mockPaper.Name),
 	}
 
-	for _, sec := range sections {
+	for _, sec := range data.sections {
 		out.Sections = append(out.Sections, sectionDetailViewFromData(
-			sec, blocksBySection[sec.Id], questionsByBlock, optionsByQuestion))
+			sec, data.blocksBySection[sec.Id], data.questionsByBlock, data.optionsByQuestion))
 	}
 
 	return out, nil
@@ -204,90 +93,11 @@ func sectionDetailViewFromData(
 
 // PaperDetailSection 只加载单个大题的完整详情。
 func (s *sPaper) PaperDetailSection(ctx context.Context, examPaperId, sectionId int64) (*exambo.SectionDetailView, error) {
-	var paper examentity.ExamPaper
-	err := examdao.ExamPaper.Ctx(ctx).
-		Where("id", examPaperId).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&paper)
+	data, err := loadPaperSectionDetailData(ctx, examPaperId, sectionId)
 	if err != nil {
 		return nil, err
 	}
-	if paper.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeExamPaperNotFound)
-	}
-	var sec examentity.ExamSection
-	if err := examdao.ExamSection.Ctx(ctx).
-		Where("id", sectionId).
-		Where("exam_paper_id", examPaperId).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&sec); err != nil {
-		return nil, err
-	}
-	if sec.Id == 0 {
-		return nil, gerror.NewCode(consts.CodeExamSectionNotFound)
-	}
-	var blocks []examentity.ExamQuestionBlock
-	if err := examdao.ExamQuestionBlock.Ctx(ctx).
-		Where("section_id", sec.Id).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		OrderAsc("block_order").
-		OrderAsc("id").
-		Scan(&blocks); err != nil {
-		return nil, err
-	}
-	blockIDs := make([]interface{}, 0, len(blocks))
-	for _, blk := range blocks {
-		blockIDs = append(blockIDs, blk.Id)
-	}
-	var allQuestions []examentity.ExamQuestion
-	if len(blockIDs) > 0 {
-		if err := examdao.ExamQuestion.Ctx(ctx).
-			WhereIn("block_id", blockIDs).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Scan(&allQuestions); err != nil {
-			return nil, err
-		}
-	}
-	questionsByBlock := make(map[int64][]examentity.ExamQuestion, len(blockIDs))
-	for _, q := range allQuestions {
-		questionsByBlock[q.BlockId] = append(questionsByBlock[q.BlockId], q)
-	}
-	for bid, qs := range questionsByBlock {
-		sort.Slice(qs, func(i, j int) bool {
-			if qs[i].SortInBlock != qs[j].SortInBlock {
-				return qs[i].SortInBlock < qs[j].SortInBlock
-			}
-			return qs[i].Id < qs[j].Id
-		})
-		questionsByBlock[bid] = qs
-	}
-	qIDs := make([]interface{}, 0, len(allQuestions))
-	for _, q := range allQuestions {
-		qIDs = append(qIDs, q.Id)
-	}
-	var allOptions []examentity.ExamOption
-	if len(qIDs) > 0 {
-		if err := examdao.ExamOption.Ctx(ctx).
-			WhereIn("question_id", qIDs).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Scan(&allOptions); err != nil {
-			return nil, err
-		}
-	}
-	optionsByQuestion := make(map[int64][]examentity.ExamOption, len(qIDs))
-	for _, o := range allOptions {
-		optionsByQuestion[o.QuestionId] = append(optionsByQuestion[o.QuestionId], o)
-	}
-	for qid, opts := range optionsByQuestion {
-		sort.Slice(opts, func(i, j int) bool {
-			if opts[i].SortOrder != opts[j].SortOrder {
-				return opts[i].SortOrder < opts[j].SortOrder
-			}
-			return opts[i].Id < opts[j].Id
-		})
-		optionsByQuestion[qid] = opts
-	}
-	sv := sectionDetailViewFromData(sec, blocks, questionsByBlock, optionsByQuestion)
+	sv := sectionDetailViewFromData(data.section, data.blocksBySection[data.section.Id], data.questionsByBlock, data.optionsByQuestion)
 	return &sv, nil
 }
 

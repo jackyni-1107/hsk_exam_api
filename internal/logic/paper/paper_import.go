@@ -159,10 +159,7 @@ func buildImportConflictPlan(ctx context.Context, conflictMode string, mockID in
 }
 
 func upsertImportedPaper(ctx context.Context, tx gdb.TX, creator string, source importIndexSource, plan importConflictPlan) (int64, error) {
-	audioHlsPrefix := source.audioHlsPrefix
-	if plan.overwritePaperID > 0 && audioHlsPrefix == "" {
-		audioHlsPrefix = strings.Trim(plan.existing.AudioHlsPrefix, "/")
-	}
+	audioHlsPrefix := resolveImportAudioHlsPrefix(source.audioHlsPrefix, plan)
 
 	if plan.overwritePaperID > 0 {
 		if err := softDeletePaperTreeTx(ctx, tx, plan.overwritePaperID, creator); err != nil {
@@ -270,6 +267,14 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func resolveImportAudioHlsPrefix(requestPrefix string, plan importConflictPlan) string {
+	prefix := strings.Trim(requestPrefix, "/")
+	if plan.overwritePaperID > 0 && prefix == "" {
+		return strings.Trim(plan.existing.AudioHlsPrefix, "/")
+	}
+	return prefix
 }
 
 func normalizeExamImportConflictMode(mode string) (string, error) {
