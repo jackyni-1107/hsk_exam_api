@@ -7,7 +7,6 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
-	"github.com/gogf/gf/v2/util/gconv"
 
 	"exam/internal/consts"
 	"exam/internal/dao"
@@ -341,8 +340,29 @@ func isExamBatchWindowOpen(ctx context.Context, batchID int64, now *gtime.Time) 
 	return isBatchWindowOpen(now, row.ExamStartAt, row.ExamEndAt), nil
 }
 
+func applyAttemptTransitionTx(ctx context.Context, tx gdb.TX, att examentity.ExamAttempt, event attemptEvent, patch examdo.ExamAttempt) (bool, error) {
+	nextStatus, ok := transitionAttemptStatus(att.Status, event)
+	if att.Id == 0 || !ok {
+		return false, nil
+	}
+	patch.Status = nextStatus
+	if patch.UpdateTime == nil {
+		patch.UpdateTime = gtime.Now()
+	}
+	r, err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).
+		Where("id", att.Id).
+		Where("status", att.Status).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Update(patch)
+	if err != nil {
+		return false, err
+	}
+	n, _ := r.RowsAffected()
+	return n > 0, nil
+}
+
 func markSubmitted(ctx context.Context, attemptID int64, event attemptEvent, updater string) error {
-	ok, err := TryAcquireSubmitLock(ctx, attemptID)
+	ok, err := AcquireSubmitLockWithRetry(ctx, attemptID)
 	if err != nil {
 		return err
 	}
@@ -351,13 +371,16 @@ func markSubmitted(ctx context.Context, attemptID int64, event attemptEvent, upd
 	}
 	defer ReleaseSubmitLock(ctx, attemptID)
 
+	return markSubmittedLocked(ctx, attemptID, event, updater)
+}
+
+func markSubmittedLocked(ctx context.Context, attemptID int64, event attemptEvent, updater string) error {
 	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		var att examentity.ExamAttempt
 		if err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Scan(&att); err != nil {
 			return err
 		}
-		nextStatus, ok := transitionAttemptStatus(att.Status, event)
-		if att.Id == 0 || !ok {
+		if att.Id == 0 || !canAttempt(att.Status, event) {
 			return nil
 		}
 		now := gtime.Now()
@@ -369,22 +392,17 @@ func markSubmitted(ctx context.Context, attemptID int64, event attemptEvent, upd
 		if err := syncAttemptDraftsToDBTx(ctx, tx, attemptID, updater); err != nil {
 			return err
 		}
-		_, err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).
-			Where("id", attemptID).
-			Where("status", att.Status).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Update(examdo.ExamAttempt{
-				Status:      nextStatus,
-				SubmittedAt: now,
-				Updater:     updater,
-				UpdateTime:  gtime.Now(),
-			})
+		_, err := applyAttemptTransitionTx(ctx, tx, att, event, examdo.ExamAttempt{
+			SubmittedAt: now,
+			Updater:     updater,
+			UpdateTime:  gtime.Now(),
+		})
 		return err
 	})
 }
 
 func finalizeScoring(ctx context.Context, attemptID int64) error {
-	ok, err := TryAcquireSubmitLock(ctx, attemptID)
+	ok, err := AcquireSubmitLockWithRetry(ctx, attemptID)
 	if err != nil {
 		return err
 	}
@@ -404,8 +422,7 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 		if isAttemptScored(att.Status) {
 			return nil
 		}
-		nextStatus, ok := transitionAttemptStatus(att.Status, attemptEventFinalize)
-		if !ok {
+		if !canAttempt(att.Status, attemptEventFinalize) {
 			return nil
 		}
 		if err := syncAttemptDraftsToDBTx(ctx, tx, attemptID, updaterTask); err != nil {
@@ -426,8 +443,7 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 		if hasSubj {
 			hasFlag = 1
 		}
-		_, err = tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Update(examdo.ExamAttempt{
-			Status:          nextStatus,
+		applied, err := applyAttemptTransitionTx(ctx, tx, att, attemptEventFinalize, examdo.ExamAttempt{
 			EndedAt:         now,
 			ObjectiveScore:  objScore,
 			SubjectiveScore: 0,
@@ -438,6 +454,9 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 		})
 		if err != nil {
 			return err
+		}
+		if !applied {
+			return nil
 		}
 		return examutil.UpsertFromAttemptTx(ctx, tx, attemptID)
 	})
@@ -454,79 +473,11 @@ func syncAttemptDraftsToDBTx(ctx context.Context, tx gdb.TX, attemptID int64, up
 	if updater == "" {
 		updater = updaterTask
 	}
-	items := buildAttemptAnswerDraftRows(attemptID, draftMap, updater)
+	items := examutil.BuildAttemptAnswerDraftRows(attemptID, draftMap, updater)
 	if len(items) == 0 {
 		return nil
 	}
-	return upsertAttemptAnswerDraftRowsTx(ctx, tx, items)
-}
-
-func buildAttemptAnswerDraftRows(attemptID int64, draftMap map[string]string, updater string) []g.Map {
-	items := make([]g.Map, 0, len(draftMap))
-	for _, val := range draftMap {
-		itemMap := gconv.Map(val)
-		qid := gconv.Int64(itemMap["q"])
-		answerJSON := gconv.String(itemMap["a"])
-		if qid <= 0 || answerJSON == "" {
-			continue
-		}
-		saveAtTs := gconv.Int64(itemMap["t"])
-		saveAt := gtime.Now()
-		if saveAtTs > 0 {
-			saveAt = gtime.NewFromTimeStamp(saveAtTs)
-		}
-		if saveAt == nil {
-			saveAt = gtime.Now()
-		}
-		items = append(items, g.Map{
-			"attempt_id":       attemptID,
-			"exam_question_id": qid,
-			"answer_json":      answerJSON,
-			"version":          gconv.Int(itemMap["v"]),
-			"creator":          updater,
-			"create_time":      saveAt,
-			"updater":          updater,
-			"update_time":      saveAt,
-			"delete_flag":      consts.DeleteFlagNotDeleted,
-		})
-	}
-	return items
-}
-
-func upsertAttemptAnswerDraftRowsTx(ctx context.Context, tx gdb.TX, items []g.Map) error {
-	for _, item := range items {
-		attemptID := gconv.Int64(item["attempt_id"])
-		questionID := gconv.Int64(item["exam_question_id"])
-		version := gconv.Int(item["version"])
-		cnt, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
-			Where("attempt_id", attemptID).
-			Where("exam_question_id", questionID).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Count()
-		if err != nil {
-			return err
-		}
-		if cnt == 0 {
-			if _, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Insert(item); err != nil {
-				return err
-			}
-			continue
-		}
-		if _, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
-			Where("attempt_id", attemptID).
-			Where("exam_question_id", questionID).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Where("version <= ?", version).
-			Update(g.Map{
-				"answer_json": item["answer_json"],
-				"version":     item["version"],
-				"updater":     item["updater"],
-				"update_time": item["update_time"],
-			}); err != nil {
-			return err
-		}
-	}
-	return nil
+	return examutil.UpsertAttemptAnswerDraftRowsTx(ctx, tx, items)
 }
 
 func loadQuestionScoreMetaTx(ctx context.Context, tx gdb.TX, paperID int64) ([]bo.QuestionScoreMeta, error) {

@@ -4,13 +4,12 @@ import (
 	"context"
 	"errors"
 	"exam/internal/consts"
-	"exam/internal/dao"
+	"exam/internal/utility/examutil"
 	"fmt"
 	"time"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/util/gconv"
 )
 
@@ -70,21 +69,35 @@ func worker(ctx context.Context, queueKey string, workerID int) {
 				continue
 			}
 
-			// 同步成功 → 删除缓存
-			redisKey := fmt.Sprintf(consts.ExamAttemptKeyFmt, attemptID)
-
-			_, err = g.Redis().Expire(ctx, redisKey, 60)
-			if err != nil {
-				g.Log().Errorf(ctx, "worker-%d 删除缓存失败 [%s]: %v", workerID, redisKey, err)
-			} else {
-				g.Log().Infof(ctx, "worker-%d AttemptID %d 同步成功", workerID, attemptID)
-			}
+			g.Log().Infof(ctx, "worker-%d AttemptID %d 同步成功", workerID, attemptID)
 		}
 	}
 }
 
+func tryAcquireAttemptSyncLock(ctx context.Context, attemptID int64) (bool, error) {
+	key := fmt.Sprintf(consts.ExamSubmitLockKeyFmt, attemptID)
+	v, err := g.Redis().Do(ctx, "SET", key, "1", "NX", "EX", consts.ExamSubmitLockTTL)
+	if err != nil {
+		return false, err
+	}
+	return v.String() == "OK", nil
+}
+
+func releaseAttemptSyncLock(ctx context.Context, attemptID int64) {
+	_, _ = g.Redis().Del(ctx, fmt.Sprintf(consts.ExamSubmitLockKeyFmt, attemptID))
+}
+
 // doDatabaseSync 执行数据库同步
 func doDatabaseSync(ctx context.Context, attemptID int64) error {
+	ok, err := tryAcquireAttemptSyncLock(ctx, attemptID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("attempt %d sync lock busy", attemptID)
+	}
+	defer releaseAttemptSyncLock(ctx, attemptID)
+
 	redisKey := fmt.Sprintf(consts.ExamAttemptKeyFmt, attemptID)
 
 	// 1. 获取 Redis 数据
@@ -98,48 +111,23 @@ func doDatabaseSync(ctx context.Context, attemptID int64) error {
 		return nil
 	}
 
-	dataMap := res.Map()
-
-	// 2. 构建批量数据（避免 struct 反射，提高性能）
-	items := make([]g.Map, 0, len(dataMap))
-
-	for _, val := range dataMap {
-		itemMap := gconv.Map(val)
-		q := gconv.Int64(itemMap["q"])
-		if q == 0 {
-			continue
-		}
-
-		answeredTime := gtime.NewFromTimeStamp(gconv.Int64(itemMap["t"]))
-		items = append(items, g.Map{
-			"attempt_id":       attemptID,
-			"exam_question_id": q,
-			"answer_json":      itemMap["a"],
-			"version":          gconv.Int(itemMap["v"]),
-			"updater":          "system_async_worker",
-			"update_time":      answeredTime,
-			"delete_flag":      consts.DeleteFlagNotDeleted,
-			"create_time":      answeredTime,
-			"creator":          "system_async_worker",
-		})
+	rawMap := res.Map()
+	draftMap := make(map[string]string, len(rawMap))
+	for k, val := range rawMap {
+		draftMap[gconv.String(k)] = gconv.String(val)
 	}
+	items := examutil.BuildAttemptAnswerDraftRows(attemptID, draftMap, "system_async_worker")
 
 	if len(items) == 0 {
 		return nil
 	}
 
-	// 3. 批量 Upsert（带版本控制）
-	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		_, err := tx.Model(dao.ExamAttemptAnswer.Table()).
-			Ctx(ctx).
-			Data(items).
-			Batch(100).
-			OnDuplicate(gdb.Raw(`
-			answer_json = IF(VALUES(version) >= version, VALUES(answer_json), answer_json),
-			update_time = IF(VALUES(version) >= version, VALUES(update_time), update_time),
-			version     = IF(VALUES(version) >= version, VALUES(version), version)
-		`)).Save()
-
+	// 3. 同步写库（带版本控制）
+	if err := g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		return examutil.UpsertAttemptAnswerDraftRowsTx(ctx, tx, items)
+	}); err != nil {
 		return err
-	})
+	}
+	_, err = g.Redis().Expire(ctx, redisKey, 60)
+	return err
 }

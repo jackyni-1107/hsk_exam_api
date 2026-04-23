@@ -3,6 +3,7 @@ package attempt
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -15,6 +16,8 @@ import (
 
 const (
 	examAttemptDraftTTLSeconds int64 = 7200
+	attemptLockRetryCount            = 10
+	attemptLockRetryDelay            = 50 * time.Millisecond
 )
 
 func submitLockKey(attemptID int64) string {
@@ -50,6 +53,21 @@ func TryAcquireSubmitLock(ctx context.Context, attemptID int64) (bool, error) {
 // ReleaseSubmitLock 释放交卷锁。
 func ReleaseSubmitLock(ctx context.Context, attemptID int64) {
 	_, _ = g.Redis().Del(ctx, submitLockKey(attemptID))
+}
+
+func AcquireSubmitLockWithRetry(ctx context.Context, attemptID int64) (bool, error) {
+	for i := 0; i < attemptLockRetryCount; i++ {
+		ok, err := TryAcquireSubmitLock(ctx, attemptID)
+		if err != nil || ok {
+			return ok, err
+		}
+		select {
+		case <-ctx.Done():
+			return false, ctx.Err()
+		case <-time.After(attemptLockRetryDelay):
+		}
+	}
+	return false, nil
 }
 
 func tryAcquireAttemptCreateLock(ctx context.Context, userID, batchID, paperID int64) (bool, error) {

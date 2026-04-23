@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
@@ -150,52 +151,57 @@ func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batc
 // StartAttempt 开考：进入进行中并写入截止时间。
 func (s *sAttempt) StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDurationSeconds int) error {
 	cfg := s.loadExamSessionCfg(ctx)
-	var att examentity.ExamAttempt
-	err := dao.ExamAttempt.Ctx(ctx).
-		Where("id", attemptID).
-		Where("member_id", userID).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&att)
-	if err != nil {
-		return err
-	}
-	if att.Id == 0 {
-		return gerror.NewCode(consts.CodeExamAttemptNotFound)
-	}
-	open, err := isExamBatchWindowOpen(ctx, att.ExamBatchId, gtime.Now())
-	if err != nil {
-		return err
-	}
-	if !open {
-		return gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
-	}
-	nextStatus, ok := transitionAttemptStatus(att.Status, attemptEventStart)
-	if !ok {
-		return gerror.NewCode(consts.CodeInvalidParams)
-	}
-	var paper examentity.ExamPaper
-	if err := dao.ExamPaper.Ctx(ctx).Where("id", att.ExamPaperId).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&paper); err != nil {
-		return err
-	}
-	if paper.Id == 0 {
-		return gerror.NewCode(consts.CodeExamPaperNotFound)
-	}
-	dur := resolveDurationSeconds(cfg, paper.DurationSeconds, clientDurationSeconds)
-	now := gtime.Now()
-	deadline := gtime.NewFromTimeStamp(now.Timestamp() + int64(dur))
+	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		var att examentity.ExamAttempt
+		if err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).
+			Where("id", attemptID).
+			Where("member_id", userID).
+			Where("delete_flag", consts.DeleteFlagNotDeleted).
+			Scan(&att); err != nil {
+			return err
+		}
+		if att.Id == 0 {
+			return gerror.NewCode(consts.CodeExamAttemptNotFound)
+		}
+		open, err := isExamBatchWindowOpen(ctx, att.ExamBatchId, gtime.Now())
+		if err != nil {
+			return err
+		}
+		if !open {
+			return gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
+		}
+		if !canAttempt(att.Status, attemptEventStart) {
+			return gerror.NewCode(consts.CodeInvalidParams)
+		}
+		var paper examentity.ExamPaper
+		if err := tx.Model(dao.ExamPaper.Table()).Ctx(ctx).
+			Where("id", att.ExamPaperId).
+			Where("delete_flag", consts.DeleteFlagNotDeleted).
+			Scan(&paper); err != nil {
+			return err
+		}
+		if paper.Id == 0 {
+			return gerror.NewCode(consts.CodeExamPaperNotFound)
+		}
+		dur := resolveDurationSeconds(cfg, paper.DurationSeconds, clientDurationSeconds)
+		now := gtime.Now()
+		deadline := gtime.NewFromTimeStamp(now.Timestamp() + int64(dur))
 
-	_, err = dao.ExamAttempt.Ctx(ctx).
-		Where("id", att.Id).
-		Where("status", att.Status).
-		Update(examdo.ExamAttempt{
-			Status:          nextStatus,
+		applied, err := applyAttemptTransitionTx(ctx, tx, att, attemptEventStart, examdo.ExamAttempt{
 			DurationSeconds: dur,
 			StartedAt:       now,
 			DeadlineAt:      deadline,
 			Updater:         updaterClient,
 			UpdateTime:      gtime.Now(),
 		})
-	return err
+		if err != nil {
+			return err
+		}
+		if !applied {
+			return gerror.NewCode(consts.CodeInvalidParams)
+		}
+		return nil
+	})
 }
 
 // GetAttempt 查询会话；若已超时仍进行中则自动交卷并计分。
@@ -270,19 +276,31 @@ func (s *sAttempt) SaveAnswers(ctx context.Context, userID int64, attemptID int6
 	if err := RateLimitSaveAnswers(ctx, attemptID, cfg.SaveAnswersPerSecond); err != nil {
 		return err
 	}
-	// 先做一次超时自动交卷，避免超时边界继续保存答案。
-	_ = maybeAutoSubmitIfOverdue(ctx, userID, attemptID)
+	ok, err := AcquireSubmitLockWithRetry(ctx, attemptID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return gerror.NewCode(consts.CodeTooManyRequests)
+	}
+	defer ReleaseSubmitLock(ctx, attemptID)
+
 	att, err := LoadAttemptByUser(ctx, attemptID, userID)
 	if err != nil {
 		return err
 	}
-	expired, err := isExamBatchExpired(ctx, att.ExamBatchId, gtime.Now())
+	now := gtime.Now()
+	expired, err := isExamBatchExpired(ctx, att.ExamBatchId, now)
 	if err != nil {
 		return err
 	}
 	if expired {
-		_ = markSubmitted(ctx, attemptID, attemptEventBatchExpired, updaterTask)
+		_ = markSubmittedLocked(ctx, attemptID, attemptEventBatchExpired, updaterTask)
 		return gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
+	}
+	if isAttemptDeadlineReached(att, now) {
+		_ = markSubmittedLocked(ctx, attemptID, attemptEventTimeout, updaterClient)
+		return gerror.NewCode(consts.CodeExamAlreadySubmitted)
 	}
 	if isAttemptSubmittedOrScored(att.Status) {
 		return gerror.NewCode(consts.CodeExamAlreadySubmitted)
@@ -294,7 +312,6 @@ func (s *sAttempt) SaveAnswers(ctx context.Context, userID int64, attemptID int6
 		return nil
 	}
 	data := make(map[string]interface{})
-	now := gtime.Now()
 	for _, it := range items {
 		answerJSON := examutil.MarshalAnswerPayload(bo.AnswerPayload{
 			OptionID: it.OptionID,

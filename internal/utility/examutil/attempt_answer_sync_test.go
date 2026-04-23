@@ -1,4 +1,4 @@
-package attempt
+package examutil
 
 import (
 	"testing"
@@ -7,11 +7,11 @@ import (
 )
 
 func TestBuildAttemptAnswerDraftRows(t *testing.T) {
-	rows := buildAttemptAnswerDraftRows(10, map[string]string{
+	rows := BuildAttemptAnswerDraftRows(10, map[string]string{
 		"1":   `{"q":1,"a":"{\"option_id\":100}","v":3,"t":1776926400}`,
 		"2":   `{"q":2,"a":"","v":1,"t":1776926401}`,
 		"bad": `{"q":0,"a":"{}","v":1,"t":1776926402}`,
-	}, updaterClient)
+	}, "client")
 
 	if len(rows) != 1 {
 		t.Fatalf("want 1 row, got %d", len(rows))
@@ -29,7 +29,7 @@ func TestBuildAttemptAnswerDraftRows(t *testing.T) {
 	if got := gconv.String(row["answer_json"]); got == "" {
 		t.Fatal("answer_json should not be empty")
 	}
-	if got := gconv.String(row["updater"]); got != updaterClient {
+	if got := gconv.String(row["updater"]); got != "client" {
 		t.Fatalf("updater=%q", got)
 	}
 }
