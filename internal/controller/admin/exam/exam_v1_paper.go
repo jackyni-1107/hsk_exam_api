@@ -83,9 +83,9 @@ func (c *ControllerV1) PaperImport(ctx context.Context, req *v1.PaperImportReq) 
 		return nil, err
 	}
 	return &v1.PaperImportRes{
-		ExaminationPaperId:         r.ExaminationPaperID,
+		ExaminationPaperId:         r.MockExaminationPaperID,
 		Conflict:                   r.Conflict,
-		ExistingExaminationPaperId: r.ExistingExaminationPaperID,
+		ExistingExaminationPaperId: r.ExistingMockExaminationPaperID,
 		SectionCount:               r.SectionCount,
 		QuestionCount:              r.QuestionCount,
 	}, nil

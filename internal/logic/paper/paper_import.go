@@ -87,11 +87,10 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 		switch mode {
 		case consts.ExamImportConflictFail:
 			res.Conflict = true
-			res.ExistingExaminationPaperID = mockID
+			res.ExistingMockExaminationPaperID = mockID
 			return res, nil
 		case consts.ExamImportConflictOverwrite, consts.ExamImportConflictNew:
-			// 与「覆盖」相同实现，见 docs/exam-paper-import.md。
-			overwritePaperID = exist.Id
+			// 涓庛€岃鐩栥€嶇浉鍚屽疄鐜帮紝瑙?docs/exam-paper-import.md銆?			overwritePaperID = exist.Id
 		default:
 			return nil, gerror.NewCode(consts.CodeExamConflictModeInvalid)
 		}
@@ -99,13 +98,13 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 
 	indexSnapshot := gjson.New(indexStr).MustToJsonString()
 
-	// 覆盖 / 替换且未传 HLS 前缀时保留库内原值（与「伪删除保留历史」一致）
+	// 瑕嗙洊 / 鏇挎崲涓旀湭浼?HLS 鍓嶇紑鏃朵繚鐣欏簱鍐呭師鍊硷紙涓庛€屼吉鍒犻櫎淇濈暀鍘嗗彶銆嶄竴鑷达級
 	audioHlsForPaper := audioHlsPrefix
 	if exist.Id > 0 && strings.TrimSpace(p.AudioHlsPrefix) == "" {
 		audioHlsForPaper = strings.Trim(exist.AudioHlsPrefix, "/")
 	}
 
-	var invalidatePaperPK int64
+	var importedExamPaperID int64
 	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		var pid int64
 		if overwritePaperID > 0 {
@@ -161,7 +160,7 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 			}
 			pid = inserted
 		}
-		res.ExaminationPaperID = mockID
+		res.MockExaminationPaperID = mockID
 
 		items := idx.Get("items").Array()
 		secCount := 0
@@ -210,13 +209,13 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 		}
 		res.SectionCount = secCount
 		res.QuestionCount = qCount
-		invalidatePaperPK = pid
+		importedExamPaperID = pid
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	invalidatePaperCaches(ctx, invalidatePaperPK, mockID)
+	invalidatePaperCaches(ctx, importedExamPaperID, mockID)
 	return res, nil
 }
 
@@ -308,7 +307,6 @@ func fetchRemote(ctx context.Context, u string) (string, error) {
 	return r.ReadAllString(), nil
 }
 
-// deletePaperTree 独立事务删除（供管理端扩展等使用）。
 func deletePaperTree(ctx context.Context, examPaperId int64) error {
 	err := g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		return deletePaperTreeTx(ctx, tx, examPaperId)
@@ -319,7 +317,6 @@ func deletePaperTree(ctx context.Context, examPaperId int64) error {
 	return err
 }
 
-// softDeletePaperTreeTx 将试卷下未删除的大题/题块/试题/选项标记为逻辑删除（覆盖导入时用，保留历史数据）。
 func softDeletePaperTreeTx(ctx context.Context, tx gdb.TX, examPaperId int64, updater string) error {
 	now := gtime.Now()
 	var qids []int64
@@ -489,7 +486,6 @@ func jsonNodeToDB(j *gjson.Json) interface{} {
 	return s
 }
 
-// classifySubjective 导入时标记主观题：无选项、无标准答案、或题干 type 为写作类（不以大题 topic_type 一刀切，避免写作部分内的客观题被误判）。
 func classifySubjective(q *gjson.Json, hasCorrectOption bool) int {
 	if q.Get("is_example").Bool() {
 		return 0
@@ -574,43 +570,4 @@ func insertOneQuestion(ctx context.Context, tx gdb.TX, examPaperId, mockPaperID,
 		}
 	}
 	return 1, nil
-}
-
-// PaperList 分页试卷列表（管理端）
-func (s *sPaper) PaperList(ctx context.Context, page, size int, level string, mockLevelId int64) (list []examentity.ExamPaper, total int, err error) {
-	if page <= 0 {
-		page = 1
-	}
-	if size <= 0 {
-		size = 10
-	}
-	m := dao.ExamPaper.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted)
-	if mockLevelId > 0 {
-		var mockRows []struct {
-			Id int64 `json:"id"`
-		}
-		if err := dao.MockExaminationPaper.Ctx(ctx).Fields("id").Where("level_id", mockLevelId).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&mockRows); err != nil {
-			return nil, 0, err
-		}
-		if len(mockRows) == 0 {
-			return []examentity.ExamPaper{}, 0, nil
-		}
-		ids := make([]interface{}, len(mockRows))
-		for i := range mockRows {
-			ids[i] = mockRows[i].Id
-		}
-		m = m.WhereIn("mock_examination_paper_id", ids)
-	} else if level != "" {
-		m = m.Where("level", level)
-	}
-	n, err := m.Count()
-	if err != nil {
-		return nil, 0, err
-	}
-	total = n
-	err = m.Page(page, size).OrderDesc("id").Scan(&list)
-	if err != nil {
-		return nil, 0, err
-	}
-	return list, total, nil
 }

@@ -14,8 +14,7 @@ import (
 	"exam/internal/utility"
 )
 
-// PaperDetailForExamInit 客户端考前初始化：仅试卷结构（paper + section 概要 + block 概要 + 题量），不含题目与选项。
-// 流程：Redis → singleflight → DB；TTL 1h。
+// PaperDetailForExamInit 返回考前初始化所需的试卷结构，不包含题目明细与选项。
 func PaperDetailForExamInit(ctx context.Context, examPaperId int64) (*PaperDetailForExamInitTree, error) {
 	rkey := paperForExamInitRedisKey(examPaperId)
 	if hit := redisGetPaperForExamInit(ctx, rkey); hit != nil {
@@ -43,7 +42,6 @@ func PaperDetailForExamInit(ctx context.Context, examPaperId int64) (*PaperDetai
 	return v.(*PaperDetailForExamInitTree), nil
 }
 
-// PaperSectionDetailForExam 按 section 拉取完整题目树（blocks + questions + options），不含选项正误。
 func PaperSectionDetailForExam(ctx context.Context, examPaperId, sectionId int64) (*SectionDetailForExamView, error) {
 	rkey := paperForExamSectionRedisKey(examPaperId, sectionId)
 	if hit := redisGetPaperSectionForExam(ctx, rkey); hit != nil {
@@ -306,7 +304,7 @@ func paperSectionDetailForExamFromDB(ctx context.Context, examPaperId, sectionId
 			QuestionDescriptionJson: trimForExamLarge(blk.QuestionDescriptionJson),
 		}
 		for _, q := range qsByBlock[blk.Id] {
-			// TODO(产品确认): 考试中若不需要解析说明，可删除 analysis_json 字段并停止 SELECT 该列以进一步瘦身。
+
 			qv := QuestionDetailForExamView{
 				Id:                      q.Id,
 				SortInBlock:             q.SortInBlock,
@@ -354,13 +352,11 @@ func paperHeadForExam(p examentity.ExamPaper) PaperHeadForExamView {
 	return v
 }
 
-// PaperDetailForExamInitTree 考前初始化视图（轻量）。
 type PaperDetailForExamInitTree struct {
 	Paper    PaperHeadForExamView        `json:"paper"`
 	Sections []SectionOutlineForExamView `json:"sections"`
 }
 
-// SectionOutlineForExamView section 概要 + block 概要（无题目）。
 type SectionOutlineForExamView struct {
 	Id             int64                     `json:"id"`
 	SortOrder      int                       `json:"sort_order"`
@@ -374,7 +370,6 @@ type SectionOutlineForExamView struct {
 	Blocks         []BlockOutlineForExamView `json:"blocks"`
 }
 
-// BlockOutlineForExamView block 概要（仅题量，无题目列表）。
 type BlockOutlineForExamView struct {
 	Id                      int64  `json:"id"`
 	BlockOrder              int    `json:"block_order"`
@@ -383,7 +378,6 @@ type BlockOutlineForExamView struct {
 	QuestionCount           int    `json:"question_count"`
 }
 
-// PaperHeadForExamView 含考试时长。
 type PaperHeadForExamView struct {
 	Id                 int64  `json:"id"`
 	Level              string `json:"level"`
@@ -397,7 +391,6 @@ type PaperHeadForExamView struct {
 	CreateTime         string `json:"create_time"`
 }
 
-// SectionDetailForExamView 单个 section 完整考前树（脱敏）。
 type SectionDetailForExamView struct {
 	Id             int64                    `json:"id"`
 	SortOrder      int                      `json:"sort_order"`

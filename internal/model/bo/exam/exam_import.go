@@ -9,9 +9,9 @@ type ImportParams struct {
 }
 
 type ImportResult struct {
-	ExaminationPaperID         int64
-	Conflict                   bool
-	ExistingExaminationPaperID int64
-	SectionCount               int
-	QuestionCount              int
+	MockExaminationPaperID         int64
+	Conflict                       bool
+	ExistingMockExaminationPaperID int64
+	SectionCount                   int
+	QuestionCount                  int
 }
