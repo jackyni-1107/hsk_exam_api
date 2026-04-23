@@ -13,6 +13,7 @@ import (
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
 	mockentity "exam/internal/model/entity/mock"
+
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -90,7 +91,8 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 			res.ExistingMockExaminationPaperID = mockID
 			return res, nil
 		case consts.ExamImportConflictOverwrite, consts.ExamImportConflictNew:
-			// 涓庛€岃鐩栥€嶇浉鍚屽疄鐜帮紝瑙?docs/exam-paper-import.md銆?			overwritePaperID = exist.Id
+			// 与「覆盖」相同实现，见 docs/exam-paper-import.md。
+			overwritePaperID = exist.Id
 		default:
 			return nil, gerror.NewCode(consts.CodeExamConflictModeInvalid)
 		}
@@ -98,7 +100,7 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 
 	indexSnapshot := gjson.New(indexStr).MustToJsonString()
 
-	// 瑕嗙洊 / 鏇挎崲涓旀湭浼?HLS 鍓嶇紑鏃朵繚鐣欏簱鍐呭師鍊硷紙涓庛€屼吉鍒犻櫎淇濈暀鍘嗗彶銆嶄竴鑷达級
+	// 覆盖 / 替换且未传 HLS 前缀时保留库内原值（与「伪删除保留历史」一致）
 	audioHlsForPaper := audioHlsPrefix
 	if exist.Id > 0 && strings.TrimSpace(p.AudioHlsPrefix) == "" {
 		audioHlsForPaper = strings.Trim(exist.AudioHlsPrefix, "/")
