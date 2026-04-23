@@ -13,7 +13,6 @@ import (
 	"exam/internal/consts"
 	"exam/internal/dao"
 	examentity "exam/internal/model/entity/exam"
-	"exam/internal/utility/exampaper"
 )
 
 // PaperPurgePhysical 从数据库永久删除 exam_paper 及其题目树（option/question/block/section）。
@@ -76,8 +75,6 @@ func (s *sPaper) PaperPurgePhysical(ctx context.Context, examPaperId int64, conf
 
 	auditutil.RecordEntityDiff(ctx, dao.ExamPaper.Table(), examPaperId, &paper, nil)
 
-	InvalidatePaperForExamCache(ctx, examPaperId)
-	exampaper.InvalidateByExamPaperIDCache(examPaperId)
-	exampaper.InvalidateByMockIDCache(mockID)
+	invalidatePaperCaches(ctx, examPaperId, mockID)
 	return nil
 }

@@ -13,8 +13,6 @@ import (
 	examdo "exam/internal/model/do/exam"
 	examentity "exam/internal/model/entity/exam"
 	mockentity "exam/internal/model/entity/mock"
-	"exam/internal/utility/exampaper"
-
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -218,10 +216,7 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 	if err != nil {
 		return nil, err
 	}
-	if invalidatePaperPK > 0 {
-		s.InvalidatePaperForExamCache(ctx, invalidatePaperPK)
-	}
-	exampaper.InvalidateByMockIDCache(mockID)
+	invalidatePaperCaches(ctx, invalidatePaperPK, mockID)
 	return res, nil
 }
 
@@ -319,7 +314,7 @@ func deletePaperTree(ctx context.Context, examPaperId int64) error {
 		return deletePaperTreeTx(ctx, tx, examPaperId)
 	})
 	if err == nil {
-		InvalidatePaperForExamCache(ctx, examPaperId)
+		invalidatePaperCaches(ctx, examPaperId, 0)
 	}
 	return err
 }

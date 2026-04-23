@@ -16,7 +16,6 @@ import (
 	examentity "exam/internal/model/entity/exam"
 	mockentity "exam/internal/model/entity/mock"
 	"exam/internal/utility"
-	"exam/internal/utility/exampaper"
 )
 
 // PaperDetail 返回试卷及嵌套大题、题块、小题、选项（只读查看）。
@@ -328,7 +327,7 @@ func (s *sPaper) UpdatePaperSettings(ctx context.Context, examPaperId int64, in 
 	if err != nil {
 		return err
 	}
-	s.InvalidatePaperForExamCache(ctx, examPaperId)
+	invalidatePaperCaches(ctx, examPaperId, paper.MockExaminationPaperId)
 	return nil
 }
 
@@ -371,8 +370,7 @@ func (s *sPaper) UpdatePaperMeta(ctx context.Context, examPaperId int64, in exam
 	if err != nil {
 		return err
 	}
-	s.InvalidatePaperForExamCache(ctx, examPaperId)
-	exampaper.InvalidateByMockIDCache(paper.MockExaminationPaperId)
+	invalidatePaperCaches(ctx, examPaperId, paper.MockExaminationPaperId)
 	return nil
 }
 
