@@ -9,3 +9,8 @@ const (
 	// RoleCodeSuperAdmin 系统角色 code（sys_role.code），仅该角色可执行试卷物理删除等高危操作
 	RoleCodeSuperAdmin = "super_admin"
 )
+
+const (
+	// KeyPermission 权限标识
+	KeyPermission = "permission"
+)

@@ -2,23 +2,16 @@ package middleware
 
 import (
 	"context"
-	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/net/ghttp"
 
 	"exam/internal/consts"
-	"exam/internal/service/audit"
 	rolesvc "exam/internal/service/sysrole"
 )
 
-func RBAC(permission string) ghttp.HandlerFunc {
+func RBAC(path string) ghttp.HandlerFunc {
 	return func(r *ghttp.Request) {
-		if permission == "" {
-			r.Middleware.Next()
-			return
-		}
-
 		ctxData := GetCtxData(r.GetCtx())
 		if ctxData == nil {
 			r.SetError(gerror.NewCode(consts.CodeTokenRequired))
@@ -30,19 +23,23 @@ func RBAC(permission string) ghttp.HandlerFunc {
 			r.Middleware.Next()
 			return
 		}
+		permissionCode := r.GetServeHandler().GetMetaTag(consts.KeyPermission)
 
-		perms, err := getUserPermissions(r.GetCtx(), ctxData.UserId)
-		if err != nil {
-			r.SetError(gerror.Wrap(err, "get user permissions failed"))
-			r.ExitAll()
-			return
-		}
+		if permissionCode != "" {
+			// 获取用户权限码（建议通过 UserId 从缓存/数据库读取）
+			userPerms, err := getUserPermissions(r.GetCtx(), ctxData.UserId)
+			if err != nil {
+				r.SetError(gerror.NewCode(consts.CodePermissionDenied))
+				r.ExitAll()
+				return
+			}
 
-		if !hasPermission(perms, permission) {
-			audit.Audit().RecordSecurityEvent(r.GetCtx(), consts.SecurityEventPermissionDenied, ctxData.UserId, r.GetClientIp(), r.Header.Get("User-Agent"), "permission denied: "+permission, GetTraceId(r.GetCtx()))
-			r.SetError(gerror.NewCode(consts.CodePermissionDenied))
-			r.ExitAll()
-			return
+			// 校验权限码
+			if !hasPermission(userPerms, permissionCode) {
+				r.SetError(gerror.NewCode(consts.CodePermissionDenied))
+				r.ExitAll()
+				return
+			}
 		}
 
 		r.Middleware.Next()
@@ -53,16 +50,8 @@ func getUserPermissions(ctx context.Context, userId int64) ([]string, error) {
 	return rolesvc.SysRole().PermissionCodesByUser(ctx, userId)
 }
 
-func GetUserPermissions(ctx context.Context, userId int64) ([]string, error) {
-	return getUserPermissions(ctx, userId)
-}
-
 func UserHasActiveRoleCode(ctx context.Context, userId int64, roleCode string) (bool, error) {
 	return rolesvc.SysRole().HasActiveRoleCode(ctx, userId, roleCode)
-}
-
-func GetUserMenuIds(ctx context.Context, userId int64) ([]int64, error) {
-	return rolesvc.SysRole().MenuIDsByUser(ctx, userId)
 }
 
 func hasPermission(perms []string, required string) bool {
@@ -70,64 +59,10 @@ func hasPermission(perms []string, required string) bool {
 		if permission == required {
 			return true
 		}
-		if strings.HasSuffix(permission, ":*") && strings.HasPrefix(required, strings.TrimSuffix(permission, "*")) {
-			return true
-		}
 	}
 	return false
 }
 
 func RBACFromPath(r *ghttp.Request) {
-	perm := inferPermission(r.URL.Path, r.Method)
-	RBAC(perm)(r)
-}
-
-func inferPermission(path, method string) string {
-	path = strings.Trim(path, "/")
-	parts := strings.Split(path, "/")
-	if len(parts) > 0 && parts[0] == "api" {
-		parts = parts[1:]
-	}
-	if len(parts) < 2 || parts[0] != "admin" {
-		return ""
-	}
-	resource := parts[1]
-	if resource == "me" {
-		return ""
-	}
-	if resource == "exam" && len(parts) >= 4 && parts[2] == "paper" && parts[3] == "import" {
-		return "exam:import"
-	}
-	if resource == "exam" && len(parts) >= 3 && parts[2] == "attempt" && method == "GET" {
-		return "exam:result:list"
-	}
-	if resource == "exam" && len(parts) >= 5 && parts[2] == "attempt" && parts[4] == "subjective-scores" && method == "PUT" {
-		return "exam:result:grade"
-	}
-	if resource == "file" && len(parts) >= 4 && parts[3] == "upload" && method == "POST" {
-		return "file:list"
-	}
-	if resource == "task" && len(parts) >= 3 {
-		if parts[2] == "run" {
-			return "task:run"
-		}
-		if parts[2] == "log" {
-			return "task:log"
-		}
-	}
-	switch method {
-	case "GET":
-		return resource + ":list"
-	case "POST":
-		if resource == "user" && len(parts) >= 4 && parts[3] == "kick-sessions" {
-			return "user:update"
-		}
-		return resource + ":create"
-	case "PUT", "PATCH":
-		return resource + ":update"
-	case "DELETE":
-		return resource + ":delete"
-	default:
-		return ""
-	}
+	RBAC(r.URL.Path)(r)
 }
