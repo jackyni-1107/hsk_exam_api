@@ -25,7 +25,7 @@ func submitLockKey(attemptID int64) string {
 }
 
 func attemptCreateLockKey(userID, batchID, paperID int64) string {
-	return fmt.Sprintf("hskexam:exam:attempt_create:%d:%d:%d", userID, batchID, paperID)
+	return fmt.Sprintf(consts.ExamAttemptCreateKeyFmt, userID, batchID, paperID)
 }
 
 func saveRateKey(attemptID int64) string {
