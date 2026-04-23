@@ -3,6 +3,7 @@ package attempt
 import (
 	"context"
 	"sort"
+	"time"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
@@ -82,27 +83,57 @@ func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batc
 	var mp mockentity.MockExaminationPaper
 	_ = dao.MockExaminationPaper.Ctx(ctx).Where("id", paper.MockExaminationPaperId).Scan(&mp)
 	levelID := mp.LevelId
-	attemptVar, err := dao.ExamAttempt.Ctx(ctx).
-		Fields("id").
-		Where("member_id", userID).
-		Where("exam_batch_id", batchID).
-		Where("exam_paper_id", paper.Id).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Value()
+	findExistingAttempt := func() (int64, error) {
+		attemptVar, err := dao.ExamAttempt.Ctx(ctx).
+			Fields("id").
+			Where("member_id", userID).
+			Where("exam_batch_id", batchID).
+			Where("exam_paper_id", paper.Id).
+			Where("delete_flag", consts.DeleteFlagNotDeleted).
+			Value()
+		if err != nil {
+			return 0, err
+		}
+		return attemptVar.Int64(), nil
+	}
+	attemptId, err := findExistingAttempt()
 	if err != nil {
 		return 0, err
 	}
-	attemptId := attemptVar.Int64()
 	if attemptId > 0 {
 		return attemptId, nil
 	}
+
+	ok, err := tryAcquireAttemptCreateLock(ctx, userID, batchID, paper.Id)
+	if err != nil {
+		return 0, err
+	}
+	if !ok {
+		for i := 0; i < 5; i++ {
+			time.Sleep(50 * time.Millisecond)
+			if attemptId, err = findExistingAttempt(); err != nil || attemptId > 0 {
+				return attemptId, err
+			}
+		}
+		return 0, gerror.NewCode(consts.CodeTooManyRequests)
+	}
+	defer releaseAttemptCreateLock(ctx, userID, batchID, paper.Id)
+
+	attemptId, err = findExistingAttempt()
+	if err != nil {
+		return 0, err
+	}
+	if attemptId > 0 {
+		return attemptId, nil
+	}
+
 	id, err := dao.ExamAttempt.Ctx(ctx).InsertAndGetId(examdo.ExamAttempt{
 		MemberId:               userID,
 		ExamPaperId:            paper.Id,
 		MockExaminationPaperId: paper.MockExaminationPaperId,
 		ExamBatchId:            batchID,
 		MockLevelId:            levelID,
-		Status:                 consts.ExamAttemptNotStarted,
+		Status:                 int(attemptStateNotStarted),
 		DurationSeconds:        0,
 		Creator:                updaterClient,
 		Updater:                updaterClient,
@@ -131,14 +162,15 @@ func (s *sAttempt) StartAttempt(ctx context.Context, userID int64, attemptID int
 	if att.Id == 0 {
 		return gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
-	expired, err := isExamBatchExpired(ctx, att.ExamBatchId, gtime.Now())
+	open, err := isExamBatchWindowOpen(ctx, att.ExamBatchId, gtime.Now())
 	if err != nil {
 		return err
 	}
-	if expired {
+	if !open {
 		return gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
 	}
-	if att.Status != consts.ExamAttemptNotStarted {
+	nextStatus, ok := transitionAttemptStatus(att.Status, attemptEventStart)
+	if !ok {
 		return gerror.NewCode(consts.CodeInvalidParams)
 	}
 	var paper examentity.ExamPaper
@@ -152,14 +184,17 @@ func (s *sAttempt) StartAttempt(ctx context.Context, userID int64, attemptID int
 	now := gtime.Now()
 	deadline := gtime.NewFromTimeStamp(now.Timestamp() + int64(dur))
 
-	_, err = dao.ExamAttempt.Ctx(ctx).Where("id", att.Id).Update(examdo.ExamAttempt{
-		Status:          consts.ExamAttemptInProgress,
-		DurationSeconds: dur,
-		StartedAt:       now,
-		DeadlineAt:      deadline,
-		Updater:         updaterClient,
-		UpdateTime:      gtime.Now(),
-	})
+	_, err = dao.ExamAttempt.Ctx(ctx).
+		Where("id", att.Id).
+		Where("status", att.Status).
+		Update(examdo.ExamAttempt{
+			Status:          nextStatus,
+			DurationSeconds: dur,
+			StartedAt:       now,
+			DeadlineAt:      deadline,
+			Updater:         updaterClient,
+			UpdateTime:      gtime.Now(),
+		})
 	return err
 }
 
@@ -171,7 +206,6 @@ func (s *sAttempt) GetAttempt(ctx context.Context, userID int64, attemptID int64
 		return nil, err
 	}
 	now := gtime.Now()
-	//deadlineReached := att.Status == consts.ExamAttemptInProgress && att.DeadlineAt != nil && att.DeadlineAt.Before(now)
 	finalSegmentCode := RedisLatestSegmentCode(ctx, att.Id)
 	rem := computeSegmentRemainingSeconds(ctx, att, finalSegmentCode)
 	return &bo.AttemptView{
@@ -247,13 +281,13 @@ func (s *sAttempt) SaveAnswers(ctx context.Context, userID int64, attemptID int6
 		return err
 	}
 	if expired {
-		_ = markSubmitted(ctx, attemptID, false, updaterTask)
+		_ = markSubmitted(ctx, attemptID, attemptEventBatchExpired, updaterTask)
 		return gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
 	}
-	if att.Status == consts.ExamAttemptSubmitted || att.Status == consts.ExamAttemptEnded {
+	if isAttemptSubmittedOrScored(att.Status) {
 		return gerror.NewCode(consts.CodeExamAlreadySubmitted)
 	}
-	if att.Status != consts.ExamAttemptInProgress {
+	if !canSaveAttemptAnswers(att.Status) {
 		return gerror.NewCode(consts.CodeInvalidParams)
 	}
 	if len(items) == 0 {
@@ -298,29 +332,29 @@ func (s *sAttempt) SubmitAttempt(ctx context.Context, userID int64, attemptID in
 		return err
 	}
 	if expired {
-		_ = markSubmitted(ctx, attemptID, false, updaterTask)
+		_ = markSubmitted(ctx, attemptID, attemptEventBatchExpired, updaterTask)
 		return gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
 	}
-	if att.Status == consts.ExamAttemptEnded {
+	if isAttemptScored(att.Status) {
 		return nil
 	}
-	if att.Status == consts.ExamAttemptSubmitted {
+	if isAttemptSubmitted(att.Status) {
 		return nil
 	}
-	if att.Status != consts.ExamAttemptInProgress {
+	if !canSubmitAttempt(att.Status) {
 		return nil
 	}
-	return markSubmitted(ctx, attemptID, false, updaterClient)
+	return markSubmitted(ctx, attemptID, attemptEventSubmit, updaterClient)
 }
 
 // MarkSubmittedIfOverdue 供定时任务：超时未操作会话标记为已交卷（待算分，不校验用户）。算分由 ExamScoreFinalizeHandler 执行。
 func (s *sAttempt) MarkSubmittedIfOverdue(ctx context.Context, attemptID int64) error {
-	return markSubmitted(ctx, attemptID, true, updaterTask)
+	return markSubmitted(ctx, attemptID, attemptEventTimeout, updaterTask)
 }
 
 // MarkSubmittedByBatchExpired 供定时任务：批次过期后进行中会话标记为已交卷（待算分，不校验用户）。
 func (s *sAttempt) MarkSubmittedByBatchExpired(ctx context.Context, attemptID int64) error {
-	return markSubmitted(ctx, attemptID, false, updaterTask)
+	return markSubmitted(ctx, attemptID, attemptEventBatchExpired, updaterTask)
 }
 
 // FinalizeAttempt 对已交卷（待算分）会话计算客观分并置为已结束，写入 exam_result。仅应由 ExamScoreFinalizeHandler（sys_task）调用。

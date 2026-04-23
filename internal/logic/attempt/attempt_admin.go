@@ -200,10 +200,10 @@ func (s *sAttempt) AttemptAdminSaveSubjectiveScores(ctx context.Context, attempt
 	if att.Id == 0 {
 		return 0, 0, gerror.NewCode(consts.CodeExamAttemptNotFound)
 	}
-	if att.Status != consts.ExamAttemptEnded {
+	if !isAttemptScored(att.Status) {
 		return 0, 0, gerror.NewCode(consts.CodeExamAttemptNotEnded)
 	}
-	if att.HasSubjective != 1 {
+	if !canGradeSubjectiveAttempt(att) {
 		return 0, 0, gerror.NewCode(consts.CodeExamAttemptNoSubjective)
 	}
 	graded, err := hasAnySubjectiveAwarded(ctx, att.Id, att.ExamPaperId)
@@ -231,13 +231,20 @@ func (s *sAttempt) AttemptAdminSaveSubjectiveScores(ctx context.Context, attempt
 		if attTx.Id == 0 {
 			return gerror.NewCode(consts.CodeExamAttemptNotFound)
 		}
-		if attTx.Status != consts.ExamAttemptEnded {
+		if !isAttemptScored(attTx.Status) {
 			return gerror.NewCode(consts.CodeExamAttemptNotEnded)
 		}
-		if attTx.HasSubjective != 1 {
+		if !canGradeSubjectiveAttempt(attTx) {
 			return gerror.NewCode(consts.CodeExamAttemptNoSubjective)
 		}
 		paperID := attTx.ExamPaperId
+		graded, err := hasAnySubjectiveAwardedTx(ctx, tx, attemptID, paperID)
+		if err != nil {
+			return err
+		}
+		if graded {
+			return gerror.NewCode(consts.CodeExamSubjectiveAlreadyGraded)
+		}
 
 		for _, it := range uniq {
 			var q examentity.ExamQuestion
@@ -365,4 +372,37 @@ func sumSubjectiveAwardedTx(ctx context.Context, tx gdb.TX, attemptID int64, pap
 		sum += *a.AwardedScore
 	}
 	return sum, nil
+}
+
+func hasAnySubjectiveAwardedTx(ctx context.Context, tx gdb.TX, attemptID int64, paperID int64) (bool, error) {
+	type qrow struct {
+		Id int64 `json:"id"`
+	}
+	var qrows []qrow
+	if err := tx.Model(dao.ExamQuestion.Table()).Ctx(ctx).
+		Fields("id").
+		Where("exam_paper_id", paperID).
+		Where("is_subjective", 1).
+		Where("is_example", 0).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&qrows); err != nil {
+		return false, err
+	}
+	if len(qrows) == 0 {
+		return false, nil
+	}
+	qIDs := make([]interface{}, 0, len(qrows))
+	for _, q := range qrows {
+		qIDs = append(qIDs, q.Id)
+	}
+	cnt, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
+		Where("attempt_id", attemptID).
+		WhereIn("exam_question_id", qIDs).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Where("awarded_score IS NOT NULL").
+		Count()
+	if err != nil {
+		return false, err
+	}
+	return cnt > 0, nil
 }

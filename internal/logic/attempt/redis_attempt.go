@@ -21,6 +21,10 @@ func submitLockKey(attemptID int64) string {
 	return fmt.Sprintf(consts.ExamSubmitLockKeyFmt, attemptID)
 }
 
+func attemptCreateLockKey(userID, batchID, paperID int64) string {
+	return fmt.Sprintf("hskexam:exam:attempt_create:%d:%d:%d", userID, batchID, paperID)
+}
+
 func saveRateKey(attemptID int64) string {
 	return fmt.Sprintf(consts.ExamSaveRateKeyFmt, attemptID)
 }
@@ -46,6 +50,19 @@ func TryAcquireSubmitLock(ctx context.Context, attemptID int64) (bool, error) {
 // ReleaseSubmitLock 释放交卷锁。
 func ReleaseSubmitLock(ctx context.Context, attemptID int64) {
 	_, _ = g.Redis().Del(ctx, submitLockKey(attemptID))
+}
+
+func tryAcquireAttemptCreateLock(ctx context.Context, userID, batchID, paperID int64) (bool, error) {
+	key := attemptCreateLockKey(userID, batchID, paperID)
+	v, err := g.Redis().Do(ctx, "SET", key, "1", "NX", "EX", consts.ExamSubmitLockTTL)
+	if err != nil {
+		return false, err
+	}
+	return v.String() == "OK", nil
+}
+
+func releaseAttemptCreateLock(ctx context.Context, userID, batchID, paperID int64) {
+	_, _ = g.Redis().Del(ctx, attemptCreateLockKey(userID, batchID, paperID))
 }
 
 // RateLimitSaveAnswers 单会话保存答案频率限制，超限返回 CodeTooManyRequests。
