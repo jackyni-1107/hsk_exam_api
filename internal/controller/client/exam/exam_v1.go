@@ -61,12 +61,12 @@ func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq
 		Id:                     d.Paper.Id,
 		MockExaminationPaperId: mock.Id,
 		Level:                  d.Paper.Level,
-		PaperId:              d.Paper.PaperId,
-		Title:                d.Paper.Title,
-		SourceBaseUrl:        d.Paper.SourceBaseUrl,
-		AudioUrl:             playURL,
-		DurationSeconds:      d.Paper.DurationSeconds,
-		ListenReviewDuration: d.Paper.ListenReviewDuration,
+		PaperId:                d.Paper.PaperId,
+		Title:                  d.Paper.Title,
+		SourceBaseUrl:          d.Paper.SourceBaseUrl,
+		AudioUrl:               playURL,
+		DurationSeconds:        d.Paper.DurationSeconds,
+		ListenReviewDuration:   d.Paper.ListenReviewDuration,
 		Prepare: v1.PaperForExamPrepare{
 			Instruction: d.Paper.PrepareInstruction,
 			AudioFile:   d.Paper.PrepareAudioFile,
@@ -101,10 +101,6 @@ func (c *ControllerV1) AttemptCreateByBatch(ctx context.Context, req *v1.Attempt
 	if ctxData == nil {
 		return nil, gerror.NewCode(consts.CodeTokenRequired)
 	}
-	//_, err = exam.Exam().ExamBatchMemberDetail(ctx, req.BatchId, ctxData.UserId, req.MockExaminationPaperId)
-	//if err != nil {
-	//	return nil, err
-	//}
 	var id int64
 	id, err = attemptsvc.Attempt().CreateAttemptForBatch(ctx, ctxData.UserId, req.BatchId, req.ExamPaperId)
 	if err != nil {

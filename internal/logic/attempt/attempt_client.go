@@ -21,13 +21,6 @@ import (
 	"exam/internal/utility/examutil"
 )
 
-// CreateAttempt 已废弃：请使用 CreateAttemptForBatch（POST /exam/batches/{batchId}/attempts）。
-func CreateAttempt(ctx context.Context, userID int64, mockPaperID int64) (int64, error) {
-	_ = mockPaperID
-	_ = userID
-	return 0, gerror.NewCode(consts.CodeExamAttemptUseBatchApi)
-}
-
 // CreateAttemptForBatch 按批次创建会话（未开始）；每用户每批次每 exam_paper 仅允许一条未删除记录。
 // examPaperID 对应用户在 exam_batch_member 中的卷；同批次为该用户配置了多张卷时必须传入，否则返回 11124。
 func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, examPaperID int64) (int64, error) {
@@ -143,6 +136,9 @@ func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batc
 		UpdateTime:             gtime.Now(),
 	})
 	if err != nil {
+		if attemptId, findErr := findExistingAttempt(); findErr == nil && attemptId > 0 {
+			return attemptId, nil
+		}
 		return 0, err
 	}
 	return id, nil

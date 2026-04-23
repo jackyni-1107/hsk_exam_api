@@ -45,43 +45,17 @@ func BuildAttemptAnswerDraftRows(attemptID int64, draftMap map[string]string, up
 }
 
 func UpsertAttemptAnswerDraftRowsTx(ctx context.Context, tx gdb.TX, items []g.Map) error {
-	for _, item := range items {
-		attemptID := gconv.Int64(item["attempt_id"])
-		questionID := gconv.Int64(item["exam_question_id"])
-		version := gconv.Int(item["version"])
-
-		r, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
-			Where("attempt_id", attemptID).
-			Where("exam_question_id", questionID).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Where("version <= ?", version).
-			Update(g.Map{
-				"answer_json": item["answer_json"],
-				"version":     item["version"],
-				"updater":     item["updater"],
-				"update_time": item["update_time"],
-			})
-		if err != nil {
-			return err
-		}
-		if n, _ := r.RowsAffected(); n > 0 {
-			continue
-		}
-
-		cnt, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
-			Where("attempt_id", attemptID).
-			Where("exam_question_id", questionID).
-			Where("delete_flag", consts.DeleteFlagNotDeleted).
-			Count()
-		if err != nil {
-			return err
-		}
-		if cnt > 0 {
-			continue
-		}
-		if _, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).Insert(item); err != nil {
-			return err
-		}
+	if len(items) == 0 {
+		return nil
 	}
-	return nil
+	_, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
+		Data(items).
+		Batch(100).
+		OnDuplicate(gdb.Raw(`
+			answer_json = IF(VALUES(version) >= version, VALUES(answer_json), answer_json),
+			update_time = IF(VALUES(version) >= version, VALUES(update_time), update_time),
+			updater     = IF(VALUES(version) >= version, VALUES(updater), updater),
+			version     = IF(VALUES(version) >= version, VALUES(version), version)
+		`)).Save()
+	return err
 }
