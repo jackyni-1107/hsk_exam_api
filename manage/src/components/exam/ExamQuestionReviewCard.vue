@@ -10,12 +10,24 @@
       <span class="exam-q-badge">{{ questionNo }}</span>
       <div class="exam-q-card__meta">
         <span v-if="isExample === 1" class="exam-q-pill">例题</span>
-        <span v-else-if="isSubjective === 1" class="exam-q-pill exam-q-pill--sub">主观</span>
+        <span
+          v-else-if="isSubjective === 1"
+          class="exam-q-pill exam-q-pill--sub"
+          >主观</span
+        >
         <span v-else class="exam-q-pill exam-q-pill--obj">客观</span>
         <span class="exam-q-score">{{ scoreDisplay }}</span>
         <template v-if="mode === 'review' && !isExample && !isSubjective">
-          <el-icon v-if="objectiveCorrect === true" class="exam-q-ic exam-q-ic--ok"><Check /></el-icon>
-          <el-icon v-else-if="objectiveCorrect === false" class="exam-q-ic exam-q-ic--bad"><Close /></el-icon>
+          <el-icon
+            v-if="objectiveCorrect === true"
+            class="exam-q-ic exam-q-ic--ok"
+            ><Check
+          /></el-icon>
+          <el-icon
+            v-else-if="objectiveCorrect === false"
+            class="exam-q-ic exam-q-ic--bad"
+            ><Close
+          /></el-icon>
           <el-icon v-else class="exam-q-ic exam-q-ic--muted"><Minus /></el-icon>
         </template>
       </div>
@@ -23,7 +35,9 @@
 
     <div v-if="audioFile" class="exam-q-audio">
       音频：
-      <a :href="audioHref" target="_blank" rel="noopener noreferrer">{{ audioFile }}</a>
+      <a :href="audioHref" target="_blank" rel="noopener noreferrer">{{
+        audioFile
+      }}</a>
     </div>
 
     <div v-if="showBlockPassageBlock" class="exam-q-passage">
@@ -75,92 +89,92 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Check, Close, Minus } from '@element-plus/icons-vue'
-import ExamQuestionStem from '@/components/exam/ExamQuestionStem.vue'
-import ExamScreenTextBlocks from '@/components/exam/ExamScreenTextBlocks.vue'
-import ExamUserAnswer from '@/components/exam/ExamUserAnswer.vue'
-import ExamOptionReview from '@/components/exam/ExamOptionReview.vue'
+import { computed } from "vue";
+import { Check, Close, Minus } from "@element-plus/icons-vue";
+import ExamQuestionStem from "@/components/exam/ExamQuestionStem.vue";
+import ExamScreenTextBlocks from "@/components/exam/ExamScreenTextBlocks.vue";
+import ExamUserAnswer from "@/components/exam/ExamUserAnswer.vue";
+import ExamOptionReview from "@/components/exam/ExamOptionReview.vue";
 import {
   looksLikeHtml,
   parseAnswerPayload,
   sanitizeHtmlForDisplay,
   type ExamOptionDisplayRow,
-} from '@/utils/examDisplay'
-import { resolveResourceUrl } from '@/utils/resourceUrl'
+} from "@/utils/examDisplay";
+import { resolveResourceUrl } from "@/utils/resourceUrl";
 import {
   effectivePaperQuestionStem,
   hasBlockScreenSegments,
   hasQuestionStemSegments,
   questionStemRichRaw,
-} from '@/utils/examPaperQuestionDisplay'
-import { getBlockScreenTextRaw } from '@/utils/topicJsonDisplay'
+} from "@/utils/examPaperQuestionDisplay";
+import { getBlockScreenTextRaw } from "@/utils/topicJsonDisplay";
 
 const props = withDefaults(
   defineProps<{
-    mode?: 'preview' | 'review'
-    questionNo: number
-    score: number
-    isExample?: number
-    isSubjective?: number
-    stemText?: string
-    screenTextJson?: string
-    topicJson?: string
-    blockIndex?: number
-    questionIndex?: number
+    mode?: "preview" | "review";
+    questionNo: number;
+    score: number;
+    isExample?: number;
+    isSubjective?: number;
+    stemText?: string;
+    screenTextJson?: string;
+    topicJson?: string;
+    blockIndex?: number;
+    questionIndex?: number;
     /** 套题：当前题块下的共用阅读段 */
-    blockPassageText?: string
+    blockPassageText?: string;
     /** 同一题块内仅首题传 true，避免阅读材料重复 */
-    showBlockPassage?: boolean
-    sourceBaseUrl?: string
-    audioFile?: string
+    showBlockPassage?: boolean;
+    sourceBaseUrl?: string;
+    audioFile?: string;
     /** 选项 */
-    options?: ExamOptionDisplayRow[]
-    showCorrectOptions?: boolean
+    options?: ExamOptionDisplayRow[];
+    showCorrectOptions?: boolean;
     /** 批阅 */
-    answerJson?: string
-    objectiveCorrect?: boolean | null
-    analysisText?: string
+    answerJson?: string;
+    objectiveCorrect?: boolean | null;
+    analysisText?: string;
     /** 管理端结果：主观题已评得分，与 score（满分）同时展示 */
-    awardedScore?: number | null
+    awardedScore?: number | null;
   }>(),
   {
-    mode: 'preview',
+    mode: "preview",
     isExample: 0,
     isSubjective: 0,
-    stemText: '',
-    screenTextJson: '',
-    topicJson: '',
+    stemText: "",
+    screenTextJson: "",
+    topicJson: "",
     blockIndex: 0,
     questionIndex: 0,
-    blockPassageText: '',
+    blockPassageText: "",
     showBlockPassage: true,
-    sourceBaseUrl: '',
-    audioFile: '',
+    sourceBaseUrl: "",
+    audioFile: "",
     options: () => [],
     showCorrectOptions: true,
-    answerJson: '',
+    answerJson: "",
     objectiveCorrect: null,
-    analysisText: '',
+    analysisText: "",
     awardedScore: undefined,
   },
-)
+);
 
 const scoreDisplay = computed(() => {
-  const max = Number(props.score) || 0
+  const max = Number(props.score) || 0;
   if (
-    props.mode === 'review' &&
+    props.mode === "review" &&
     props.isSubjective === 1 &&
     props.isExample !== 1
   ) {
-    const aw = props.awardedScore
+    const aw = props.awardedScore;
     if (aw != null && !Number.isNaN(Number(aw))) {
-      return `${Number(aw).toFixed(2)} / ${max.toFixed(2)} 分`
+      return `${Number(aw).toFixed(2)} / ${max.toFixed(2)} 分`;
     }
-    return `未评 · 满分 ${max.toFixed(2)}`
+    return `未评 · 满分 ${max.toFixed(2)}`;
   }
-  return `${max} 分`
-})
+  return `${max} 分`;
+});
 
 const stemRich = computed(() => {
   return hasQuestionStemSegments(
@@ -169,8 +183,8 @@ const stemRich = computed(() => {
     props.topicJson,
     props.blockIndex ?? 0,
     props.questionIndex ?? 0,
-  )
-})
+  );
+});
 
 const stemRichRaw = computed(() => {
   return questionStemRichRaw(
@@ -179,8 +193,8 @@ const stemRichRaw = computed(() => {
     props.topicJson,
     props.blockIndex ?? 0,
     props.questionIndex ?? 0,
-  )
-})
+  );
+});
 
 const stemPlain = computed(() =>
   effectivePaperQuestionStem(
@@ -190,58 +204,58 @@ const stemPlain = computed(() =>
     props.blockIndex ?? 0,
     props.questionIndex ?? 0,
   ),
-)
+);
 
 const blockScreenRaw = computed(() =>
   getBlockScreenTextRaw(props.topicJson, props.blockIndex ?? 0),
-)
+);
 
 const blockHasRich = computed(() =>
   hasBlockScreenSegments(props.topicJson, props.blockIndex ?? 0),
-)
+);
 
 const showBlockPassageBlock = computed(() => {
-  if (props.showBlockPassage === false) return false
-  return !!(props.blockPassageText?.trim() || blockHasRich.value)
-})
+  if (props.showBlockPassage === false) return false;
+  return !!(props.blockPassageText?.trim() || blockHasRich.value);
+});
 
 const audioHref = computed(() =>
   resolveResourceUrl(props.sourceBaseUrl, props.audioFile),
-)
+);
 
 const isWrongObjective = computed(
   () =>
-    props.mode === 'review' &&
+    props.mode === "review" &&
     !props.isExample &&
     !props.isSubjective &&
     props.objectiveCorrect === false,
-)
+);
 
 const isOkObjective = computed(
   () =>
-    props.mode === 'review' &&
+    props.mode === "review" &&
     !props.isExample &&
     !props.isSubjective &&
     props.objectiveCorrect === true,
-)
+);
 
 const resolvedSelectedIds = computed(() => {
-  const raw = parseAnswerPayload(props.answerJson)
-  const ids: number[] = []
-  if (raw.optionId != null) ids.push(raw.optionId)
-  if (raw.optionIds?.length) ids.push(...raw.optionIds)
-  return ids
-})
+  const raw = parseAnswerPayload(props.answerJson);
+  const ids: number[] = [];
+  if (raw.optionId != null) ids.push(raw.optionId);
+  if (raw.optionIds?.length) ids.push(...raw.optionIds);
+  return ids;
+});
 
 const showStemSection = computed(() => {
-  if (stemRich.value) return true
-  return !!(stemPlain.value || '').trim()
-})
+  if (stemRich.value) return true;
+  return !!(stemPlain.value || "").trim();
+});
 
 /** 仅主观题展示文字作答；客观题以选项区「所选」标签为准 */
 const showYourAnswerBlock = computed(
-  () => props.mode === 'review' && props.isSubjective === 1,
-)
+  () => props.mode === "review" && props.isSubjective === 1,
+);
 </script>
 
 <style scoped>
@@ -253,12 +267,20 @@ const showYourAnswerBlock = computed(
 }
 
 .exam-q-card--wrong {
-  border-color: color-mix(in srgb, var(--el-color-danger) 35%, var(--el-border-color-lighter));
+  border-color: color-mix(
+    in srgb,
+    var(--el-color-danger) 35%,
+    var(--el-border-color-lighter)
+  );
   background: color-mix(in srgb, var(--el-color-danger) 6%, var(--el-bg-color));
 }
 
 .exam-q-card--ok {
-  border-color: color-mix(in srgb, var(--el-color-success) 28%, var(--el-border-color-lighter));
+  border-color: color-mix(
+    in srgb,
+    var(--el-color-success) 28%,
+    var(--el-border-color-lighter)
+  );
 }
 
 .exam-q-card__head {

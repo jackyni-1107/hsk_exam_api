@@ -149,8 +149,10 @@ function cardClass(o: ExamOptionDisplayRow) {
 }
 
 .exam-opt-card {
-  flex: 1 1 140px;
+  flex: 1 1 50px;
   min-width: 0;
+  min-height: auto;
+  height: auto;
   max-width: 100%;
   margin: 0;
   padding: 10px;
@@ -160,9 +162,10 @@ function cardClass(o: ExamOptionDisplayRow) {
   background: var(--el-fill-color-blank);
   cursor: default;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 6px;
-  align-items: stretch;
   transition:
     border-color 0.15s,
     box-shadow 0.15s;
@@ -185,23 +188,31 @@ function cardClass(o: ExamOptionDisplayRow) {
 }
 
 .exam-opt-card__img {
-  width: 100%;
-  height: auto;
-  max-height: 160px;
-  object-fit: contain;
+  width: 72px;
+  height: 72px;
+  max-width: 72px;
+  max-height: 72px;
+  object-fit: cover;
   border-radius: 6px;
   border: 1px solid var(--el-border-color-lighter);
+  flex-shrink: 0;
 }
 
 .exam-opt-review--strip .exam-opt-card__img {
-  max-height: 120px;
+  width: 72px;
+  height: 72px;
+  max-width: 72px;
+  max-height: 72px;
 }
 
 .exam-opt-card__text {
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
-  line-height: 1.45;
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .exam-opt-card__html :deep(font),
@@ -209,8 +220,19 @@ function cardClass(o: ExamOptionDisplayRow) {
   vertical-align: baseline;
 }
 
+.exam-opt-card__html :deep(img) {
+  width: 72px !important;
+  height: 72px !important;
+  max-width: 72px !important;
+  max-height: 72px !important;
+  object-fit: cover !important;
+  border-radius: 6px;
+  vertical-align: middle;
+}
+
 .exam-opt-card__tag {
-  align-self: flex-start;
+  align-self: center;
+  flex-shrink: 0;
 }
 
 .exam-opt-card.is-correct {

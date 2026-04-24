@@ -4,7 +4,12 @@
       <template #header><span>考试结果</span></template>
       <el-form :inline="true" class="filter" @submit.prevent="loadList">
         <el-form-item label="学员账号">
-          <el-input v-model="query.username" clearable placeholder="模糊" style="width: 160px" />
+          <el-input
+            v-model="query.username"
+            clearable
+            placeholder="模糊"
+            style="width: 160px"
+          />
         </el-form-item>
         <el-form-item label="试卷级别">
           <el-select
@@ -48,7 +53,12 @@
           />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="query.status" clearable placeholder="全部" style="width: 140px">
+          <el-select
+            v-model="query.status"
+            clearable
+            placeholder="全部"
+            style="width: 140px"
+          >
             <el-option label="全部" :value="0" />
             <el-option label="未开始" :value="1" />
             <el-option label="进行中" :value="2" />
@@ -65,34 +75,79 @@
 
       <el-table v-loading="loading" :data="rows" border stripe>
         <el-table-column prop="id" label="会话ID" width="96" />
-        <el-table-column prop="username" label="学员" width="120" show-overflow-tooltip />
-        <el-table-column prop="nickname" label="昵称" width="100" show-overflow-tooltip />
-        <el-table-column prop="paper_title" label="试卷" min-width="160" show-overflow-tooltip />
+        <el-table-column
+          prop="username"
+          label="学员"
+          width="120"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="nickname"
+          label="昵称"
+          width="100"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="paper_title"
+          label="试卷"
+          min-width="160"
+          show-overflow-tooltip
+        />
         <el-table-column prop="paper_level" label="级别" width="80" />
-        <el-table-column prop="exam_batch_id" label="批次" width="88" align="right" />
-        <el-table-column prop="mock_level_id" label="等级" width="88" align="right" />
+        <el-table-column
+          prop="exam_batch_id"
+          label="批次"
+          width="88"
+          align="right"
+        />
+        <el-table-column
+          prop="mock_level_id"
+          label="等级"
+          width="88"
+          align="right"
+        />
         <el-table-column label="状态" width="88">
           <template #default="{ row }">
             {{ statusText(row.status) }}
           </template>
         </el-table-column>
         <el-table-column label="客观分" width="88" align="right">
-          <template #default="{ row }">{{ row.objective_score?.toFixed?.(2) ?? row.objective_score }}</template>
+          <template #default="{ row }">{{
+            row.objective_score?.toFixed?.(2) ?? row.objective_score
+          }}</template>
         </el-table-column>
         <el-table-column label="主观分" width="88" align="right">
-          <template #default="{ row }">{{ row.subjective_score?.toFixed?.(2) ?? row.subjective_score }}</template>
+          <template #default="{ row }">{{
+            row.subjective_score?.toFixed?.(2) ?? row.subjective_score
+          }}</template>
         </el-table-column>
         <el-table-column label="总分" width="88" align="right">
           <template #default="{ row }">
-            <span class="list-total-score">{{ row.total_score?.toFixed?.(2) ?? row.total_score }}</span>
+            <span class="list-total-score">{{
+              row.total_score?.toFixed?.(2) ?? row.total_score
+            }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="submitted_at" label="交卷时间" width="172" show-overflow-tooltip :formatter="formatUtcForDisplay" />
-        <el-table-column prop="submitted_at" label="开始时间" width="172" show-overflow-tooltip :formatter="formatUtcForDisplay" />
+        <el-table-column
+          prop="submitted_at"
+          label="交卷时间"
+          width="172"
+          show-overflow-tooltip
+          :formatter="formatUtcForDisplay"
+        />
+        <el-table-column
+          prop="submitted_at"
+          label="开始时间"
+          width="172"
+          show-overflow-tooltip
+          :formatter="formatUtcForDisplay"
+        />
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <div class="result-list-ops">
-              <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+              <el-button link type="primary" @click="openDetail(row)"
+                >详情</el-button
+              >
               <el-tooltip
                 v-if="showSubjectiveGradeButton(row)"
                 :content="subjectiveGradeTooltipForRow(row)"
@@ -150,16 +205,31 @@
                 :show-text="false"
               />
               <div class="hero-score-overlay">
-                <span class="hero-score" :style="{ color: ringStrokeColor }">{{ formatScore(displayScore) }}</span>
-                <span class="hero-max">/ {{ paperMaxScore > 0 ? formatScore(paperMaxScore) : '—' }}</span>
+                <span class="hero-score" :style="{ color: ringStrokeColor }">{{
+                  formatScore(displayScore)
+                }}</span>
+                <span class="hero-max"
+                  >/
+                  {{
+                    paperMaxScore > 0 ? formatScore(paperMaxScore) : "—"
+                  }}</span
+                >
               </div>
             </div>
             <div class="hero-meta-row">
-              <el-tag v-if="gradeBand" :type="gradeBand.tagType" round effect="light" class="grade-tag">
+              <el-tag
+                v-if="gradeBand"
+                :type="gradeBand.tagType"
+                round
+                effect="light"
+                class="grade-tag"
+              >
                 <component :is="gradeBand.icon" class="grade-ic" />
                 {{ gradeBand.label }}
               </el-tag>
-              <span class="hero-duration-inline">考试耗时 {{ durationLabel }}</span>
+              <span class="hero-duration-inline"
+                >考试耗时 {{ durationLabel }}</span
+              >
             </div>
           </div>
         </div>
@@ -168,7 +238,7 @@
           <el-card shadow="never" class="mid-card">
             <div class="mid-title">学员</div>
             <p class="mid-strong">{{ detail.user.username }}</p>
-            <p class="mid-muted">{{ detail.user.nickname || '—' }}</p>
+            <p class="mid-muted">{{ detail.user.nickname || "—" }}</p>
           </el-card>
           <el-card shadow="never" class="mid-card mid-card-chart">
             <div class="mid-title">得分构成</div>
@@ -177,16 +247,20 @@
             </div>
             <div class="pie-legend">
               <span
-                ><i class="dot dot-obj" />客观 {{ formatScore(compositionObjective) }}</span
+                ><i class="dot dot-obj" />客观
+                {{ formatScore(compositionObjective) }}</span
               >
               <span
-                ><i class="dot dot-sub" />主观 {{ formatScore(compositionSubjective) }}</span
+                ><i class="dot dot-sub" />主观
+                {{ formatScore(compositionSubjective) }}</span
               >
               <span v-if="pieShowStructuralDisk"
                 ><i class="dot dot-sub-cap" />主观题满分占比（示意）</span
               >
             </div>
-            <p v-if="compositionSum <= 0" class="mid-placeholder">暂无得分数据</p>
+            <p v-if="compositionSum <= 0" class="mid-placeholder">
+              暂无得分数据
+            </p>
             <div v-if="paperMaxScore > 0" class="pie-analytics">
               <p class="pie-analytics-line">
                 <span class="pa-label">客观正确率</span>
@@ -208,18 +282,34 @@
           <el-card shadow="never" class="mid-card">
             <div class="mid-title">时间</div>
             <ul class="time-list">
-              <li><span class="t-label">开考</span>{{ formatUtcText(detail.attempt.started_at) }}</li>
-              <li><span class="t-label">截止</span>{{ formatUtcText(detail.attempt.deadline_at) }}</li>
-              <li><span class="t-label">交卷</span>{{ formatUtcText(detail.attempt.submitted_at) }}</li>
-              <li><span class="t-label">结束</span>{{ formatUtcText(detail.attempt.ended_at) }}</li>
+              <li>
+                <span class="t-label">开考</span
+                >{{ formatUtcText(detail.attempt.started_at) }}
+              </li>
+              <li>
+                <span class="t-label">截止</span
+                >{{ formatUtcText(detail.attempt.deadline_at) }}
+              </li>
+              <li>
+                <span class="t-label">交卷</span
+                >{{ formatUtcText(detail.attempt.submitted_at) }}
+              </li>
+              <li>
+                <span class="t-label">结束</span
+                >{{ formatUtcText(detail.attempt.ended_at) }}
+              </li>
             </ul>
           </el-card>
         </div>
 
         <el-card shadow="never" class="info-card muted-card">
-          <template #header><span class="card-h-muted">基础信息</span></template>
+          <template #header
+            ><span class="card-h-muted">基础信息</span></template
+          >
           <el-descriptions :column="2" size="small" class="desc-plain">
-            <el-descriptions-item label="会话 ID">{{ detail.attempt.id }}</el-descriptions-item>
+            <el-descriptions-item label="会话 ID">{{
+              detail.attempt.id
+            }}</el-descriptions-item>
             <el-descriptions-item label="状态">{{
               statusText(
                 detail.result_status != null && detail.result_status > 0
@@ -227,15 +317,25 @@
                   : detail.attempt.status,
               )
             }}</el-descriptions-item>
-            <el-descriptions-item label="试卷">{{ paperDisplayName }}</el-descriptions-item>
-            <el-descriptions-item label="级别">{{ detail.paper.level }}</el-descriptions-item>
-            <el-descriptions-item label="卷编号">{{ detail.paper.paper_id || '—' }}</el-descriptions-item>
-            <el-descriptions-item label="含主观题">{{ detail.attempt.has_subjective ? '是' : '否' }}</el-descriptions-item>
+            <el-descriptions-item label="试卷">{{
+              paperDisplayName
+            }}</el-descriptions-item>
+            <el-descriptions-item label="级别">{{
+              detail.paper.level
+            }}</el-descriptions-item>
+            <el-descriptions-item label="卷编号">{{
+              detail.paper.paper_id || "—"
+            }}</el-descriptions-item>
+            <el-descriptions-item label="含主观题">{{
+              detail.attempt.has_subjective ? "是" : "否"
+            }}</el-descriptions-item>
           </el-descriptions>
         </el-card>
 
         <el-card shadow="never" class="answers-card">
-          <template #header><span class="card-h-strong">答题明细</span></template>
+          <template #header
+            ><span class="card-h-strong">答题明细</span></template
+          >
           <div class="ratio-bar" aria-hidden="true">
             <div
               class="ratio-seg ratio-ok"
@@ -252,88 +352,32 @@
           </div>
           <div class="answer-filter-row">
             <el-button-group size="small">
-              <el-button :type="answerFilter === 'all' ? 'primary' : 'default'" @click="answerFilter = 'all'"
+              <el-button
+                :type="answerFilter === 'all' ? 'primary' : 'default'"
+                @click="answerFilter = 'all'"
                 >全部</el-button
               >
-              <el-button :type="answerFilter === 'wrong' ? 'primary' : 'default'" @click="answerFilter = 'wrong'"
+              <el-button
+                :type="answerFilter === 'wrong' ? 'primary' : 'default'"
+                @click="answerFilter = 'wrong'"
                 >只看错题</el-button
               >
             </el-button-group>
           </div>
           <p class="ratio-hint">
-            客观题分布：对 {{ objectiveCounts.correct }} · 错 {{ objectiveCounts.wrong }} · 其它
+            客观题分布：对 {{ objectiveCounts.correct }} · 错
+            {{ objectiveCounts.wrong }} · 其它
             {{ objectiveCounts.neutral }}
           </p>
-          <div v-if="groupedResultSections.length" class="paper-answer-by-section">
-            <div v-if="groupedResultSections.length === 1" class="paper-answer-sec-body">
-              <ExamQuestionReviewCard
-                v-for="(row, ri) in groupedResultSections[0]!.rows"
-                :key="answerRowKey(row.answer, ri)"
-                mode="review"
-                :question-no="row.answer.question_no"
-                :score="Number(row.answer.score) || 0"
-                :is-example="row.answer.is_example"
-                :is-subjective="row.answer.is_subjective"
-                :stem-text="row.answer.stem_text || ''"
-                :screen-text-json="row.answer.screen_text_json || ''"
-                :topic-json="row.meta?.topicJson || ''"
-                :block-index="row.meta?.blockIndex ?? 0"
-                :question-index="row.meta?.questionIndex ?? 0"
-                :block-passage-text="
-                  row.meta
-                    ? blockReadingPassageFromTopic(row.meta.topicJson, row.meta.blockIndex)
-                    : ''
-                "
-                :show-block-passage="row.showBlockPassage"
-                :source-base-url="resolvedSourceBaseUrl"
-                :audio-file="questionAudioById.get(row.answer.question_id) || ''"
-                :options="row.optionsForCard"
-                :show-correct-options="true"
-                :answer-json="row.answer.answer_json || ''"
-                :objective-correct="row.answer.objective_correct"
-                :awarded-score="row.answer.awarded_score"
-                :analysis-text="row.answer.analysis_text || ''"
-              />
-            </div>
-            <el-tabs v-else v-model="resultAnswersActiveTab" class="result-sec-tabs">
-              <el-tab-pane
-                v-for="(sec, si) in groupedResultSections"
-                :key="'sec-tab-' + sec.sectionId + '-' + si"
-                :label="sec.title"
-                :name="'sec-' + sec.sectionId + '-' + si"
-              >
-                <div class="paper-answer-sec-body">
-                  <ExamQuestionReviewCard
-                    v-for="(row, ri) in sec.rows"
-                    :key="answerRowKey(row.answer, ri)"
-                    mode="review"
-                    :question-no="row.answer.question_no"
-                    :score="Number(row.answer.score) || 0"
-                    :is-example="row.answer.is_example"
-                    :is-subjective="row.answer.is_subjective"
-                    :stem-text="row.answer.stem_text || ''"
-                    :screen-text-json="row.answer.screen_text_json || ''"
-                    :topic-json="row.meta?.topicJson || ''"
-                    :block-index="row.meta?.blockIndex ?? 0"
-                    :question-index="row.meta?.questionIndex ?? 0"
-                    :block-passage-text="
-                      row.meta
-                        ? blockReadingPassageFromTopic(row.meta.topicJson, row.meta.blockIndex)
-                        : ''
-                    "
-                    :show-block-passage="row.showBlockPassage"
-                    :source-base-url="resolvedSourceBaseUrl"
-                    :audio-file="questionAudioById.get(row.answer.question_id) || ''"
-                    :options="row.optionsForCard"
-                    :show-correct-options="true"
-                    :answer-json="row.answer.answer_json || ''"
-                    :objective-correct="row.answer.objective_correct"
-                    :awarded-score="row.answer.awarded_score"
-                    :analysis-text="row.answer.analysis_text || ''"
-                  />
-                </div>
-              </el-tab-pane>
-            </el-tabs>
+          <div
+            v-if="groupedResultSections.length"
+            class="paper-answer-by-section"
+          >
+            <ExamQuestionSectionTabs
+              :sections="resultQuestionSections"
+              tabs-class="result-sec-tabs"
+              body-class="paper-answer-sec-body"
+            />
           </div>
           <p v-else class="ratio-hint paper-answer-empty">暂无符合条件题目。</p>
         </el-card>
@@ -354,7 +398,9 @@
       <p class="subjective-dlg-hint">
         每题得分不超过该题满分；保存后更新主观分与总分，并将该场次在列表中标记为「已完成算分」。
       </p>
-      <p v-if="subjectiveDlgMetaLine" class="subjective-dlg-meta">{{ subjectiveDlgMetaLine }}</p>
+      <p v-if="subjectiveDlgMetaLine" class="subjective-dlg-meta">
+        {{ subjectiveDlgMetaLine }}
+      </p>
       <el-skeleton v-if="subjectiveDlgLoading" :rows="5" animated />
       <el-table
         v-else
@@ -371,7 +417,10 @@
         <el-table-column prop="question_no" label="题号" width="64" />
         <el-table-column label="题干" min-width="220">
           <template #default="{ row }">
-            <div v-if="row.stemIsBlocks" class="subjective-stem-block subjective-stem-wrap">
+            <div
+              v-if="row.stemIsBlocks"
+              class="subjective-stem-block subjective-stem-wrap"
+            >
               <ExamScreenTextBlocks
                 :raw="row.stemBlocksRaw"
                 :source-base-url="subjectiveDlgSourceBase"
@@ -382,11 +431,13 @@
               class="subjective-stem-wrap exam-rich-html"
               v-html="row.stemHtml"
             />
-            <span v-else class="subjective-stem-plain">{{ row.stemPreview || '—' }}</span>
+            <span v-else class="subjective-stem-plain">{{
+              row.stemPreview || "—"
+            }}</span>
           </template>
         </el-table-column>
         <el-table-column label="作答内容" min-width="200" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.answerText || '—' }}</template>
+          <template #default="{ row }">{{ row.answerText || "—" }}</template>
         </el-table-column>
         <el-table-column label="满分" width="72" align="right">
           <template #default="{ row }">{{ row.score }}</template>
@@ -406,7 +457,10 @@
           </template>
         </el-table-column>
       </el-table>
-      <p v-if="!subjectiveDlgLoading && !subjectiveGradingDialogRows.length" class="subjective-dlg-empty">
+      <p
+        v-if="!subjectiveDlgLoading && !subjectiveGradingDialogRows.length"
+        class="subjective-dlg-empty"
+      >
         暂无主观题可评
       </p>
       <template #footer>
@@ -425,12 +479,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
-import type { Component } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Trophy, Medal, ChatDotRound } from '@element-plus/icons-vue'
-import { formatUtcForDisplay, formatUtcText } from '@/utils/datetime'
+import {
+  computed,
+  reactive,
+  ref,
+  onMounted,
+  onUnmounted,
+  watch,
+  nextTick,
+} from "vue";
+import { useRoute } from "vue-router";
+import type { Component } from "vue";
+import { ElMessage } from "element-plus";
+import { Trophy, Medal, ChatDotRound } from "@element-plus/icons-vue";
+import { formatUtcForDisplay, formatUtcText } from "@/utils/datetime";
 import {
   getAttemptList,
   getAttemptDetail,
@@ -438,16 +500,18 @@ import {
   type AttemptListItem,
   type AttemptDetail,
   type AttemptDetailAnswer,
-} from '@/api/examAttempt'
-import { getExamPaperDetail, type ExamPaperDetail } from '@/api/exam'
-import ExamQuestionReviewCard from '@/components/exam/ExamQuestionReviewCard.vue'
-import ExamScreenTextBlocks from '@/components/exam/ExamScreenTextBlocks.vue'
+} from "@/api/examAttempt";
+import { getExamPaperDetail, type ExamPaperDetail } from "@/api/exam";
+import ExamQuestionSectionTabs, {
+  type ExamQuestionSectionTabItem,
+} from "@/components/exam/ExamQuestionSectionTabs.vue";
+import ExamScreenTextBlocks from "@/components/exam/ExamScreenTextBlocks.vue";
 import {
   formatAnswerJson,
   looksLikeHtml,
   sanitizeHtmlForDisplay,
   type ExamOptionDisplayRow,
-} from '@/utils/examDisplay'
+} from "@/utils/examDisplay";
 import {
   buildQuestionTopicMetaById,
   blockReadingPassageFromTopic,
@@ -455,78 +519,95 @@ import {
   hasQuestionStemSegments,
   questionStemRichRaw,
   type QuestionTopicMeta,
-} from '@/utils/examPaperQuestionDisplay'
-import { getMockExaminationPapers, getMockLevelsList, type MockExaminationPaperItem, type MockLevelItem } from '@/api/mockAdmin'
-import { mockLevelOptionLabel } from '@/utils/mockLevel'
+} from "@/utils/examPaperQuestionDisplay";
+import {
+  getMockExaminationPapers,
+  getMockLevelsList,
+  type MockExaminationPaperItem,
+  type MockLevelItem,
+} from "@/api/mockAdmin";
+import { mockLevelOptionLabel } from "@/utils/mockLevel";
 
 type SubjectiveGradeTableRow = AttemptDetailAnswer & {
-  sectionTitle: string
-  stemPreview: string
-  answerText: string
-  stemIsBlocks: boolean
-  stemBlocksRaw: unknown
+  sectionTitle: string;
+  stemPreview: string;
+  answerText: string;
+  stemIsBlocks: boolean;
+  stemBlocksRaw: unknown;
   /** 经 sanitize 的 html，与 ExamQuestionStem 的「纯 html 题干」一致 */
-  stemHtml: string
-}
+  stemHtml: string;
+};
 
 /** 与详情抽屉无关，供主观题评分解析列表（大题/题干/作答/满分） */
 function buildSubjectiveGradingRows(
   d: AttemptDetail | null,
   paper: ExamPaperDetail | null,
 ): SubjectiveGradeTableRow[] {
-  if (!d) return []
-  const list = (d.answers ?? []).filter((a) => a.is_subjective && !a.is_example)
-  const metaMap = buildQuestionTopicMetaById(paper)
-  const orderMap = new Map<number, number>()
+  if (!d) return [];
+  const list = (d.answers ?? []).filter(
+    (a) => a.is_subjective && !a.is_example,
+  );
+  const metaMap = buildQuestionTopicMetaById(paper);
+  const orderMap = new Map<number, number>();
   paper?.sections?.forEach((s, i) => {
-    orderMap.set(s.id, s.sort_order ?? i)
-  })
-  const sectionTitleById = new Map<number, string>()
+    orderMap.set(s.id, s.sort_order ?? i);
+  });
+  const sectionTitleById = new Map<number, string>();
   for (const s of paper?.sections ?? []) {
-    sectionTitleById.set(s.id, (s.topic_title || '').trim() || `大题 #${s.id}`)
+    sectionTitleById.set(s.id, (s.topic_title || "").trim() || `大题 #${s.id}`);
   }
   for (const a of d.answers ?? []) {
-    const sid = Number(a.section_id) || 0
-    if (sid && !sectionTitleById.has(sid) && (a.section_title || '').trim()) {
-      sectionTitleById.set(sid, (a.section_title || '').trim())
+    const sid = Number(a.section_id) || 0;
+    if (sid && !sectionTitleById.has(sid) && (a.section_title || "").trim()) {
+      sectionTitleById.set(sid, (a.section_title || "").trim());
     }
   }
   return list
     .slice()
     .sort((a, b) => {
-      const sa = orderMap.get(Number(a.section_id)) ?? 10_000
-      const sb = orderMap.get(Number(b.section_id)) ?? 10_000
-      if (sa !== sb) return sa - sb
-      return (Number(a.question_no) || 0) - (Number(b.question_no) || 0)
+      const sa = orderMap.get(Number(a.section_id)) ?? 10_000;
+      const sb = orderMap.get(Number(b.section_id)) ?? 10_000;
+      if (sa !== sb) return sa - sb;
+      return (Number(a.question_no) || 0) - (Number(b.question_no) || 0);
     })
     .map((a) => {
-      const sid = Number(a.section_id) || 0
-      const st = (a.section_title || '').trim()
-      const fromPaper = sectionTitleById.get(sid)
-      const sectionTitle = (fromPaper || st || (sid ? `大题 #${sid}` : '—')) as string
-      const meta = metaMap.get(Number(a.question_id))
-      const bi = meta?.blockIndex ?? 0
-      const qi = meta?.questionIndex ?? 0
-      const tj = meta?.topicJson
+      const sid = Number(a.section_id) || 0;
+      const st = (a.section_title || "").trim();
+      const fromPaper = sectionTitleById.get(sid);
+      const sectionTitle = (fromPaper ||
+        st ||
+        (sid ? `大题 #${sid}` : "—")) as string;
+      const meta = metaMap.get(Number(a.question_id));
+      const bi = meta?.blockIndex ?? 0;
+      const qi = meta?.questionIndex ?? 0;
+      const tj = meta?.topicJson;
 
-      let stemIsBlocks = false
-      let stemBlocksRaw: unknown
-      let stemHtml = ''
-      if (hasQuestionStemSegments(a.stem_text, a.screen_text_json, tj, bi, qi)) {
-        const raw = questionStemRichRaw(a.stem_text, a.screen_text_json, tj, bi, qi)
+      let stemIsBlocks = false;
+      let stemBlocksRaw: unknown;
+      let stemHtml = "";
+      if (
+        hasQuestionStemSegments(a.stem_text, a.screen_text_json, tj, bi, qi)
+      ) {
+        const raw = questionStemRichRaw(
+          a.stem_text,
+          a.screen_text_json,
+          tj,
+          bi,
+          qi,
+        );
         if (raw != null) {
-          stemIsBlocks = true
-          stemBlocksRaw = raw
+          stemIsBlocks = true;
+          stemBlocksRaw = raw;
         }
       }
       if (!stemIsBlocks) {
-        const h = (a.stem_text || '').trim()
+        const h = (a.stem_text || "").trim();
         if (looksLikeHtml(h)) {
-          stemHtml = sanitizeHtmlForDisplay(h)
+          stemHtml = sanitizeHtmlForDisplay(h);
         } else {
-          const scj = (a.screen_text_json || '').trim()
+          const scj = (a.screen_text_json || "").trim();
           if (scj && looksLikeHtml(scj) && !/^\s*\[/.test(scj)) {
-            stemHtml = sanitizeHtmlForDisplay(scj)
+            stemHtml = sanitizeHtmlForDisplay(scj);
           }
         }
       }
@@ -537,21 +618,29 @@ function buildSubjectiveGradingRows(
         meta?.topicJson,
         bi,
         qi,
-      )
-      const answerText = formatAnswerJson(a.answer_json || '')
-      return { ...a, sectionTitle, stemPreview, answerText, stemIsBlocks, stemBlocksRaw, stemHtml }
-    })
+      );
+      const answerText = formatAnswerJson(a.answer_json || "");
+      return {
+        ...a,
+        sectionTitle,
+        stemPreview,
+        answerText,
+        stemIsBlocks,
+        stemBlocksRaw,
+        stemHtml,
+      };
+    });
 }
 
-const loading = ref(false)
-const rows = ref<AttemptListItem[]>([])
-const total = ref(0)
-const route = useRoute()
+const loading = ref(false);
+const rows = ref<AttemptListItem[]>([]);
+const total = ref(0);
+const route = useRoute();
 
 const query = reactive({
   page: 1,
   size: 10,
-  username: '',
+  username: "",
   /** mock_levels.id，未选为 undefined */
   mock_level_id: undefined as number | undefined,
   status: 0 as number,
@@ -559,640 +648,690 @@ const query = reactive({
   exam_batch_id: 0 as number,
   /** 0 不限；1 仅待主观题评阅 */
   subjective_pending: 0 as number,
-})
+});
 
-const paperSel = ref<number | undefined>(undefined)
-const paperOptions = ref<MockExaminationPaperItem[]>([])
-const mockLevelOptions = ref<MockLevelItem[]>([])
+const paperSel = ref<number | undefined>(undefined);
+const paperOptions = ref<MockExaminationPaperItem[]>([]);
+const mockLevelOptions = ref<MockLevelItem[]>([]);
 
-const drawer = ref(false)
-const detail = ref<AttemptDetail | null>(null)
+const drawer = ref(false);
+const detail = ref<AttemptDetail | null>(null);
 /** 打开详情后按需拉取，用于 topic_json / 音频等与试卷对齐 */
-const paperDetailForResult = ref<ExamPaperDetail | null>(null)
-const detailId = ref(0)
+const paperDetailForResult = ref<ExamPaperDetail | null>(null);
+const detailId = ref(0);
 
-const subjectiveDlgVisible = ref(false)
-const subjectiveDlgLoading = ref(false)
-const subjectiveDlgAttemptId = ref(0)
-const subjectiveGradeDetail = ref<AttemptDetail | null>(null)
-const subjectiveGradePaper = ref<ExamPaperDetail | null>(null)
-const subjectiveDlgScores = ref<Record<number, number>>({})
-const savingSubjectiveScores = ref(false)
+const subjectiveDlgVisible = ref(false);
+const subjectiveDlgLoading = ref(false);
+const subjectiveDlgAttemptId = ref(0);
+const subjectiveGradeDetail = ref<AttemptDetail | null>(null);
+const subjectiveGradePaper = ref<ExamPaperDetail | null>(null);
+const subjectiveDlgScores = ref<Record<number, number>>({});
+const savingSubjectiveScores = ref(false);
 
-const answerFilter = ref<'all' | 'wrong'>('all')
-const displayScore = ref(0)
-const ringPercentage = ref(0)
-let scoreAnimFrame = 0
+const answerFilter = ref<"all" | "wrong">("all");
+const displayScore = ref(0);
+const ringPercentage = ref(0);
+let scoreAnimFrame = 0;
 
 const paperDisplayName = computed(() => {
-  const p = detail.value?.paper
-  if (!p) return '—'
-  const n = (p.name ?? '').trim()
-  if (n) return n
-  return (p.title ?? '').trim() || '—'
-})
+  const p = detail.value?.paper;
+  if (!p) return "—";
+  const n = (p.name ?? "").trim();
+  if (n) return n;
+  return (p.title ?? "").trim() || "—";
+});
 
-const detailAnswers = computed(() => detail.value?.answers ?? [])
+const detailAnswers = computed(() => detail.value?.answers ?? []);
 
 const subjectivePaperMax = computed(() =>
   detailAnswers.value
     .filter((a) => a.is_subjective && !a.is_example)
     .reduce((s, a) => s + (Number(a.score) || 0), 0),
-)
+);
 
 const objectivePaperMax = computed(() =>
   detailAnswers.value
     .filter((a) => !a.is_subjective && !a.is_example)
     .reduce((s, a) => s + (Number(a.score) || 0), 0),
-)
+);
 
 const filteredAnswers = computed(() => {
-  const list = detailAnswers.value
-  if (answerFilter.value !== 'wrong') return list
+  const list = detailAnswers.value;
+  if (answerFilter.value !== "wrong") return list;
   return list.filter(
     (a) => !a.is_example && !a.is_subjective && a.objective_correct === false,
-  )
-})
+  );
+});
 
 interface ResultAnswerRow {
-  answer: AttemptDetailAnswer
-  meta?: QuestionTopicMeta
-  showBlockPassage: boolean
-  optionsForCard: ExamOptionDisplayRow[]
+  answer: AttemptDetailAnswer;
+  meta?: QuestionTopicMeta;
+  showBlockPassage: boolean;
+  optionsForCard: ExamOptionDisplayRow[];
 }
 
-function answerRowKey(a: AttemptDetailAnswer, idx: number) {
-  const qid = a.question_id ?? idx
-  const qno = a.question_no ?? idx
-  return `q-${qid}-${qno}-${idx}`
-}
-
-const topicMetaByQuestionId = computed(() => buildQuestionTopicMetaById(paperDetailForResult.value))
+const topicMetaByQuestionId = computed(() =>
+  buildQuestionTopicMetaById(paperDetailForResult.value),
+);
 
 const questionAudioById = computed(() => {
-  const m = new Map<number, string>()
+  const m = new Map<number, string>();
   for (const sec of paperDetailForResult.value?.sections ?? []) {
     for (const b of sec.blocks ?? []) {
       for (const q of b.questions ?? []) {
-        const af = (q.audio_file || '').trim()
-        if (af) m.set(q.id, af)
+        const af = (q.audio_file || "").trim();
+        if (af) m.set(q.id, af);
       }
     }
   }
-  return m
-})
+  return m;
+});
 
 const resolvedSourceBaseUrl = computed(() => {
-  const fromAttempt = (detail.value?.paper?.source_base_url || '').trim()
-  if (fromAttempt) return fromAttempt
-  return (paperDetailForResult.value?.paper?.source_base_url || '').trim()
-})
+  const fromAttempt = (detail.value?.paper?.source_base_url || "").trim();
+  if (fromAttempt) return fromAttempt;
+  return (paperDetailForResult.value?.paper?.source_base_url || "").trim();
+});
 
 const groupedResultSections = computed(() => {
-  const list = filteredAnswers.value
-  if (!list.length) return [] as { sectionId: number; title: string; rows: ResultAnswerRow[] }[]
-  const paper = paperDetailForResult.value
-  const sectionSort = new Map<number, number>()
-  const sectionTitlePaper = new Map<number, string>()
+  const list = filteredAnswers.value;
+  if (!list.length)
+    return [] as {
+      sectionId: number;
+      title: string;
+      rows: ResultAnswerRow[];
+      segmentCode: string;
+    }[];
+  const paper = paperDetailForResult.value;
+  const sectionSort = new Map<number, number>();
+  const sectionTitlePaper = new Map<number, string>();
+  const sectionSegmentCode = new Map<number, string>();
   if (paper?.sections?.length) {
     for (const s of paper.sections) {
-      sectionSort.set(s.id, s.sort_order ?? 0)
-      const tt = (s.topic_title || '').trim()
-      if (tt) sectionTitlePaper.set(s.id, tt)
+      sectionSort.set(s.id, s.sort_order ?? 0);
+      const tt = (s.topic_title || "").trim();
+      if (tt) sectionTitlePaper.set(s.id, tt);
+      const seg = (s.segment_code || "").trim();
+      if (seg) sectionSegmentCode.set(s.id, seg);
     }
   }
-  const bySec = new Map<number, AttemptDetailAnswer[]>()
+  const bySec = new Map<number, AttemptDetailAnswer[]>();
   for (const a of list) {
-    const sid = Number(a.section_id) || 0
-    if (!bySec.has(sid)) bySec.set(sid, [])
-    bySec.get(sid)!.push(a)
+    const sid = Number(a.section_id) || 0;
+    if (!bySec.has(sid)) bySec.set(sid, []);
+    bySec.get(sid)!.push(a);
   }
-  const metaMap = topicMetaByQuestionId.value
+  const metaMap = topicMetaByQuestionId.value;
   const ids = [...bySec.keys()].sort((x, y) => {
-    const hasX = sectionSort.has(x)
-    const hasY = sectionSort.has(y)
-    const ox = hasX ? (sectionSort.get(x) ?? x) : x + 1_000_000
-    const oy = hasY ? (sectionSort.get(y) ?? y) : y + 1_000_000
-    if (ox !== oy) return ox - oy
-    return x - y
-  })
+    const hasX = sectionSort.has(x);
+    const hasY = sectionSort.has(y);
+    const ox = hasX ? (sectionSort.get(x) ?? x) : x + 1_000_000;
+    const oy = hasY ? (sectionSort.get(y) ?? y) : y + 1_000_000;
+    if (ox !== oy) return ox - oy;
+    return x - y;
+  });
   return ids.map((sectionId) => {
     const answers = (bySec.get(sectionId) || []).slice().sort((p, q) => {
-      return (Number(p.question_no) || 0) - (Number(q.question_no) || 0)
-    })
-    let prevBlockKey: string | null = null
+      return (Number(p.question_no) || 0) - (Number(q.question_no) || 0);
+    });
+    let prevBlockKey: string | null = null;
     const rows: ResultAnswerRow[] = answers.map((answer) => {
-      const meta = metaMap.get(Number(answer.question_id))
-      const blockKey = meta != null ? String(meta.blockIndex) : `na:${answer.question_id}`
-      const showBlock = prevBlockKey !== blockKey
-      prevBlockKey = blockKey
-      const optionsForCard: ExamOptionDisplayRow[] = (answer.options ?? []).map((o) => ({
-        id: o.id,
-        flag: o.flag,
-        content: o.content,
-        is_correct: o.is_correct,
-        option_type: o.option_type,
-        sort_order: o.sort_order,
-      }))
-      return { answer, meta, showBlockPassage: showBlock, optionsForCard }
-    })
+      const meta = metaMap.get(Number(answer.question_id));
+      const blockKey =
+        meta != null ? String(meta.blockIndex) : `na:${answer.question_id}`;
+      const showBlock = prevBlockKey !== blockKey;
+      prevBlockKey = blockKey;
+      const optionsForCard: ExamOptionDisplayRow[] = (answer.options ?? []).map(
+        (o) => ({
+          id: o.id,
+          flag: o.flag,
+          content: o.content,
+          is_correct: o.is_correct,
+          option_type: o.option_type,
+          sort_order: o.sort_order,
+        }),
+      );
+      return { answer, meta, showBlockPassage: showBlock, optionsForCard };
+    });
     const title =
       sectionTitlePaper.get(sectionId) ||
-      (answers[0]?.section_title || '').trim() ||
-      `大题 #${sectionId}`
-    return { sectionId, title, rows }
-  })
-})
+      (answers[0]?.section_title || "").trim() ||
+      `大题 #${sectionId}`;
+    const segmentCode = sectionSegmentCode.get(sectionId) || "";
+    return { sectionId, title, rows, segmentCode };
+  });
+});
+
+const resultQuestionSections = computed<ExamQuestionSectionTabItem[]>(() =>
+  groupedResultSections.value.map((sec) => ({
+    id: sec.sectionId,
+    title: sec.title,
+    segmentCode: sec.segmentCode,
+    cards: sec.rows.map((row, ri) => ({
+      key: `q-${row.answer.question_id ?? ri}-${row.answer.question_no ?? ri}-${ri}`,
+      mode: "review",
+      questionNo: row.answer.question_no,
+      score: Number(row.answer.score) || 0,
+      isExample: row.answer.is_example,
+      isSubjective: row.answer.is_subjective,
+      stemText: row.answer.stem_text || "",
+      screenTextJson: row.answer.screen_text_json || "",
+      topicJson: row.meta?.topicJson || "",
+      blockIndex: row.meta?.blockIndex ?? 0,
+      questionIndex: row.meta?.questionIndex ?? 0,
+      blockPassageText: row.meta
+        ? blockReadingPassageFromTopic(row.meta.topicJson, row.meta.blockIndex)
+        : "",
+      showBlockPassage: row.showBlockPassage,
+      sourceBaseUrl: resolvedSourceBaseUrl.value,
+      audioFile: questionAudioById.value.get(row.answer.question_id) || "",
+      options: row.optionsForCard,
+      showCorrectOptions: true,
+      answerJson: row.answer.answer_json || "",
+      objectiveCorrect: row.answer.objective_correct,
+      awardedScore: row.answer.awarded_score,
+      analysisText: row.answer.analysis_text || "",
+    })),
+  })),
+);
 
 const subjectiveGradingDialogRows = computed(() =>
-  buildSubjectiveGradingRows(subjectiveGradeDetail.value, subjectiveGradePaper.value),
-)
+  buildSubjectiveGradingRows(
+    subjectiveGradeDetail.value,
+    subjectiveGradePaper.value,
+  ),
+);
 
 const subjectiveDlgSourceBase = computed(() => {
-  const a = (subjectiveGradeDetail.value?.paper?.source_base_url || '').trim()
-  if (a) return a
-  return (subjectiveGradePaper.value?.paper?.source_base_url || '').trim()
-})
+  const a = (subjectiveGradeDetail.value?.paper?.source_base_url || "").trim();
+  if (a) return a;
+  return (subjectiveGradePaper.value?.paper?.source_base_url || "").trim();
+});
 
 const subjectiveDlgMetaLine = computed(() => {
-  const d = subjectiveGradeDetail.value
-  if (!d) return ''
-  const u = d.user
-  const name = (u.nickname || '').trim() || u.username || '—'
-  const paperN = (d.paper.name || d.paper.title || '').trim() || '—'
-  return `学员 ${u.username}（${name}）· 试卷 ${paperN} · 会话 #${d.attempt.id}`
-})
-
-const resultAnswersActiveTab = ref('')
-
-watch(
-  () => groupedResultSections.value,
-  (sections) => {
-    if (sections.length <= 1) return
-    const names = sections.map((s, i) => `sec-${s.sectionId}-${i}`)
-    if (!resultAnswersActiveTab.value || !names.includes(resultAnswersActiveTab.value)) {
-      resultAnswersActiveTab.value = names[0] ?? 'sec-0-0'
-    }
-  },
-  { immediate: true },
-)
+  const d = subjectiveGradeDetail.value;
+  if (!d) return "";
+  const u = d.user;
+  const name = (u.nickname || "").trim() || u.username || "—";
+  const paperN = (d.paper.name || d.paper.title || "").trim() || "—";
+  return `学员 ${u.username}（${name}）· 试卷 ${paperN} · 会话 #${d.attempt.id}`;
+});
 
 const paperMaxScore = computed(() => {
-  if (!detail.value) return 0
+  if (!detail.value) return 0;
   return (detail.value.answers ?? [])
     .filter((a) => !a.is_example)
-    .reduce((s, a) => s + (Number(a.score) || 0), 0)
-})
+    .reduce((s, a) => s + (Number(a.score) || 0), 0);
+});
 
 const scoreRatio = computed(() => {
-  const max = paperMaxScore.value
-  if (max <= 0 || !detail.value) return 0
-  return detail.value.attempt.total_score / max
-})
+  const max = paperMaxScore.value;
+  if (max <= 0 || !detail.value) return 0;
+  return detail.value.attempt.total_score / max;
+});
 
 /** 与 scoreRatio 分档一致：低分暖色、高分绿色、中段品牌蓝 */
 const ringStrokeColor = computed(() => {
-  if (paperMaxScore.value <= 0) return '#2c5282'
-  const r = scoreRatio.value
-  if (r >= 0.9) return '#3d9a65'
-  if (r >= 0.8) return '#2c5282'
-  if (r >= 0.6) return '#d4943c'
-  return '#d66a5c'
-})
+  if (paperMaxScore.value <= 0) return "#2c5282";
+  const r = scoreRatio.value;
+  if (r >= 0.9) return "#3d9a65";
+  if (r >= 0.8) return "#2c5282";
+  if (r >= 0.6) return "#d4943c";
+  return "#d66a5c";
+});
 
-const gradeBand = computed((): {
-  label: string
-  icon: Component
-  tagType: 'success' | 'warning' | 'info'
-} | null => {
-  if (!detail.value || paperMaxScore.value <= 0) return null
-  const r = scoreRatio.value
-  if (r >= 0.9) return { label: '优异', icon: Trophy, tagType: 'success' }
-  if (r >= 0.8) return { label: '良好', icon: Medal, tagType: 'success' }
-  if (r >= 0.6) return { label: '及格', icon: Medal, tagType: 'warning' }
-  return { label: '再接再厉', icon: ChatDotRound, tagType: 'info' }
-})
+const gradeBand = computed(
+  (): {
+    label: string;
+    icon: Component;
+    tagType: "success" | "warning" | "info";
+  } | null => {
+    if (!detail.value || paperMaxScore.value <= 0) return null;
+    const r = scoreRatio.value;
+    if (r >= 0.9) return { label: "优异", icon: Trophy, tagType: "success" };
+    if (r >= 0.8) return { label: "良好", icon: Medal, tagType: "success" };
+    if (r >= 0.6) return { label: "及格", icon: Medal, tagType: "warning" };
+    return { label: "再接再厉", icon: ChatDotRound, tagType: "info" };
+  },
+);
 
 const durationLabel = computed(() => {
-  const sec = detail.value?.attempt.duration_seconds
-  if (sec == null || sec < 0) return '—'
-  if (sec < 60) return `${sec} 秒`
-  const m = Math.floor(sec / 60)
-  const s = sec % 60
-  return s > 0 ? `${m} 分 ${s} 秒` : `${m} 分钟`
-})
+  const sec = detail.value?.attempt.duration_seconds;
+  if (sec == null || sec < 0) return "—";
+  if (sec < 60) return `${sec} 秒`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return s > 0 ? `${m} 分 ${s} 秒` : `${m} 分钟`;
+});
 
-const compositionObjective = computed(() => detail.value?.attempt.objective_score ?? 0)
-const compositionSubjective = computed(() => detail.value?.attempt.subjective_score ?? 0)
+const compositionObjective = computed(
+  () => detail.value?.attempt.objective_score ?? 0,
+);
+const compositionSubjective = computed(
+  () => detail.value?.attempt.subjective_score ?? 0,
+);
 const compositionSum = computed(
   () => compositionObjective.value + compositionSubjective.value,
-)
+);
 
 const pieShowStructuralDisk = computed(() => {
-  const att = detail.value?.attempt
+  const att = detail.value?.attempt;
   return !!(
     att &&
     att.has_subjective === 1 &&
     subjectivePaperMax.value > 0 &&
     compositionSubjective.value === 0
-  )
-})
+  );
+});
 
 function clampDeg(deg: number) {
-  return Math.max(0, Math.min(360, deg))
+  return Math.max(0, Math.min(360, deg));
 }
 
 /** 有主观满分但主观得分为 0 时按试卷满分拆环，避免整圆单色 */
 const compositionConic = computed(() => {
-  const p = paperMaxScore.value
+  const p = paperMaxScore.value;
   if (p <= 0) {
-    return 'conic-gradient(var(--result-muted-bg) 0deg, var(--result-muted-bg) 360deg)'
+    return "conic-gradient(var(--result-muted-bg) 0deg, var(--result-muted-bg) 360deg)";
   }
   if (pieShowStructuralDisk.value) {
-    const objGot = compositionObjective.value
-    const subMax = subjectivePaperMax.value
-    let d1 = clampDeg((objGot / p) * 360)
-    let d2 = clampDeg((subMax / p) * 360)
-    const sum12 = d1 + d2
+    const objGot = compositionObjective.value;
+    const subMax = subjectivePaperMax.value;
+    let d1 = clampDeg((objGot / p) * 360);
+    let d2 = clampDeg((subMax / p) * 360);
+    const sum12 = d1 + d2;
     if (sum12 > 360) {
-      const k = 360 / sum12
-      d1 *= k
-      d2 *= k
+      const k = 360 / sum12;
+      d1 *= k;
+      d2 *= k;
     }
-    const e1 = d1
-    const e2 = d1 + d2
-    return `conic-gradient(var(--result-brand) 0deg ${e1}deg, var(--result-sub-empty) ${e1}deg ${e2}deg, var(--result-pie-rest) ${e2}deg 360deg)`
+    const e1 = d1;
+    const e2 = d1 + d2;
+    return `conic-gradient(var(--result-brand) 0deg ${e1}deg, var(--result-sub-empty) ${e1}deg ${e2}deg, var(--result-pie-rest) ${e2}deg 360deg)`;
   }
-  const o = compositionObjective.value
-  const s = compositionSubjective.value
-  const t = o + s
+  const o = compositionObjective.value;
+  const s = compositionSubjective.value;
+  const t = o + s;
   if (t <= 0) {
-    return 'conic-gradient(var(--result-muted-bg) 0deg, var(--result-muted-bg) 360deg)'
+    return "conic-gradient(var(--result-muted-bg) 0deg, var(--result-muted-bg) 360deg)";
   }
-  const deg = (o / t) * 360
-  return `conic-gradient(var(--result-brand) 0deg ${deg}deg, var(--result-subjective) ${deg}deg 360deg)`
-})
+  const deg = (o / t) * 360;
+  return `conic-gradient(var(--result-brand) 0deg ${deg}deg, var(--result-subjective) ${deg}deg 360deg)`;
+});
 
 const objectiveCounts = computed(() => {
-  let correct = 0
-  let wrong = 0
-  let neutral = 0
-  if (!detail.value) return { correct, wrong, neutral }
+  let correct = 0;
+  let wrong = 0;
+  let neutral = 0;
+  if (!detail.value) return { correct, wrong, neutral };
   for (const a of detail.value.answers ?? []) {
     if (a.is_example) {
-      neutral++
-      continue
+      neutral++;
+      continue;
     }
     if (a.is_subjective) {
-      neutral++
-      continue
+      neutral++;
+      continue;
     }
-    if (a.objective_correct === true) correct++
-    else if (a.objective_correct === false) wrong++
-    else neutral++
+    if (a.objective_correct === true) correct++;
+    else if (a.objective_correct === false) wrong++;
+    else neutral++;
   }
-  return { correct, wrong, neutral }
-})
+  return { correct, wrong, neutral };
+});
 
 const objectiveAccuracyLabel = computed(() => {
-  const { correct, wrong } = objectiveCounts.value
-  const d = correct + wrong
-  if (d <= 0) return '—'
-  return `${((correct / d) * 100).toFixed(1)}%（${correct} / ${d} 题）`
-})
+  const { correct, wrong } = objectiveCounts.value;
+  const d = correct + wrong;
+  if (d <= 0) return "—";
+  return `${((correct / d) * 100).toFixed(1)}%（${correct} / ${d} 题）`;
+});
 
 const subjectiveScoreRateLabel = computed(() => {
-  const max = subjectivePaperMax.value
-  if (max <= 0) return '—'
-  const got = compositionSubjective.value
-  return `${((got / max) * 100).toFixed(1)}%`
-})
+  const max = subjectivePaperMax.value;
+  if (max <= 0) return "—";
+  const got = compositionSubjective.value;
+  return `${((got / max) * 100).toFixed(1)}%`;
+});
 
 const barWidths = computed(() => {
-  const { correct, wrong, neutral } = objectiveCounts.value
-  const sum = correct + wrong + neutral
-  if (sum <= 0) return { correctPct: 0, wrongPct: 0, neutralPct: 100 }
+  const { correct, wrong, neutral } = objectiveCounts.value;
+  const sum = correct + wrong + neutral;
+  if (sum <= 0) return { correctPct: 0, wrongPct: 0, neutralPct: 100 };
   return {
     correctPct: (correct / sum) * 100,
     wrongPct: (wrong / sum) * 100,
     neutralPct: (neutral / sum) * 100,
-  }
-})
+  };
+});
 
 function cancelScoreAnimation() {
   if (scoreAnimFrame) {
-    cancelAnimationFrame(scoreAnimFrame)
-    scoreAnimFrame = 0
+    cancelAnimationFrame(scoreAnimFrame);
+    scoreAnimFrame = 0;
   }
 }
 
 function startScoreAnimation() {
-  cancelScoreAnimation()
-  if (!detail.value) return
-  const target = Number(detail.value.attempt.total_score) || 0
-  const max = paperMaxScore.value
-  const targetPct = max > 0 ? Math.min(100, (target / max) * 100) : 0
-  const start = performance.now()
-  const dur = 780
-  displayScore.value = 0
-  ringPercentage.value = 0
+  cancelScoreAnimation();
+  if (!detail.value) return;
+  const target = Number(detail.value.attempt.total_score) || 0;
+  const max = paperMaxScore.value;
+  const targetPct = max > 0 ? Math.min(100, (target / max) * 100) : 0;
+  const start = performance.now();
+  const dur = 780;
+  displayScore.value = 0;
+  ringPercentage.value = 0;
   function easeOutQuad(t: number) {
-    return 1 - (1 - t) * (1 - t)
+    return 1 - (1 - t) * (1 - t);
   }
   function tick(now: number) {
-    const t = Math.min(1, (now - start) / dur)
-    const k = easeOutQuad(t)
-    displayScore.value = target * k
-    ringPercentage.value = targetPct * k
+    const t = Math.min(1, (now - start) / dur);
+    const k = easeOutQuad(t);
+    displayScore.value = target * k;
+    ringPercentage.value = targetPct * k;
     if (t < 1) {
-      scoreAnimFrame = requestAnimationFrame(tick)
+      scoreAnimFrame = requestAnimationFrame(tick);
     } else {
-      displayScore.value = target
-      ringPercentage.value = targetPct
-      scoreAnimFrame = 0
+      displayScore.value = target;
+      ringPercentage.value = targetPct;
+      scoreAnimFrame = 0;
     }
   }
-  scoreAnimFrame = requestAnimationFrame(tick)
+  scoreAnimFrame = requestAnimationFrame(tick);
 }
 
 watch(
   () => [drawer.value, detail.value?.attempt.id] as const,
   ([open]) => {
     if (open && detail.value) {
-      answerFilter.value = 'all'
-      nextTick(() => startScoreAnimation())
+      answerFilter.value = "all";
+      nextTick(() => startScoreAnimation());
     } else {
-      cancelScoreAnimation()
+      cancelScoreAnimation();
     }
   },
-)
+);
 
-onUnmounted(() => cancelScoreAnimation())
+onUnmounted(() => cancelScoreAnimation());
 
 function formatScore(n: number) {
-  if (Number.isNaN(n)) return '—'
-  return n.toFixed(2)
+  if (Number.isNaN(n)) return "—";
+  return n.toFixed(2);
 }
 
 function statusText(s: number) {
   switch (s) {
     case 1:
-      return '未开始'
+      return "未开始";
     case 2:
-      return '进行中'
+      return "进行中";
     case 3:
-      return '已交卷'
+      return "已交卷";
     case 4:
-      return '已结束'
+      return "已结束";
     case 5:
-      return '已完成算分'
+      return "已完成算分";
     default:
-      return String(s)
+      return String(s);
   }
 }
 
 async function loadPapers() {
   try {
-    const res = (await getMockExaminationPapers({ import_status: 'imported' })) as {
-      data?: { list?: MockExaminationPaperItem[] }
-    }
-    paperOptions.value = res?.data?.list ?? []
+    const res = (await getMockExaminationPapers({
+      import_status: "imported",
+    })) as {
+      data?: { list?: MockExaminationPaperItem[] };
+    };
+    paperOptions.value = res?.data?.list ?? [];
   } catch {
-    paperOptions.value = []
+    paperOptions.value = [];
   }
 }
 
 async function loadMockLevels() {
   try {
-    const res = (await getMockLevelsList()) as { data?: { list?: MockLevelItem[] } }
-    mockLevelOptions.value = res?.data?.list ?? []
+    const res = (await getMockLevelsList()) as {
+      data?: { list?: MockLevelItem[] };
+    };
+    mockLevelOptions.value = res?.data?.list ?? [];
   } catch {
-    mockLevelOptions.value = []
+    mockLevelOptions.value = [];
   }
 }
 
 async function loadList() {
-  loading.value = true
+  loading.value = true;
   try {
-    query.examination_paper_id = paperSel.value ?? 0
+    query.examination_paper_id = paperSel.value ?? 0;
     const res = (await getAttemptList({
       page: query.page,
       size: query.size,
       username: query.username || undefined,
       mock_level_id:
-        query.mock_level_id != null && query.mock_level_id > 0 ? query.mock_level_id : undefined,
+        query.mock_level_id != null && query.mock_level_id > 0
+          ? query.mock_level_id
+          : undefined,
       examination_paper_id: query.examination_paper_id || undefined,
       exam_batch_id: query.exam_batch_id > 0 ? query.exam_batch_id : undefined,
       status: query.status || undefined,
       subjective_pending: query.subjective_pending === 1 ? 1 : undefined,
-    })) as { data?: { list?: AttemptListItem[]; total?: number } }
-    rows.value = res?.data?.list ?? []
-    total.value = res?.data?.total ?? 0
+    })) as { data?: { list?: AttemptListItem[]; total?: number } };
+    rows.value = res?.data?.list ?? [];
+    total.value = res?.data?.total ?? 0;
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function resetQuery() {
-  query.page = 1
-  query.size = 10
-  query.username = ''
-  query.mock_level_id = undefined
-  query.status = 0
-  query.exam_batch_id = 0
-  query.subjective_pending = 0
-  paperSel.value = undefined
-  loadList()
+  query.page = 1;
+  query.size = 10;
+  query.username = "";
+  query.mock_level_id = undefined;
+  query.status = 0;
+  query.exam_batch_id = 0;
+  query.subjective_pending = 0;
+  paperSel.value = undefined;
+  loadList();
 }
 
 async function openDetail(row: AttemptListItem) {
-  detailId.value = row.id
-  drawer.value = true
-  paperDetailForResult.value = null
+  detailId.value = row.id;
+  drawer.value = true;
+  paperDetailForResult.value = null;
   try {
-    const res = (await getAttemptDetail(row.id)) as { data?: AttemptDetail }
-    detail.value = res?.data ?? null
-    answerFilter.value = 'all'
-    const pid = Number(detail.value?.paper?.exam_paper_id)
+    const res = (await getAttemptDetail(row.id)) as { data?: AttemptDetail };
+    detail.value = res?.data ?? null;
+    answerFilter.value = "all";
+    const pid = Number(detail.value?.paper?.exam_paper_id);
     if (detail.value && pid > 0 && !Number.isNaN(pid)) {
       try {
-        const pr = (await getExamPaperDetail(pid)) as { data?: ExamPaperDetail }
-        paperDetailForResult.value = pr?.data ?? null
+        const pr = (await getExamPaperDetail(pid)) as {
+          data?: ExamPaperDetail;
+        };
+        paperDetailForResult.value = pr?.data ?? null;
       } catch {
-        paperDetailForResult.value = null
+        paperDetailForResult.value = null;
       }
     }
   } catch {
-    detail.value = null
-    paperDetailForResult.value = null
+    detail.value = null;
+    paperDetailForResult.value = null;
   }
 }
 
 function onSubjectiveGradeDlgClosed() {
-  subjectiveDlgAttemptId.value = 0
-  subjectiveGradeDetail.value = null
-  subjectiveGradePaper.value = null
-  subjectiveDlgScores.value = {}
+  subjectiveDlgAttemptId.value = 0;
+  subjectiveGradeDetail.value = null;
+  subjectiveGradePaper.value = null;
+  subjectiveDlgScores.value = {};
 }
 
 /** 含主观题且 exam_result 为已结束(4)或已完成算分(5)时显示入口；status=5 时置灰 */
 function showSubjectiveGradeButton(row: AttemptListItem) {
-  return row.has_subjective === 1 && (row.status === 4 || row.status === 5)
+  return row.has_subjective === 1 && (row.status === 4 || row.status === 5);
 }
 
 function isSubjectiveGradeButtonDisabled(row: AttemptListItem) {
-  return row.status === 5
+  return row.status === 5;
 }
 
 function subjectiveGradeTooltipForRow(row: AttemptListItem) {
-  if (row.status === 5) return '已完成算分，不可再次进行主观题评分'
-  return ''
+  if (row.status === 5) return "已完成算分，不可再次进行主观题评分";
+  return "";
 }
 
 async function openSubjectiveGrade(row: AttemptListItem) {
   if (row.has_subjective !== 1) {
-    ElMessage.info('该场次未包含主观题')
-    return
+    ElMessage.info("该场次未包含主观题");
+    return;
   }
   if (row.status === 5) {
-    ElMessage.warning('已完成算分，不可再次进行主观题评分')
-    return
+    ElMessage.warning("已完成算分，不可再次进行主观题评分");
+    return;
   }
   if (row.status !== 4) {
-    ElMessage.warning('仅「已结束且待主观评阅」的会话可评分（已交卷待客观算分的场次请稍后再试）')
-    return
+    ElMessage.warning(
+      "仅「已结束且待主观评阅」的会话可评分（已交卷待客观算分的场次请稍后再试）",
+    );
+    return;
   }
-  subjectiveDlgAttemptId.value = row.id
-  subjectiveDlgVisible.value = true
-  subjectiveDlgLoading.value = true
-  subjectiveGradeDetail.value = null
-  subjectiveGradePaper.value = null
-  subjectiveDlgScores.value = {}
+  subjectiveDlgAttemptId.value = row.id;
+  subjectiveDlgVisible.value = true;
+  subjectiveDlgLoading.value = true;
+  subjectiveGradeDetail.value = null;
+  subjectiveGradePaper.value = null;
+  subjectiveDlgScores.value = {};
   try {
-    const res = (await getAttemptDetail(row.id)) as { data?: AttemptDetail }
-    const d = res?.data ?? null
+    const res = (await getAttemptDetail(row.id)) as { data?: AttemptDetail };
+    const d = res?.data ?? null;
     if (!d) {
-      ElMessage.error('未加载到会话详情')
-      subjectiveDlgVisible.value = false
-      return
+      ElMessage.error("未加载到会话详情");
+      subjectiveDlgVisible.value = false;
+      return;
     }
-    const rs = d.result_status
+    const rs = d.result_status;
     if (rs === 5) {
-      ElMessage.warning('已完成算分，不可再次进行主观题评分')
-      subjectiveDlgVisible.value = false
-      return
+      ElMessage.warning("已完成算分，不可再次进行主观题评分");
+      subjectiveDlgVisible.value = false;
+      return;
     }
-    subjectiveGradeDetail.value = d
-    const m: Record<number, number> = {}
+    subjectiveGradeDetail.value = d;
+    const m: Record<number, number> = {};
     for (const a of d.answers ?? []) {
       if (a.is_subjective && !a.is_example) {
-        const qid = Number(a.question_id)
+        const qid = Number(a.question_id);
         if (!Number.isNaN(qid)) {
-          m[qid] = a.awarded_score != null ? Number(a.awarded_score) : 0
+          m[qid] = a.awarded_score != null ? Number(a.awarded_score) : 0;
         }
       }
     }
-    subjectiveDlgScores.value = m
-    const pid = Number(d.paper?.exam_paper_id)
+    subjectiveDlgScores.value = m;
+    const pid = Number(d.paper?.exam_paper_id);
     if (pid > 0 && !Number.isNaN(pid)) {
       try {
-        const pr = (await getExamPaperDetail(pid)) as { data?: ExamPaperDetail }
-        subjectiveGradePaper.value = pr?.data ?? null
+        const pr = (await getExamPaperDetail(pid)) as {
+          data?: ExamPaperDetail;
+        };
+        subjectiveGradePaper.value = pr?.data ?? null;
       } catch {
-        subjectiveGradePaper.value = null
+        subjectiveGradePaper.value = null;
       }
     }
   } catch {
-    ElMessage.error('加载失败')
-    subjectiveDlgVisible.value = false
+    ElMessage.error("加载失败");
+    subjectiveDlgVisible.value = false;
   } finally {
-    subjectiveDlgLoading.value = false
+    subjectiveDlgLoading.value = false;
   }
 }
 
 async function saveSubjectiveFromDialog() {
-  const attemptId = subjectiveDlgAttemptId.value
-  if (!attemptId || !subjectiveGradeDetail.value) return
+  const attemptId = subjectiveDlgAttemptId.value;
+  if (!attemptId || !subjectiveGradeDetail.value) return;
   const items = buildSubjectiveGradingRows(
     subjectiveGradeDetail.value,
     subjectiveGradePaper.value,
   ).map((r) => ({
     question_id: r.question_id,
     score: subjectiveDlgScores.value[r.question_id] ?? 0,
-  }))
+  }));
   if (items.length === 0) {
-    ElMessage.warning('没有可保存的主观题')
-    return
+    ElMessage.warning("没有可保存的主观题");
+    return;
   }
-  savingSubjectiveScores.value = true
+  savingSubjectiveScores.value = true;
   try {
     const res = (await saveAttemptSubjectiveScores(attemptId, items)) as {
-      data?: { subjective_score: number; total_score: number }
-    }
+      data?: { subjective_score: number; total_score: number };
+    };
     if (res?.data && subjectiveGradeDetail.value) {
-      subjectiveGradeDetail.value.attempt.subjective_score = res.data.subjective_score
-      subjectiveGradeDetail.value.attempt.total_score = res.data.total_score
+      subjectiveGradeDetail.value.attempt.subjective_score =
+        res.data.subjective_score;
+      subjectiveGradeDetail.value.attempt.total_score = res.data.total_score;
     }
     if (res?.data && detail.value && detailId.value === attemptId) {
-      detail.value.attempt.subjective_score = res.data.subjective_score
-      detail.value.attempt.total_score = res.data.total_score
+      detail.value.attempt.subjective_score = res.data.subjective_score;
+      detail.value.attempt.total_score = res.data.total_score;
     }
-    ElMessage.success('保存成功')
-    subjectiveDlgVisible.value = false
-    loadList()
+    ElMessage.success("保存成功");
+    subjectiveDlgVisible.value = false;
+    loadList();
     nextTick(() => {
       if (drawer.value && detailId.value === attemptId) {
-        startScoreAnimation()
+        startScoreAnimation();
       }
-    })
+    });
   } catch {
     // 业务错误由 request 拦截器统一 ElMessage
   } finally {
-    savingSubjectiveScores.value = false
+    savingSubjectiveScores.value = false;
   }
 }
 
 function applyRouteQuery() {
-  const q = route.query
-  const ml = q.mock_level_id
-  if (ml !== undefined && ml !== '') {
-    const n = Number(ml)
-    if (!Number.isNaN(n) && n > 0) query.mock_level_id = n
+  const q = route.query;
+  const ml = q.mock_level_id;
+  if (ml !== undefined && ml !== "") {
+    const n = Number(ml);
+    if (!Number.isNaN(n) && n > 0) query.mock_level_id = n;
   }
-  const eid = q.examination_paper_id
-  if (eid !== undefined && eid !== '') {
-    const n = Number(eid)
+  const eid = q.examination_paper_id;
+  if (eid !== undefined && eid !== "") {
+    const n = Number(eid);
     if (!Number.isNaN(n) && n > 0) {
-      query.examination_paper_id = n
-      paperSel.value = n
+      query.examination_paper_id = n;
+      paperSel.value = n;
     }
   }
-  const bid = q.exam_batch_id
-  if (bid !== undefined && bid !== '') {
-    const n = Number(bid)
-    if (!Number.isNaN(n) && n > 0) query.exam_batch_id = n
+  const bid = q.exam_batch_id;
+  if (bid !== undefined && bid !== "") {
+    const n = Number(bid);
+    if (!Number.isNaN(n) && n > 0) query.exam_batch_id = n;
   }
-  const st = q.status
-  if (st !== undefined && st !== '') {
-    const n = Number(st)
-    if (!Number.isNaN(n) && n >= 1 && n <= 4) query.status = n
+  const st = q.status;
+  if (st !== undefined && st !== "") {
+    const n = Number(st);
+    if (!Number.isNaN(n) && n >= 1 && n <= 4) query.status = n;
   }
-  const subjectivePending = q.subjective_pending
+  const subjectivePending = q.subjective_pending;
   if (
-    subjectivePending === '1' ||
-    (Array.isArray(subjectivePending) && subjectivePending.includes('1'))
+    subjectivePending === "1" ||
+    (Array.isArray(subjectivePending) && subjectivePending.includes("1"))
   ) {
-    query.subjective_pending = 1
+    query.subjective_pending = 1;
   }
-  const u = q.username
-  if (typeof u === 'string' && u) query.username = u
+  const u = q.username;
+  if (typeof u === "string" && u) query.username = u;
 }
 
 onMounted(async () => {
-  await Promise.all([loadPapers(), loadMockLevels()])
-  applyRouteQuery()
-  loadList()
-})
+  await Promise.all([loadPapers(), loadMockLevels()]);
+  applyRouteQuery();
+  loadList();
+});
 </script>
 
 <style scoped>

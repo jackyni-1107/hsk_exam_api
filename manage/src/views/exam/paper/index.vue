@@ -50,11 +50,7 @@
           min-width="160"
           show-overflow-tooltip
         />
-        <el-table-column
-          label="资源基址"
-          min-width="200"
-          show-overflow-tooltip
-        >
+        <el-table-column label="资源基址" min-width="200" show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.source_base_url }}
           </template>
@@ -80,14 +76,13 @@
             <el-button link type="primary" @click="openDetail(row)"
               >详情</el-button
             >
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+            <el-button link type="primary" @click="openEdit(row)"
+              >编辑</el-button
+            >
             <el-button link type="primary" @click="openSettings(row)"
               >听力 HLS</el-button
             >
-            <el-button
-              link
-              type="danger"
-              @click="openPurge(row)"
+            <el-button link type="danger" @click="openPurge(row)"
               >物理删除</el-button
             >
           </template>
@@ -214,10 +209,17 @@
           <el-input v-model="editForm.prepare_title" />
         </el-form-item>
         <el-form-item label="考前说明">
-          <el-input v-model="editForm.prepare_instruction" type="textarea" :rows="3" />
+          <el-input
+            v-model="editForm.prepare_instruction"
+            type="textarea"
+            :rows="3"
+          />
         </el-form-item>
         <el-form-item label="考前音频">
-          <el-input v-model="editForm.prepare_audio_file" placeholder="文件名或 URL" />
+          <el-input
+            v-model="editForm.prepare_audio_file"
+            placeholder="文件名或 URL"
+          />
         </el-form-item>
         <el-form-item label="资源基址" required>
           <el-input
@@ -381,80 +383,55 @@
             truncate(examDetail.paper.index_json, 8000)
           }}</pre>
           <h4 class="sec-title">大题（{{ examDetail.sections.length }}）</h4>
-          <el-collapse>
-            <el-collapse-item
-              v-for="s in examDetail.sections"
-              :key="s.id"
-              :title="`${s.sort_order}. ${s.topic_title || s.topic_type} (#${s.id})`"
-            >
-              <el-descriptions :column="2" size="small" border>
-                <el-descriptions-item label="topic_type">{{
-                  s.topic_type
-                }}</el-descriptions-item>
-                <el-descriptions-item label="文件">{{
-                  s.topic_items_file
-                }}</el-descriptions-item>
-                <el-descriptions-item label="part_code">{{
-                  s.part_code
-                }}</el-descriptions-item>
-                <el-descriptions-item label="segment_code">{{
-                  s.segment_code
-                }}</el-descriptions-item>
-                <el-descriptions-item label="大题ID">{{
-                  s.id
-                }}</el-descriptions-item>
-              </el-descriptions>
-
-              <ExamPaperSectionPanel
-                :title="`试卷结构 · ${s.topic_title || s.topic_type}`"
-                :subtitle="`part ${s.part_code} · ${s.segment_code || ''}`.trim()"
+          <ExamQuestionSectionTabs
+            :sections="paperQuestionSections"
+            tabs-class="paper-sec-tabs"
+            body-class="paper-answer-sec-body"
+            empty-description="本题下无题块/小题数据"
+          >
+            <template #section-before="{ section, index }">
+              <template
+                v-if="examDetail.sections[index] && examDetail.sections[index]!.id === section.id"
               >
-                <template v-if="s.blocks?.length">
-                  <template v-for="(b, bi) in s.blocks" :key="b.id">
-                    <div class="block-head">
-                      题块 {{ b.block_order }}（#{{ b.id }}）
-                    </div>
-                    <ExamQuestionReviewCard
-                      v-for="(q, qi) in b.questions"
-                      :key="q.id"
-                      mode="preview"
-                      :question-no="q.question_no"
-                      :score="q.score"
-                      :is-example="q.is_example"
-                      :is-subjective="0"
-                      :stem-text="q.stem_text"
-                      :screen-text-json="q.screen_text_json"
-                      :topic-json="s.topic_json"
-                      :block-index="bi"
-                      :question-index="qi"
-                      :block-passage-text="blockReadingPassage(s.topic_json, bi)"
-                      :show-block-passage="qi === 0"
-                      :source-base-url="examDetail.paper.source_base_url"
-                      :audio-file="q.audio_file"
-                      :options="q.options ?? []"
-                      :analysis-text="analysisLine(q.analysis_json)"
-                      :show-correct-options="true"
-                    />
-                  </template>
-                </template>
-                <el-empty v-else description="本题下无题块/小题数据" :image-size="72" />
-              </ExamPaperSectionPanel>
-
+                <el-descriptions :column="2" size="small" border>
+                  <el-descriptions-item label="topic_type">{{
+                    examDetail.sections[index]!.topic_type
+                  }}</el-descriptions-item>
+                  <el-descriptions-item label="文件">{{
+                    examDetail.sections[index]!.topic_items_file
+                  }}</el-descriptions-item>
+                  <el-descriptions-item label="part_code">{{
+                    examDetail.sections[index]!.part_code
+                  }}</el-descriptions-item>
+                  <el-descriptions-item label="segment_code">{{
+                    examDetail.sections[index]!.segment_code
+                  }}</el-descriptions-item>
+                  <el-descriptions-item label="大题ID">{{
+                    examDetail.sections[index]!.id
+                  }}</el-descriptions-item>
+                </el-descriptions>
+              </template>
+            </template>
+            <template #section-after="{ section, index }">
               <el-collapse
-                v-if="s.topic_json"
+                v-if="
+                  examDetail.sections[index] &&
+                  examDetail.sections[index]!.id === section.id &&
+                  examDetail.sections[index]!.topic_json
+                "
                 class="topic-debug-collapse"
               >
                 <el-collapse-item
                   title="调试：topic_json 原始数据"
-                  :name="`topic-${s.id}`"
+                  :name="`topic-${section.id}`"
                 >
                   <pre class="json-preview sm">{{
-                    truncate(s.topic_json, 4000)
+                    truncate(examDetail.sections[index]!.topic_json, 4000)
                   }}</pre>
                 </el-collapse-item>
               </el-collapse>
-            </el-collapse-item>
-          </el-collapse>
+            </template>
+          </ExamQuestionSectionTabs>
         </template>
 
         <el-alert
@@ -478,14 +455,18 @@
     >
       <el-alert type="error" :closable="false" show-icon class="mb">
         <template #title>
-          将永久删除数据库中的 exam_paper 及全部大题、小题与选项。若该卷仍挂在考试批次或已有答题记录，操作将失败。
+          将永久删除数据库中的 exam_paper
+          及全部大题、小题与选项。若该卷仍挂在考试批次或已有答题记录，操作将失败。
         </template>
       </el-alert>
       <p v-if="purgeTarget" class="purge-hint">
-        试卷 ID：<strong>{{ purgeTarget.id }}</strong> · {{ purgeTarget.title || "（无标题）" }}
+        试卷 ID：<strong>{{ purgeTarget.id }}</strong> ·
+        {{ purgeTarget.title || "（无标题）" }}
       </p>
       <p class="purge-hint">
-        请在下方输入确认口令（区分大小写）：<code class="purge-code">{{ purgeExpectedPhrase }}</code>
+        请在下方输入确认口令（区分大小写）：<code class="purge-code">{{
+          purgeExpectedPhrase
+        }}</code>
       </p>
       <el-input
         v-model="purgeConfirmInput"
@@ -531,8 +512,9 @@ import { formatUtcText } from "@/utils/datetime";
 import { analysisDisplayText } from "@/utils/examDisplay";
 import { mockLevelOptionLabel } from "@/utils/mockLevel";
 import { blockReadingPassageFromTopic as blockReadingPassage } from "@/utils/examPaperQuestionDisplay";
-import ExamPaperSectionPanel from "@/components/exam/ExamPaperSectionPanel.vue";
-import ExamQuestionReviewCard from "@/components/exam/ExamQuestionReviewCard.vue";
+import ExamQuestionSectionTabs, {
+  type ExamQuestionSectionTabItem,
+} from "@/components/exam/ExamQuestionSectionTabs.vue";
 
 /** 与后端 sys_menu.permission、试卷物理删除接口一致 */
 const PERM_EXAM_PAPER_PURGE = "exam:paper:purge";
@@ -637,19 +619,58 @@ const detailLoading = ref(false);
 const detailLoaded = ref(false);
 const examDetail = ref<ExamPaperDetail | null>(null);
 
+const paperQuestionSections = computed<ExamQuestionSectionTabItem[]>(() => {
+  const detail = examDetail.value;
+  if (!detail?.sections?.length) return [];
+  const sourceBaseUrl = detail.paper.source_base_url;
+  return detail.sections.map((s, si) => {
+    const cards: ExamQuestionSectionTabItem["cards"] = [];
+    for (const [bi, b] of (s.blocks ?? []).entries()) {
+      for (const [qi, q] of (b.questions ?? []).entries()) {
+        cards.push({
+          key: `q-${q.id}`,
+          mode: "preview",
+          questionNo: q.question_no,
+          score: q.score,
+          isExample: q.is_example,
+          isSubjective: 0,
+          stemText: q.stem_text,
+          screenTextJson: q.screen_text_json,
+          topicJson: s.topic_json,
+          blockIndex: bi,
+          questionIndex: qi,
+          blockPassageText: blockReadingPassage(s.topic_json, bi),
+          showBlockPassage: qi === 0,
+          sourceBaseUrl,
+          audioFile: q.audio_file,
+          options: q.options ?? [],
+          analysisText: analysisLine(q.analysis_json),
+          showCorrectOptions: false,
+        });
+      }
+    }
+    return {
+      id: s.id,
+      title: `${s.sort_order}. ${s.topic_title || s.topic_type}`,
+      cards,
+      segmentCode: s.segment_code || "",
+    };
+  });
+});
+
 const purgeDlg = ref(false);
 const purgeSubmitting = ref(false);
 const purgeTarget = ref<ExamPaperItem | null>(null);
 const purgeConfirmInput = ref("");
 
 const purgeExpectedPhrase = computed(() =>
-  purgeTarget.value ? `DELETE:${purgeTarget.value.id}` : ""
+  purgeTarget.value ? `DELETE:${purgeTarget.value.id}` : "",
 );
 
 const purgeConfirmOk = computed(
   () =>
     !!purgeTarget.value &&
-    purgeConfirmInput.value === purgeExpectedPhrase.value
+    purgeConfirmInput.value === purgeExpectedPhrase.value,
 );
 
 function openPurge(row: ExamPaperItem) {
@@ -700,7 +721,10 @@ async function loadList() {
     const res = (await getExamPaperList({
       page: query.page,
       size: query.size,
-      mock_level_id: query.mock_level_id && query.mock_level_id > 0 ? query.mock_level_id : undefined,
+      mock_level_id:
+        query.mock_level_id && query.mock_level_id > 0
+          ? query.mock_level_id
+          : undefined,
     })) as { data?: { list?: ExamPaperItem[]; total?: number } };
     rows.value = res?.data?.list ?? [];
     total.value = res?.data?.total ?? 0;
@@ -941,7 +965,9 @@ async function openDetail(row: ExamPaperItem) {
 
 onMounted(async () => {
   try {
-    const res = (await getMockLevelsList()) as { data?: { list?: MockLevelItem[] } };
+    const res = (await getMockLevelsList()) as {
+      data?: { list?: MockLevelItem[] };
+    };
     mockLevels.value = res?.data?.list ?? [];
   } catch {
     mockLevels.value = [];
@@ -1012,19 +1038,26 @@ onMounted(async () => {
   color: var(--el-text-color-secondary);
 }
 
-.block-head {
-  margin: 16px 0 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.block-head:first-child {
-  margin-top: 4px;
+.paper-answer-sec-body {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .topic-debug-collapse {
   margin-top: 12px;
+}
+
+.paper-sec-tabs :deep(.el-tabs__content) {
+  padding-top: 8px;
+}
+
+.paper-sec-tabs :deep(.el-tabs__item) {
+  max-width: min(220px, 34vw);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .detail-wrap :deep(.exam-opt-flag) {

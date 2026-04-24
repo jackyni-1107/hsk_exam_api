@@ -15,6 +15,7 @@
   color: var(--el-text-color-primary, #1a1a1a);
   text-align: left;
   -webkit-font-smoothing: antialiased;
+  --exam-rich-img-size: 96px;
 }
 
 .exam-rich-html p {
@@ -93,4 +94,15 @@
 .exam-rich-html [pinyin][data-pinyin-hint]::before {
   color: #9a9a9a;
   font-weight: 400;
+}
+
+/* 富文本中的图片统一固定尺寸，避免单图撑满整屏 */
+.exam-rich-html img {
+  width: var(--exam-rich-img-size) !important;
+  height: var(--exam-rich-img-size) !important;
+  max-width: var(--exam-rich-img-size) !important;
+  max-height: var(--exam-rich-img-size) !important;
+  object-fit: cover !important;
+  border-radius: 6px;
+  vertical-align: middle;
 }

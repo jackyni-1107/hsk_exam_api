@@ -118,8 +118,11 @@ function sanitizeHtml(html: string) {
 
 .exam-screen-text__img {
   display: block;
-  max-width: 100%;
-  height: auto;
+  width: 120px;
+  height: 120px;
+  max-width: 120px;
+  max-height: 120px;
+  object-fit: cover;
   border-radius: 6px;
   border: 1px solid var(--el-border-color-lighter);
 }
@@ -141,5 +144,15 @@ function sanitizeHtml(html: string) {
   white-space: normal;
   word-break: normal;
   overflow-wrap: break-word;
+}
+
+.exam-screen-text__text--html :deep(img) {
+  width: 120px;
+  height: 120px;
+  max-width: 120px;
+  max-height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  vertical-align: middle;
 }
 </style>
