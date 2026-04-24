@@ -41,6 +41,12 @@
       <el-table v-loading="loading" :data="rows" border stripe>
         <el-table-column prop="id" label="批次ID" width="88" />
         <el-table-column
+          prop="title"
+          label="批次名称"
+          min-width="140"
+          show-overflow-tooltip
+        />
+        <el-table-column
           label="试卷（exam_paper）"
           min-width="220"
           show-overflow-tooltip
@@ -50,10 +56,10 @@
           }}</template>
         </el-table-column>
         <el-table-column
-          prop="title"
-          label="批次名称"
-          min-width="140"
-          show-overflow-tooltip
+          prop="member_count"
+          label="学员数"
+          width="80"
+          align="right"
         />
         <el-table-column label="类型" width="72" align="center">
           <template #default="{ row }">{{ batchKindLabel(row.batch_kind) }}</template>
@@ -83,12 +89,6 @@
           width="220"
           show-overflow-tooltip
           :formatter="formatUtcForDisplay"
-        />
-        <el-table-column
-          prop="member_count"
-          label="学员数"
-          width="80"
-          align="right"
         />
         <el-table-column
           prop="create_time"
@@ -292,6 +292,20 @@
           >
             导入
           </el-button>
+          <el-button
+            :disabled="isExamBatchEnded(currentBatch)"
+            @click="triggerCsvImport"
+          >
+            上传模板导入
+          </el-button>
+          <el-button @click="downloadBatchMemberTemplate">下载导入模板</el-button>
+          <input
+            ref="batchMemberCsvInputRef"
+            type="file"
+            accept=".csv,text/csv"
+            style="display: none"
+            @change="onBatchMemberCsvChange"
+          />
         </el-space>
         <el-form :inline="true" class="filter" @submit.prevent="loadMemberList">
           <el-form-item label="账号">
@@ -394,10 +408,12 @@ import type { FormInstance, FormRules } from "element-plus";
 import {
   createExamBatch,
   deleteExamBatch,
+  downloadExamBatchMemberImportTemplate,
   getExamBatchList,
   getExamBatchMemberList,
   getExamPaperList,
   importExamBatchMembers,
+  importExamBatchMembersCsv,
   removeExamBatchMembers,
   updateExamBatch,
   type ExamBatchListItem,
@@ -677,6 +693,7 @@ const memberQuery = reactive({ page: 1, size: 10 });
 const importIdsText = ref("");
 const importExamPaperId = ref(0);
 const importing = ref(false);
+const batchMemberCsvInputRef = ref<HTMLInputElement | null>(null);
 const pickMembers = ref<MemberItem[]>([]);
 
 function openMembers(row: ExamBatchListItem) {
@@ -743,6 +760,57 @@ async function doImport() {
     loadList();
   } finally {
     importing.value = false;
+  }
+}
+
+function triggerCsvImport() {
+  if (!currentBatch.value) return;
+  if (isExamBatchEnded(currentBatch.value)) {
+    ElMessage.warning("该考试批次已结束，不能导入学员");
+    return;
+  }
+  if (!importExamPaperId.value) {
+    ElMessage.warning("请选择试卷");
+    return;
+  }
+  batchMemberCsvInputRef.value?.click();
+}
+
+async function onBatchMemberCsvChange(evt: Event) {
+  const input = evt.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file || !currentBatch.value) return;
+  if (!importExamPaperId.value) {
+    ElMessage.warning("请选择试卷");
+    return;
+  }
+  importing.value = true;
+  try {
+    const res = await importExamBatchMembersCsv(currentBatch.value.id, {
+      exam_paper_id: importExamPaperId.value,
+      file,
+    });
+    const d = res.data;
+    ElMessage.success(
+      `导入完成：新增 ${d?.inserted ?? 0}，成功 ${d?.success ?? 0}，失败 ${d?.failed ?? 0}`,
+    );
+    const errs = d?.errors ?? [];
+    if (errs.length) {
+      ElMessageBox.alert(errs.join("\n"), "导入明细").catch(() => undefined);
+    }
+    loadMemberList();
+    loadList();
+  } finally {
+    importing.value = false;
+  }
+}
+
+async function downloadBatchMemberTemplate() {
+  try {
+    await downloadExamBatchMemberImportTemplate();
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : "下载模板失败");
   }
 }
 

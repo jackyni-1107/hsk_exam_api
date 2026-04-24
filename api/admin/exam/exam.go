@@ -25,6 +25,7 @@ type IExam interface {
 	BatchUpdate(ctx context.Context, req *v1.BatchUpdateReq) (res *v1.BatchUpdateRes, err error)
 	BatchDelete(ctx context.Context, req *v1.BatchDeleteReq) (res *v1.BatchDeleteRes, err error)
 	BatchMembersImport(ctx context.Context, req *v1.BatchMembersImportReq) (res *v1.BatchMembersImportRes, err error)
+	BatchMembersImportFile(ctx context.Context, req *v1.BatchMembersImportFileReq) (res *v1.BatchMembersImportFileRes, err error)
 	BatchMemberList(ctx context.Context, req *v1.BatchMemberListReq) (res *v1.BatchMemberListRes, err error)
 	BatchMembersRemove(ctx context.Context, req *v1.BatchMembersRemoveReq) (res *v1.BatchMembersRemoveRes, err error)
 }

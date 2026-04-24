@@ -1,6 +1,9 @@
 package v1
 
-import "github.com/gogf/gf/v2/frame/g"
+import (
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/net/ghttp"
+)
 
 type BatchListReq struct {
 	g.Meta      `path:"/exam/batch/list" method:"get" tags:"考试批次" summary:"批次分页列表"`
@@ -89,6 +92,21 @@ type BatchMembersImportReq struct {
 
 type BatchMembersImportRes struct {
 	Inserted int `json:"inserted" dc:"新写入条数（已存在的主键不计入）"`
+}
+
+type BatchMembersImportFileReq struct {
+	g.Meta      `path:"/exam/batch/{id}/members/import-file" method:"post" tags:"考试批次" summary:"按模板 CSV 向批次导入学员"`
+	Id          int64             `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"批次ID"`
+	ExamPaperId int64             `json:"exam_paper_id" v:"required|min:1#err.invalid_params" dc:"须属于本批次已配置的 exam_paper"`
+	File        *ghttp.UploadFile `json:"file" type:"file" dc:"CSV 文件（支持列：用户名/username 或 会员ID/member_id）"`
+}
+
+type BatchMembersImportFileRes struct {
+	Total    int      `json:"total" dc:"CSV 非空数据行数"`
+	Success  int      `json:"success" dc:"成功导入条数"`
+	Failed   int      `json:"failed" dc:"失败条数"`
+	Inserted int      `json:"inserted" dc:"实际新写入条数"`
+	Errors   []string `json:"errors" dc:"错误明细（最多 100 条）"`
 }
 
 type BatchMemberListReq struct {

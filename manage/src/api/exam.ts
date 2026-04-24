@@ -1,3 +1,4 @@
+import axios from "axios";
 import request from "./request";
 
 export interface ExamPaperItem {
@@ -270,6 +271,62 @@ export function importExamBatchMembers(
     `/admin/exam/batch/${batchId}/members/import`,
     data,
   );
+}
+
+export interface ExamBatchMemberImportFileResult {
+  total: number;
+  success: number;
+  failed: number;
+  inserted: number;
+  errors: string[];
+}
+
+/** 按模板 CSV 导入批次成员（字段名 file） */
+export function importExamBatchMembersCsv(
+  batchId: number,
+  data: { exam_paper_id: number; file: File },
+) {
+  const fd = new FormData();
+  fd.append("exam_paper_id", String(data.exam_paper_id));
+  fd.append("file", data.file);
+  return request.post<any, { data: ExamBatchMemberImportFileResult }>(
+    `/admin/exam/batch/${batchId}/members/import-file`,
+    fd,
+  );
+}
+
+/** 下载批次成员导入模板 */
+export async function downloadExamBatchMemberImportTemplate() {
+  const token = localStorage.getItem("admin_token");
+  const res = await axios.get("/api/admin/exam/batch/member-import-template", {
+    responseType: "blob",
+    timeout: 60000,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    validateStatus: () => true,
+  });
+  if (res.status === 401) throw new Error("未登录或登录已过期");
+  const ct = res.headers["content-type"] || "";
+  if (ct.includes("application/json")) {
+    const text = await (res.data as Blob).text();
+    let msg = "下载失败";
+    try {
+      const j = JSON.parse(text) as { message?: string };
+      if (j.message) msg = j.message;
+    } catch {
+      //
+    }
+    throw new Error(msg);
+  }
+  if (res.status !== 200) throw new Error(`下载失败 (${res.status})`);
+  const blob = res.data as Blob;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "批次成员导入模板.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 export function getExamBatchMemberList(

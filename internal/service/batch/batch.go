@@ -7,6 +7,7 @@ package batch
 
 import (
 	"context"
+	"io"
 
 	"github.com/gogf/gf/v2/os/gtime"
 
@@ -28,6 +29,8 @@ type (
 		ExamBatchDelete(ctx context.Context, id int64) error
 		// ExamBatchMembersAdd 批量向指定批次和试卷（exam_paper.id）添加学员
 		ExamBatchMembersAdd(ctx context.Context, batchID int64, examPaperID int64, memberIDs []int64, creator string) (inserted int, err error)
+		// ExamBatchMembersImportByCSV 按模板 CSV 向指定批次和试卷导入学员
+		ExamBatchMembersImportByCSV(ctx context.Context, batchID int64, examPaperID int64, r io.Reader, creator string) (total, success, failed, inserted int, errors []string, err error)
 		// ExamBatchMembersRemove 从批次中移除学员
 		ExamBatchMembersRemove(ctx context.Context, batchID int64, examPaperID int64, memberIDs []int64) (int, error)
 		// ExamBatchMemberList 查询批次内的成员列表（关联系统用户表）

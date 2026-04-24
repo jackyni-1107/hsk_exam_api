@@ -4,10 +4,14 @@ import (
 	"context"
 
 	v1 "exam/api/admin/exam/v1"
+	"exam/internal/consts"
 	"exam/internal/middleware"
 	"exam/internal/model/bo"
 	"exam/internal/service/batch"
 	"exam/internal/utility"
+
+	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/frame/g"
 )
 
 func batchListItemPtr(b *bo.ExamBatchAdminItem) *v1.BatchListItem {
@@ -125,6 +129,36 @@ func (c *ControllerV1) BatchMembersImport(ctx context.Context, req *v1.BatchMemb
 		return nil, err
 	}
 	return &v1.BatchMembersImportRes{Inserted: n}, nil
+}
+
+func (c *ControllerV1) BatchMembersImportFile(ctx context.Context, req *v1.BatchMembersImportFileReq) (res *v1.BatchMembersImportFileRes, err error) {
+	f := req.File
+	if f == nil {
+		f = g.RequestFromCtx(ctx).GetUploadFile("file")
+	}
+	if f == nil {
+		return nil, gerror.NewCode(consts.CodeInvalidParams)
+	}
+	rf, err := f.Open()
+	if err != nil {
+		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "无法读取上传文件")
+	}
+	defer rf.Close()
+	creator := ""
+	if d := middleware.GetCtxData(ctx); d != nil {
+		creator = d.Username
+	}
+	total, success, failed, inserted, errs, err := batch.Batch().ExamBatchMembersImportByCSV(ctx, req.Id, req.ExamPaperId, rf, creator)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.BatchMembersImportFileRes{
+		Total:    total,
+		Success:  success,
+		Failed:   failed,
+		Inserted: inserted,
+		Errors:   errs,
+	}, nil
 }
 
 func (c *ControllerV1) BatchMemberList(ctx context.Context, req *v1.BatchMemberListReq) (res *v1.BatchMemberListRes, err error) {
