@@ -2,6 +2,7 @@ package paper
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -17,21 +18,34 @@ import (
 
 // PaperDetail 返回试卷及嵌套的大题、题块、题目、选项。
 func (s *sPaper) PaperDetail(ctx context.Context, examPaperId int64) (*exambo.PaperDetailTree, error) {
-	data, err := loadPaperDetailData(ctx, examPaperId)
+	if cached := loadAdminPaperDetailFromCache(examPaperId); cached != nil {
+		return cached, nil
+	}
+	sfKey := fmt.Sprintf("paper:%d", examPaperId)
+	v, err, _ := adminPaperDetailSF.Do(sfKey, func() (interface{}, error) {
+		if cached := loadAdminPaperDetailFromCache(examPaperId); cached != nil {
+			return cached, nil
+		}
+		data, err := loadPaperDetailData(ctx, examPaperId)
+		if err != nil {
+			return nil, err
+		}
+
+		out := &exambo.PaperDetailTree{
+			Paper: examPaperEntityToBOHead(data.paper, data.mockPaper.Name),
+		}
+
+		for _, sec := range data.sections {
+			out.Sections = append(out.Sections, sectionDetailViewFromData(
+				sec, data.blocksBySection[sec.Id], data.questionsByBlock, data.optionsByQuestion))
+		}
+		storeAdminPaperDetailToCache(examPaperId, out)
+		return out, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	out := &exambo.PaperDetailTree{
-		Paper: examPaperEntityToBOHead(data.paper, data.mockPaper.Name),
-	}
-
-	for _, sec := range data.sections {
-		out.Sections = append(out.Sections, sectionDetailViewFromData(
-			sec, data.blocksBySection[sec.Id], data.questionsByBlock, data.optionsByQuestion))
-	}
-
-	return out, nil
+	return v.(*exambo.PaperDetailTree), nil
 }
 
 // sectionDetailViewFromData 将一个大题下的题块、题目、选项拼装为详情视图。
@@ -93,12 +107,26 @@ func sectionDetailViewFromData(
 
 // PaperDetailSection 只加载单个大题的完整详情。
 func (s *sPaper) PaperDetailSection(ctx context.Context, examPaperId, sectionId int64) (*exambo.SectionDetailView, error) {
-	data, err := loadPaperSectionDetailData(ctx, examPaperId, sectionId)
+	if cached := loadAdminPaperSectionFromCache(examPaperId, sectionId); cached != nil {
+		return cached, nil
+	}
+	sfKey := adminPaperSectionCacheKey(examPaperId, sectionId)
+	v, err, _ := adminPaperSectionSF.Do(sfKey, func() (interface{}, error) {
+		if cached := loadAdminPaperSectionFromCache(examPaperId, sectionId); cached != nil {
+			return cached, nil
+		}
+		data, err := loadPaperSectionDetailData(ctx, examPaperId, sectionId)
+		if err != nil {
+			return nil, err
+		}
+		sv := sectionDetailViewFromData(data.section, data.blocksBySection[data.section.Id], data.questionsByBlock, data.optionsByQuestion)
+		storeAdminPaperSectionToCache(examPaperId, sectionId, &sv)
+		return &sv, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	sv := sectionDetailViewFromData(data.section, data.blocksBySection[data.section.Id], data.questionsByBlock, data.optionsByQuestion)
-	return &sv, nil
+	return v.(*exambo.SectionDetailView), nil
 }
 
 // UpdatePaperSettings 修改试卷的 HLS 配置。
