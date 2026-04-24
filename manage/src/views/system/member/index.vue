@@ -3,8 +3,12 @@
     <el-card shadow="never">
       <template #header>
         <div class="head">
-          <span>会员管理（Member）</span>
-          <el-button type="primary" @click="openCreate">新增会员</el-button>
+          <span>客户管理</span>
+          <div class="head-actions">
+            <el-button @click="onDownloadTemplate">下载模板</el-button>
+            <el-button @click="importDlg = true">导入客户</el-button>
+            <el-button type="primary" @click="openCreate">新增客户</el-button>
+          </div>
         </div>
       </template>
       <el-form :inline="true" class="filter" @submit.prevent="loadList">
@@ -71,7 +75,7 @@
 
     <el-dialog
       v-model="dlg"
-      :title="mode === 'create' ? '新增会员' : '编辑会员'"
+      :title="mode === 'create' ? '新增客户' : '编辑客户'"
       width="480px"
       destroy-on-close
       @closed="resetForm"
@@ -114,18 +118,54 @@
         >
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="importDlg"
+      title="导入客户"
+      width="520px"
+      destroy-on-close
+      @closed="onImportDlgClosed"
+    >
+      <p class="import-hint">
+        请先下载 CSV 模板，按列填写后上传。文件须为 UTF-8 编码；首行为表头；密码需符合系统安全策略；单次最多
+        2000 条有效数据行。
+      </p>
+      <el-upload
+        drag
+        :limit="1"
+        accept=".csv,text/csv"
+        :auto-upload="false"
+        :on-change="onImportFileChange"
+        :on-exceed="onImportExceed"
+      >
+        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+        <div class="el-upload__text">将文件拖到此处，或<em>点击选择</em></div>
+        <template #tip>
+          <div class="el-upload__tip">仅支持 .csv</div>
+        </template>
+      </el-upload>
+      <template #footer>
+        <el-button @click="importDlg = false">取消</el-button>
+        <el-button type="primary" :loading="importing" :disabled="!importFile" @click="submitImport"
+          >开始导入</el-button
+        >
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted } from "vue";
-import type { FormInstance, FormRules } from "element-plus";
+import type { FormInstance, FormRules, UploadFile } from "element-plus";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { UploadFilled } from "@element-plus/icons-vue";
 import {
   fetchMemberList,
   createMember,
   updateMember,
   deleteMember,
+  importMembersCsv,
+  downloadMemberImportTemplate,
   type MemberItem,
 } from "@/api/member";
 import { formatUtcForDisplay } from "@/utils/datetime";
@@ -138,6 +178,9 @@ const dlg = ref(false);
 const mode = ref<"create" | "edit">("create");
 const formRef = ref<FormInstance>();
 const editId = ref(0);
+const importDlg = ref(false);
+const importFile = ref<File | null>(null);
+const importing = ref(false);
 
 const query = reactive({ page: 1, size: 10, username: "", status: -1 });
 const form = reactive({
@@ -246,7 +289,7 @@ async function submit() {
 }
 
 function onDelete(row: MemberItem) {
-  ElMessageBox.confirm(`删除会员「${row.username}」？`, "确认", {
+  ElMessageBox.confirm(`删除客户「${row.username}」？`, "确认", {
     type: "warning",
   })
     .then(async () => {
@@ -255,6 +298,63 @@ function onDelete(row: MemberItem) {
       await loadList();
     })
     .catch(() => {});
+}
+
+async function onDownloadTemplate() {
+  try {
+    await downloadMemberImportTemplate();
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : "下载失败");
+  }
+}
+
+function onImportFileChange(uploadFile: UploadFile) {
+  const raw = uploadFile.raw;
+  importFile.value = raw instanceof File ? raw : null;
+}
+
+function onImportExceed() {
+  ElMessage.warning("请先移除已选文件，再选择新文件");
+}
+
+function onImportDlgClosed() {
+  importFile.value = null;
+}
+
+async function submitImport() {
+  const f = importFile.value;
+  if (!f) {
+    ElMessage.warning("请选择 CSV 文件");
+    return;
+  }
+  importing.value = true;
+  try {
+    const res = (await importMembersCsv(f)) as {
+      data?: { total: number; success: number; failed: number; errors?: string[] };
+    };
+    const d = res?.data;
+    if (!d) {
+      ElMessage.warning("未返回导入结果");
+      return;
+    }
+    if (d.total === 0) {
+      ElMessage.warning("文件中没有有效数据行（空行已忽略）");
+      return;
+    }
+    ElMessage.success(`导入完成：成功 ${d.success} 条，失败 ${d.failed} 条`);
+    if (d.errors?.length) {
+      await ElMessageBox.alert(d.errors.join("\n"), "失败明细", {
+        confirmButtonText: "确定",
+        type: d.failed > 0 ? "warning" : "info",
+      });
+    }
+    importDlg.value = false;
+    await loadList();
+  } catch {
+    /* 全局已提示 */
+  } finally {
+    importing.value = false;
+  }
 }
 
 onMounted(loadList);
@@ -268,6 +368,18 @@ onMounted(loadList);
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.import-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
 }
 .filter {
   margin-bottom: 12px;

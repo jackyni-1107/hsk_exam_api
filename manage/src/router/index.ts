@@ -30,7 +30,7 @@ const router = createRouter({
           path: 'system/member',
           name: 'Member',
           component: () => import('@/views/system/member/index.vue'),
-          meta: { title: '会员管理' },
+          meta: { title: '客户管理' },
         },
         {
           path: 'system/client-user',

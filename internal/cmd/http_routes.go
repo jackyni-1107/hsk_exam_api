@@ -91,5 +91,6 @@ func registerAdminRoutes(s *ghttp.Server, apiPrefix string) {
 	s.Group(adminAPI, func(group *ghttp.RouterGroup) {
 		group.Middleware(middleware.AdminDownloadChain()...)
 		group.GET("/file/{id}/download", adminFile.ServeDownload)
+		group.GET("/member/import-template", adminMember.ServeMemberImportTemplate)
 	})
 }

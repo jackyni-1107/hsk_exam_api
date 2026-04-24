@@ -7,6 +7,9 @@ package member
 
 import (
 	"context"
+	"io"
+
+	"exam/internal/model/bo"
 	sysentity "exam/internal/model/entity/sys"
 )
 
@@ -16,6 +19,8 @@ type (
 		MemberCreate(ctx context.Context, username string, password string, nickname string, email string, mobile string, creator string, status int) (int64, error)
 		MemberUpdate(ctx context.Context, id int64, password string, nickname string, email string, mobile string, updater string, status int) error
 		MemberDelete(ctx context.Context, id int64, updater string) error
+		// MemberImport 从 CSV 流批量创建客户（UTF-8，首行为表头）
+		MemberImport(ctx context.Context, r io.Reader, creator string) (*bo.MemberImportResult, error)
 		MemberProfile(ctx context.Context, memberId int64) (*sysentity.SysMember, error)
 		FindByUsername(ctx context.Context, username string) (*sysentity.SysMember, error)
 	}

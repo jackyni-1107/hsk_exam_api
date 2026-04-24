@@ -1,6 +1,9 @@
 package v1
 
-import "github.com/gogf/gf/v2/frame/g"
+import (
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/net/ghttp"
+)
 
 type MemberListReq struct {
 	g.Meta   `path:"/member/list" method:"get" tags:"会员" summary:"会员列表"`
@@ -57,3 +60,15 @@ type MemberDeleteReq struct {
 }
 
 type MemberDeleteRes struct{}
+
+type MemberImportReq struct {
+	g.Meta `path:"/member/import" method:"post" tags:"会员" summary:"批量导入客户(CSV)"`
+	File   *ghttp.UploadFile `json:"file" type:"file" dc:"CSV 文件（表单字段名 file）"`
+}
+
+type MemberImportRes struct {
+	Total   int      `json:"total" dc:"有效数据行数（不含空行）"`
+	Success int      `json:"success" dc:"成功条数"`
+	Failed  int      `json:"failed" dc:"失败条数"`
+	Errors  []string `json:"errors" dc:"失败明细（含行号，最多返回若干条）"`
+}
