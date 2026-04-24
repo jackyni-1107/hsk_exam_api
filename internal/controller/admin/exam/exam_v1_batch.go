@@ -18,13 +18,18 @@ func batchListItemPtr(b *bo.ExamBatchAdminItem) *v1.BatchListItem {
 	formattedStartAt := utility.ToRFC3339UTC(b.ExamStartAt)
 	formattedEndAt := utility.ToRFC3339UTC(b.ExamEndAt)
 	return &v1.BatchListItem{
-		Id:           b.Id,
-		ExamPaperIds: ids,
-		Title:        b.Title,
-		ExamStartAt:  formattedStartAt,
-		ExamEndAt:    formattedEndAt,
-		MemberCount:  b.MemberCount,
-		CreateTime:   utility.ToRFC3339UTC(b.CreateTime),
+		Id:                    b.Id,
+		ExamPaperIds:          ids,
+		Title:                 b.Title,
+		ExamStartAt:           formattedStartAt,
+		ExamEndAt:             formattedEndAt,
+		BatchKind:             b.BatchKind,
+		AllowMultipleAttempts: b.AllowMultipleAttempts,
+		MaxAttemptsPerMember:  b.MaxAttemptsPerMember,
+		SkipScoring:           b.SkipScoring,
+		AutoSubmitOnDeadline:  b.AutoSubmitOnDeadline,
+		MemberCount:           b.MemberCount,
+		CreateTime:            utility.ToRFC3339UTC(b.CreateTime),
 	}
 }
 
@@ -59,7 +64,18 @@ func (c *ControllerV1) BatchCreate(ctx context.Context, req *v1.BatchCreateReq) 
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := batch.Batch().ExamBatchCreate(ctx, req.Title, req.ExamStartAt, req.ExamEndAt, req.ExamPaperIds, creator)
+	autoSubmit := 1
+	if req.AutoSubmitOnDeadline != nil {
+		autoSubmit = *req.AutoSubmitOnDeadline
+	}
+	policy := bo.ExamBatchPolicyInput{
+		BatchKind:             req.BatchKind,
+		AllowMultipleAttempts: req.AllowMultipleAttempts,
+		MaxAttemptsPerMember:  req.MaxAttemptsPerMember,
+		SkipScoring:           req.SkipScoring,
+		AutoSubmitOnDeadline:  autoSubmit,
+	}
+	id, err := batch.Batch().ExamBatchCreate(ctx, req.Title, req.ExamStartAt, req.ExamEndAt, req.ExamPaperIds, creator, policy)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +87,22 @@ func (c *ControllerV1) BatchUpdate(ctx context.Context, req *v1.BatchUpdateReq) 
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	if err := batch.Batch().ExamBatchUpdate(ctx, req.Id, req.Title, req.ExamStartAt, req.ExamEndAt, req.ExamPaperIds, updater); err != nil {
+	detail, err := batch.Batch().ExamBatchDetail(ctx, req.Id)
+	if err != nil {
+		return nil, err
+	}
+	autoSubmit := detail.AutoSubmitOnDeadline
+	if req.AutoSubmitOnDeadline != nil {
+		autoSubmit = *req.AutoSubmitOnDeadline
+	}
+	policy := bo.ExamBatchPolicyInput{
+		BatchKind:             req.BatchKind,
+		AllowMultipleAttempts: req.AllowMultipleAttempts,
+		MaxAttemptsPerMember:  req.MaxAttemptsPerMember,
+		SkipScoring:           req.SkipScoring,
+		AutoSubmitOnDeadline:  autoSubmit,
+	}
+	if err := batch.Batch().ExamBatchUpdate(ctx, req.Id, req.Title, req.ExamStartAt, req.ExamEndAt, req.ExamPaperIds, updater, policy); err != nil {
 		return nil, err
 	}
 	return &v1.BatchUpdateRes{}, nil

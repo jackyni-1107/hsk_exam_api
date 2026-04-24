@@ -27,6 +27,7 @@ type ExamAttemptColumns struct {
 	MockExaminationPaperId string // 冗余 mock_examination_paper.id
 	ExamBatchId            string // exam_batch.id，0=历史非批次
 	MockLevelId            string // mock_levels.id，0=历史非批次
+	AttemptUniquenessScope string // 0=单条约束 1=可重复批次
 	Status                 string // 1=not_started 2=in_progress 3=submitted 4=ended
 	DurationSeconds        string // 开考时快照时长秒
 	StartedAt              string // 开考时间
@@ -52,6 +53,7 @@ var examAttemptColumns = ExamAttemptColumns{
 	MockExaminationPaperId: "mock_examination_paper_id",
 	ExamBatchId:            "exam_batch_id",
 	MockLevelId:            "mock_level_id",
+	AttemptUniquenessScope: "attempt_uniqueness_scope",
 	Status:                 "status",
 	DurationSeconds:        "duration_seconds",
 	StartedAt:              "started_at",

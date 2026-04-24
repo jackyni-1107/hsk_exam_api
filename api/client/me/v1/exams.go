@@ -20,4 +20,6 @@ type ExamBatchItem struct {
 	ExamEndAt              string `json:"exam_end_at" dc:"考试结束时间"`
 	AttemptId              int64  `json:"attempt_id" dc:"会话id"`
 	WindowStatus           string `json:"window_status" dc:"upcoming=未开始 open=进行中 closed=已结束或未开放"`
+	BatchKind              int    `json:"batch_kind" dc:"0=正式 1=练习"`
+	AllowMultipleAttempts  int    `json:"allow_multiple_attempts" dc:"1=可多次新建会话"`
 }

@@ -293,6 +293,13 @@ func maybeAutoSubmitIfOverdue(ctx context.Context, userID int64, attemptID int64
 	if !isAttemptInProgress(att.Status) || att.DeadlineAt == nil {
 		return nil
 	}
+	flags, err := loadExamBatchFlags(ctx, att.ExamBatchId)
+	if err != nil {
+		return nil
+	}
+	if !flags.AutoSubmitOnDeadline {
+		return nil
+	}
 	now := gtime.Now()
 	if !isAttemptDeadlineReached(att, now) {
 		return nil
@@ -433,13 +440,55 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 		if err != nil {
 			return err
 		}
+
+		skipScoring := false
+		if att.ExamBatchId > 0 {
+			var brow struct {
+				SkipScoring int `orm:"skip_scoring"`
+			}
+			if err := tx.Model(dao.ExamBatch.Table()).Ctx(ctx).
+				Fields("skip_scoring").
+				Where("id", att.ExamBatchId).
+				Where("delete_flag", consts.DeleteFlagNotDeleted).
+				Scan(&brow); err != nil {
+				return err
+			}
+			skipScoring = brow.SkipScoring != 0
+		}
+
+		now := gtime.Now()
+		hasFlag := 0
+		for _, m := range meta {
+			if m.IsSubjective != 0 && m.IsExample == 0 {
+				hasFlag = 1
+				break
+			}
+		}
+
+		if skipScoring {
+			applied, err := applyAttemptTransitionTx(ctx, tx, att, attemptEventFinalize, examdo.ExamAttempt{
+				EndedAt:         now,
+				ObjectiveScore:  0,
+				SubjectiveScore: 0,
+				TotalScore:      0,
+				HasSubjective:   hasFlag,
+				Updater:         updaterTask,
+				UpdateTime:      gtime.Now(),
+			})
+			if err != nil {
+				return err
+			}
+			if !applied {
+				return nil
+			}
+			return nil
+		}
+
 		answers, err := loadAnswersMapTx(ctx, tx, attemptID)
 		if err != nil {
 			return err
 		}
 		objScore, hasSubj := examutil.ScoreObjective(meta, answers)
-		now := gtime.Now()
-		hasFlag := 0
 		if hasSubj {
 			hasFlag = 1
 		}

@@ -106,6 +106,12 @@ var (
 	CodeExamPaperPurgeHasBatchBinding      = gcode.New(11127, "err.exam_paper_purge_has_batch_binding", nil)
 	// 批次考试结束时间已过，禁止更新批次与导入成员
 	CodeExamBatchEnded = gcode.New(11128, "err.exam_batch_ended", nil)
+	// 可重复批次下已达到每人每卷最大会话数
+	CodeExamBatchMaxAttemptsReached = gcode.New(11129, "err.exam_batch_max_attempts_reached", nil)
+	// 关闭「允许多次作答」前存在同一学员同卷多条未删除会话
+	CodeExamBatchMultipleAttemptsNotAllowed = gcode.New(11130, "err.exam_batch_multiple_attempts_not_allowed", nil)
+	// 练习批次面向全体登录学员，不允许维护 exam_batch_member
+	CodeExamBatchPracticeMemberNotAllowed = gcode.New(11131, "err.exam_batch_practice_member_not_allowed", nil)
 	// Mock 模拟卷（11201-11299）
 	CodeMockExamPaperNotFound   = gcode.New(11201, "err.mock_exam_paper_not_found", nil)
 	CodeMockLevelNotFound       = gcode.New(11202, "err.mock_level_not_found", nil)

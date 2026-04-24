@@ -21,8 +21,10 @@ import (
 	"exam/internal/utility/examutil"
 )
 
-// CreateAttemptForBatch 按批次创建会话（未开始）；每用户每批次每 exam_paper 仅允许一条未删除记录。
-// examPaperID 对应用户在 exam_batch_member 中的卷；同批次为该用户配置了多张卷时必须传入，否则返回 11124。
+// CreateAttemptForBatch 按批次创建会话（未开始）。
+// 默认每用户每批次每 exam_paper 仅一条未删除记录；批次开启 allow_multiple_attempts 时每次新建会话（受 max_attempts_per_member 限制）。
+// 正式批次：examPaperID 对应用户在 exam_batch_member 中的卷；同批次为该用户配置了多张卷时必须传入，否则返回 11124。
+// 练习批次：不校验 exam_batch_member，试卷来自 exam_batch_paper；多卷时必须传入 examPaperID。
 func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, examPaperID int64) (int64, error) {
 	var batch examentity.ExamBatch
 	if err := dao.ExamBatch.Ctx(ctx).
@@ -39,34 +41,70 @@ func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batc
 		return 0, gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
 	}
 
-	memberQ := dao.ExamBatchMember.Ctx(ctx).
-		Where("batch_id", batchID).
-		Where("member_id", userID)
-	if examPaperID > 0 {
-		memberQ = memberQ.Where("exam_paper_id", examPaperID)
-	} else {
-		cnt, err := dao.ExamBatchMember.Ctx(ctx).
+	var resolvedPaperID int64
+	if batch.BatchKind == consts.ExamBatchKindPractice {
+		var ebpRows []struct {
+			ExamPaperId int64 `orm:"exam_paper_id"`
+		}
+		if err := dao.ExamBatchPaper.Ctx(ctx).
+			Fields("exam_paper_id").
 			Where("batch_id", batchID).
-			Where("member_id", userID).
-			Count()
-		if err != nil {
+			OrderAsc("exam_paper_id").
+			Scan(&ebpRows); err != nil {
 			return 0, err
 		}
-		if cnt > 1 {
-			return 0, gerror.NewCode(consts.CodeExamPaperIdRequiredForBatchAttempt)
+		if len(ebpRows) == 0 {
+			return 0, gerror.NewCode(consts.CodeExamPaperNotFound)
 		}
+		if examPaperID > 0 {
+			found := false
+			for _, r := range ebpRows {
+				if r.ExamPaperId == examPaperID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return 0, gerror.NewCode(consts.CodeExamBatchPaperNotInBatch)
+			}
+			resolvedPaperID = examPaperID
+		} else if len(ebpRows) > 1 {
+			return 0, gerror.NewCode(consts.CodeExamPaperIdRequiredForBatchAttempt)
+		} else {
+			resolvedPaperID = ebpRows[0].ExamPaperId
+		}
+	} else {
+		memberQ := dao.ExamBatchMember.Ctx(ctx).
+			Where("batch_id", batchID).
+			Where("member_id", userID)
+		if examPaperID > 0 {
+			memberQ = memberQ.Where("exam_paper_id", examPaperID)
+		} else {
+			cnt, err := dao.ExamBatchMember.Ctx(ctx).
+				Where("batch_id", batchID).
+				Where("member_id", userID).
+				Count()
+			if err != nil {
+				return 0, err
+			}
+			if cnt > 1 {
+				return 0, gerror.NewCode(consts.CodeExamPaperIdRequiredForBatchAttempt)
+			}
+		}
+
+		var link examentity.ExamBatchMember
+		if err := memberQ.Limit(1).Scan(&link); err != nil {
+			return 0, err
+		}
+		if link.BatchId == 0 {
+			return 0, gerror.NewCode(consts.CodeExamBatchMemberNotFound)
+		}
+		resolvedPaperID = link.ExamPaperId
 	}
 
-	var link examentity.ExamBatchMember
-	if err := memberQ.Limit(1).Scan(&link); err != nil {
-		return 0, err
-	}
-	if link.BatchId == 0 {
-		return 0, gerror.NewCode(consts.CodeExamBatchMemberNotFound)
-	}
 	var paper examentity.ExamPaper
 	if err := dao.ExamPaper.Ctx(ctx).
-		Where("id", link.ExamPaperId).
+		Where("id", resolvedPaperID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&paper); err != nil {
 		return 0, err
@@ -77,6 +115,13 @@ func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batc
 	var mp mockentity.MockExaminationPaper
 	_ = dao.MockExaminationPaper.Ctx(ctx).Where("id", paper.MockExaminationPaperId).Scan(&mp)
 	levelID := mp.LevelId
+
+	allowMulti := batch.AllowMultipleAttempts != 0
+	uniqScope := 0
+	if allowMulti {
+		uniqScope = 1
+	}
+
 	findExistingAttempt := func() (int64, error) {
 		attemptVar, err := dao.ExamAttempt.Ctx(ctx).
 			Fields("id").
@@ -90,12 +135,48 @@ func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batc
 		}
 		return attemptVar.Int64(), nil
 	}
-	attemptId, err := findExistingAttempt()
-	if err != nil {
-		return 0, err
+
+	if !allowMulti {
+		attemptId, err := findExistingAttempt()
+		if err != nil {
+			return 0, err
+		}
+		if attemptId > 0 {
+			return attemptId, nil
+		}
 	}
-	if attemptId > 0 {
-		return attemptId, nil
+
+	insertAttempt := func() (int64, error) {
+		return dao.ExamAttempt.Ctx(ctx).InsertAndGetId(examdo.ExamAttempt{
+			MemberId:               userID,
+			ExamPaperId:            paper.Id,
+			MockExaminationPaperId: paper.MockExaminationPaperId,
+			ExamBatchId:            batchID,
+			MockLevelId:            levelID,
+			AttemptUniquenessScope: uniqScope,
+			Status:                 int(attemptStateNotStarted),
+			DurationSeconds:        0,
+			Creator:                updaterClient,
+			Updater:                updaterClient,
+			DeleteFlag:             consts.DeleteFlagNotDeleted,
+			CreateTime:             gtime.Now(),
+			UpdateTime:             gtime.Now(),
+		})
+	}
+
+	if allowMulti && batch.MaxAttemptsPerMember > 0 {
+		n, err := dao.ExamAttempt.Ctx(ctx).
+			Where("member_id", userID).
+			Where("exam_batch_id", batchID).
+			Where("exam_paper_id", paper.Id).
+			Where("delete_flag", consts.DeleteFlagNotDeleted).
+			Count()
+		if err != nil {
+			return 0, err
+		}
+		if int(n) >= batch.MaxAttemptsPerMember {
+			return 0, gerror.NewCode(consts.CodeExamBatchMaxAttemptsReached)
+		}
 	}
 
 	ok, err := tryAcquireAttemptCreateLock(ctx, userID, batchID, paper.Id)
@@ -105,39 +186,57 @@ func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batc
 	if !ok {
 		for i := 0; i < 5; i++ {
 			time.Sleep(50 * time.Millisecond)
-			if attemptId, err = findExistingAttempt(); err != nil || attemptId > 0 {
-				return attemptId, err
+			ok2, err2 := tryAcquireAttemptCreateLock(ctx, userID, batchID, paper.Id)
+			if err2 != nil {
+				return 0, err2
+			}
+			if ok2 {
+				ok = true
+				break
+			}
+			if !allowMulti {
+				if attemptId, err3 := findExistingAttempt(); err3 != nil || attemptId > 0 {
+					return attemptId, err3
+				}
 			}
 		}
-		return 0, gerror.NewCode(consts.CodeTooManyRequests)
+		if !ok {
+			return 0, gerror.NewCode(consts.CodeTooManyRequests)
+		}
 	}
 	defer releaseAttemptCreateLock(ctx, userID, batchID, paper.Id)
 
-	attemptId, err = findExistingAttempt()
-	if err != nil {
-		return 0, err
-	}
-	if attemptId > 0 {
-		return attemptId, nil
+	if allowMulti && batch.MaxAttemptsPerMember > 0 {
+		n, err := dao.ExamAttempt.Ctx(ctx).
+			Where("member_id", userID).
+			Where("exam_batch_id", batchID).
+			Where("exam_paper_id", paper.Id).
+			Where("delete_flag", consts.DeleteFlagNotDeleted).
+			Count()
+		if err != nil {
+			return 0, err
+		}
+		if int(n) >= batch.MaxAttemptsPerMember {
+			return 0, gerror.NewCode(consts.CodeExamBatchMaxAttemptsReached)
+		}
 	}
 
-	id, err := dao.ExamAttempt.Ctx(ctx).InsertAndGetId(examdo.ExamAttempt{
-		MemberId:               userID,
-		ExamPaperId:            paper.Id,
-		MockExaminationPaperId: paper.MockExaminationPaperId,
-		ExamBatchId:            batchID,
-		MockLevelId:            levelID,
-		Status:                 int(attemptStateNotStarted),
-		DurationSeconds:        0,
-		Creator:                updaterClient,
-		Updater:                updaterClient,
-		DeleteFlag:             consts.DeleteFlagNotDeleted,
-		CreateTime:             gtime.Now(),
-		UpdateTime:             gtime.Now(),
-	})
-	if err != nil {
-		if attemptId, findErr := findExistingAttempt(); findErr == nil && attemptId > 0 {
+	if !allowMulti {
+		attemptId, err := findExistingAttempt()
+		if err != nil {
+			return 0, err
+		}
+		if attemptId > 0 {
 			return attemptId, nil
+		}
+	}
+
+	id, err := insertAttempt()
+	if err != nil {
+		if !allowMulti {
+			if attemptId, findErr := findExistingAttempt(); findErr == nil && attemptId > 0 {
+				return attemptId, nil
+			}
 		}
 		return 0, err
 	}
@@ -285,6 +384,10 @@ func (s *sAttempt) SaveAnswers(ctx context.Context, userID int64, attemptID int6
 	if err != nil {
 		return err
 	}
+	batchFlags, err := loadExamBatchFlags(ctx, att.ExamBatchId)
+	if err != nil {
+		return err
+	}
 	now := gtime.Now()
 	expired, err := isExamBatchExpired(ctx, att.ExamBatchId, now)
 	if err != nil {
@@ -294,7 +397,7 @@ func (s *sAttempt) SaveAnswers(ctx context.Context, userID int64, attemptID int6
 		_ = markSubmittedLocked(ctx, attemptID, attemptEventBatchExpired, updaterTask)
 		return gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
 	}
-	if isAttemptDeadlineReached(att, now) {
+	if isAttemptDeadlineReached(att, now) && batchFlags.AutoSubmitOnDeadline {
 		_ = markSubmittedLocked(ctx, attemptID, attemptEventTimeout, updaterClient)
 		return gerror.NewCode(consts.CodeExamAlreadySubmitted)
 	}

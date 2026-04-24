@@ -33,6 +33,8 @@ func (c *ControllerV1) MyExams(ctx context.Context, req *v1.ExamsReq) (res *v1.E
 			ExamEndAt:              utility.ToRFC3339UTC(r.ExamEndAt),
 			AttemptId:              r.AttemptId,
 			WindowStatus:           r.WindowStatus,
+			BatchKind:              r.BatchKind,
+			AllowMultipleAttempts:  r.AllowMultipleAttempts,
 		})
 	}
 	return &v1.ExamsRes{List: list}, nil

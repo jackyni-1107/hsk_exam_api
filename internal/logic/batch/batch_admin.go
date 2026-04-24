@@ -119,8 +119,32 @@ func (s *sBatch) ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAd
 	return &item, nil
 }
 
+// batchHasMemberPaperWithMultipleAttempts 同一批次、同一学员、同一卷是否存在多条未删除会话。
+func batchHasMemberPaperWithMultipleAttempts(ctx context.Context, batchID int64) (bool, error) {
+	type row struct {
+		C int `orm:"c"`
+	}
+	var r row
+	err := g.DB().Ctx(ctx).Raw(`
+SELECT COUNT(*) AS c FROM (
+	SELECT member_id, exam_paper_id
+	FROM exam_attempt
+	WHERE exam_batch_id = ? AND delete_flag = ?
+	GROUP BY member_id, exam_paper_id
+	HAVING COUNT(*) > 1
+) t`, batchID, consts.DeleteFlagNotDeleted).Scan(&r)
+	if err != nil {
+		return false, err
+	}
+	return r.C > 0, nil
+}
+
 // ExamBatchCreate 创建考试批次
-func (s *sBatch) ExamBatchCreate(ctx context.Context, title, examStartAt, examEndAt string, examPaperIDs []int64, creator string) (int64, error) {
+func (s *sBatch) ExamBatchCreate(ctx context.Context, title, examStartAt, examEndAt string, examPaperIDs []int64, creator string, policy bo.ExamBatchPolicyInput) (int64, error) {
+	pol, err := normalizeExamBatchPolicy(policy)
+	if err != nil {
+		return 0, err
+	}
 	paperIDs := s.dedupIDs(examPaperIDs)
 	if len(paperIDs) == 0 {
 		return 0, gerror.NewCode(consts.CodeInvalidParams)
@@ -146,14 +170,19 @@ func (s *sBatch) ExamBatchCreate(ctx context.Context, title, examStartAt, examEn
 	var newID int64
 	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		row := examentity.ExamBatch{
-			Title:       strings.TrimSpace(title),
-			ExamStartAt: st,
-			ExamEndAt:   en,
-			Creator:     creator,
-			Updater:     creator,
-			CreateTime:  gtime.Now(),
-			UpdateTime:  gtime.Now(),
-			DeleteFlag:  consts.DeleteFlagNotDeleted,
+			Title:                 strings.TrimSpace(title),
+			ExamStartAt:           st,
+			ExamEndAt:             en,
+			BatchKind:             pol.BatchKind,
+			AllowMultipleAttempts: pol.AllowMultipleAttempts,
+			MaxAttemptsPerMember:  pol.MaxAttemptsPerMember,
+			SkipScoring:           pol.SkipScoring,
+			AutoSubmitOnDeadline:  pol.AutoSubmitOnDeadline,
+			Creator:               creator,
+			Updater:               creator,
+			CreateTime:            gtime.Now(),
+			UpdateTime:            gtime.Now(),
+			DeleteFlag:            consts.DeleteFlagNotDeleted,
 		}
 		pid, err := tx.Model(dao.ExamBatch.Table()).Ctx(ctx).InsertAndGetId(row)
 		if err != nil {
@@ -190,10 +219,23 @@ func (s *sBatch) ExamBatchCreate(ctx context.Context, title, examStartAt, examEn
 }
 
 // ExamBatchUpdate 更新考试批次
-func (s *sBatch) ExamBatchUpdate(ctx context.Context, id int64, title, examStartAt, examEndAt string, examPaperIDs []int64, updater string) error {
+func (s *sBatch) ExamBatchUpdate(ctx context.Context, id int64, title, examStartAt, examEndAt string, examPaperIDs []int64, updater string, policy bo.ExamBatchPolicyInput) error {
 	b, err := examBatchByID(ctx, id)
 	if err != nil {
 		return err
+	}
+	pol, err := normalizeExamBatchPolicy(policy)
+	if err != nil {
+		return err
+	}
+	if b.AllowMultipleAttempts != 0 && pol.AllowMultipleAttempts == 0 {
+		dup, err := batchHasMemberPaperWithMultipleAttempts(ctx, id)
+		if err != nil {
+			return err
+		}
+		if dup {
+			return gerror.NewCode(consts.CodeExamBatchMultipleAttemptsNotAllowed)
+		}
 	}
 	if examBatchEnded(b) {
 		return gerror.NewCode(consts.CodeExamBatchEnded)
@@ -234,11 +276,16 @@ func (s *sBatch) ExamBatchUpdate(ctx context.Context, id int64, title, examStart
 	beforePaperStr := utility.JoinSortedInt64IDs(beforePapers)
 	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		if _, err := tx.Model(dao.ExamBatch.Table()).Ctx(ctx).Where("id", id).Data(g.Map{
-			dao.ExamBatch.Columns().Title:       strings.TrimSpace(title),
-			dao.ExamBatch.Columns().ExamStartAt: st,
-			dao.ExamBatch.Columns().ExamEndAt:   en,
-			dao.ExamBatch.Columns().Updater:     updater,
-			dao.ExamBatch.Columns().UpdateTime:  gtime.Now(),
+			dao.ExamBatch.Columns().Title:                 strings.TrimSpace(title),
+			dao.ExamBatch.Columns().ExamStartAt:           st,
+			dao.ExamBatch.Columns().ExamEndAt:             en,
+			dao.ExamBatch.Columns().BatchKind:             pol.BatchKind,
+			dao.ExamBatch.Columns().AllowMultipleAttempts: pol.AllowMultipleAttempts,
+			dao.ExamBatch.Columns().MaxAttemptsPerMember:  pol.MaxAttemptsPerMember,
+			dao.ExamBatch.Columns().SkipScoring:           pol.SkipScoring,
+			dao.ExamBatch.Columns().AutoSubmitOnDeadline:  pol.AutoSubmitOnDeadline,
+			dao.ExamBatch.Columns().Updater:               updater,
+			dao.ExamBatch.Columns().UpdateTime:            gtime.Now(),
 		}).Update(); err != nil {
 			return err
 		}
@@ -311,6 +358,9 @@ func (s *sBatch) ExamBatchMembersAdd(ctx context.Context, batchID int64, examPap
 	if err != nil {
 		return 0, err
 	}
+	if b.BatchKind == consts.ExamBatchKindPractice {
+		return 0, gerror.NewCode(consts.CodeExamBatchPracticeMemberNotAllowed)
+	}
 	if examBatchEnded(b) {
 		return 0, gerror.NewCode(consts.CodeExamBatchEnded)
 	}
@@ -378,6 +428,13 @@ func (s *sBatch) ExamBatchMembersRemove(ctx context.Context, batchID int64, exam
 	ids := s.dedupIDs(memberIDs)
 	if len(ids) == 0 {
 		return 0, gerror.NewCode(consts.CodeExamBatchMemberNotFound)
+	}
+	b, err := examBatchByID(ctx, batchID)
+	if err != nil {
+		return 0, err
+	}
+	if b.BatchKind == consts.ExamBatchKindPractice {
+		return 0, gerror.NewCode(consts.CodeExamBatchPracticeMemberNotAllowed)
 	}
 
 	r, err := dao.ExamBatchMember.Ctx(ctx).
@@ -473,13 +530,18 @@ func batchHasMembersOutsidePaperSet(ctx context.Context, batchID int64, paperIDs
 
 func toBatchAdminItem(b examentity.ExamBatch, paperIDs []int64, memberCount int) bo.ExamBatchAdminItem {
 	return bo.ExamBatchAdminItem{
-		Id:           b.Id,
-		ExamPaperIds: paperIDs,
-		Title:        b.Title,
-		ExamStartAt:  b.ExamStartAt,
-		ExamEndAt:    b.ExamEndAt,
-		MemberCount:  memberCount,
-		CreateTime:   b.CreateTime,
+		Id:                    b.Id,
+		ExamPaperIds:          paperIDs,
+		Title:                 b.Title,
+		ExamStartAt:           b.ExamStartAt,
+		ExamEndAt:             b.ExamEndAt,
+		BatchKind:             b.BatchKind,
+		AllowMultipleAttempts: b.AllowMultipleAttempts,
+		MaxAttemptsPerMember:  b.MaxAttemptsPerMember,
+		SkipScoring:           b.SkipScoring,
+		AutoSubmitOnDeadline:  b.AutoSubmitOnDeadline,
+		MemberCount:           memberCount,
+		CreateTime:            b.CreateTime,
 	}
 }
 

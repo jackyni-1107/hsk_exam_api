@@ -49,6 +49,7 @@ func (examBatchExpireHandler) Execute(ctx context.Context, taskID int64, params 
 		Where("exam_attempt.status", consts.ExamAttemptInProgress).
 		Where("exam_attempt.delete_flag", consts.DeleteFlagNotDeleted).
 		Where("exam_batch.delete_flag", consts.DeleteFlagNotDeleted).
+		Where("exam_batch.auto_submit_on_deadline", 1).
 		WhereLT("exam_batch.exam_end_at", gtime.Now())
 	if p.ExamBatchID > 0 {
 		model = model.Where("exam_attempt.exam_batch_id", p.ExamBatchID)

@@ -21,28 +21,38 @@ type ExamBatchDao struct {
 
 // ExamBatchColumns defines and stores column names for the table exam_batch.
 type ExamBatchColumns struct {
-	Id          string // 主键
-	Title       string // 批次名称
-	ExamStartAt string // 考试允许开始时间
-	ExamEndAt   string // 考试允许结束时间
-	Creator     string // 创建者
-	CreateTime  string // 创建时间
-	Updater     string // 更新者
-	UpdateTime  string // 更新时间
-	DeleteFlag  string // 逻辑删除：0-否，1-是
+	Id                    string // 主键
+	Title                 string // 批次名称
+	ExamStartAt           string // 考试允许开始时间
+	ExamEndAt             string // 考试允许结束时间
+	BatchKind             string // 0=formal 1=practice
+	AllowMultipleAttempts string // 1=同用户同卷可多条会话
+	MaxAttemptsPerMember  string // 可重复时每人每卷上限
+	SkipScoring           string // 1=不落正式成绩
+	AutoSubmitOnDeadline  string // 0=不因个人 deadline 自动交卷等
+	Creator               string // 创建者
+	CreateTime            string // 创建时间
+	Updater               string // 更新者
+	UpdateTime            string // 更新时间
+	DeleteFlag            string // 逻辑删除：0-否，1-是
 }
 
 // examBatchColumns holds the columns for the table exam_batch.
 var examBatchColumns = ExamBatchColumns{
-	Id:          "id",
-	Title:       "title",
-	ExamStartAt: "exam_start_at",
-	ExamEndAt:   "exam_end_at",
-	Creator:     "creator",
-	CreateTime:  "create_time",
-	Updater:     "updater",
-	UpdateTime:  "update_time",
-	DeleteFlag:  "delete_flag",
+	Id:                    "id",
+	Title:                 "title",
+	ExamStartAt:           "exam_start_at",
+	ExamEndAt:             "exam_end_at",
+	BatchKind:             "batch_kind",
+	AllowMultipleAttempts: "allow_multiple_attempts",
+	MaxAttemptsPerMember:  "max_attempts_per_member",
+	SkipScoring:           "skip_scoring",
+	AutoSubmitOnDeadline:  "auto_submit_on_deadline",
+	Creator:               "creator",
+	CreateTime:            "create_time",
+	Updater:               "updater",
+	UpdateTime:            "update_time",
+	DeleteFlag:            "delete_flag",
 }
 
 // NewExamBatchDao creates and returns a new DAO object for table data access.

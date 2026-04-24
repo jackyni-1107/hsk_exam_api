@@ -17,13 +17,18 @@ type BatchListRes struct {
 }
 
 type BatchListItem struct {
-	Id           int64   `json:"id" dc:"批次ID"`
-	ExamPaperIds []int64 `json:"exam_paper_ids" dc:"关联的 exam_paper.id 列表"`
-	Title        string  `json:"title" dc:"批次名称"`
-	ExamStartAt  string  `json:"exam_start_at" dc:"考试开始时间"`
-	ExamEndAt    string  `json:"exam_end_at" dc:"考试结束时间"`
-	MemberCount  int     `json:"member_count" dc:"学员数"`
-	CreateTime   string  `json:"create_time" dc:"创建时间"`
+	Id                    int64   `json:"id" dc:"批次ID"`
+	ExamPaperIds          []int64 `json:"exam_paper_ids" dc:"关联的 exam_paper.id 列表"`
+	Title                 string  `json:"title" dc:"批次名称"`
+	ExamStartAt           string  `json:"exam_start_at" dc:"考试开始时间"`
+	ExamEndAt             string  `json:"exam_end_at" dc:"考试结束时间"`
+	BatchKind             int     `json:"batch_kind" dc:"0=正式 1=练习/模拟"`
+	AllowMultipleAttempts int     `json:"allow_multiple_attempts" dc:"1=同用户同卷可多次新建会话"`
+	MaxAttemptsPerMember  int     `json:"max_attempts_per_member" dc:"可重复时每人每卷上限，0=不限制"`
+	SkipScoring           int     `json:"skip_scoring" dc:"1=交卷后不写入正式成绩"`
+	AutoSubmitOnDeadline  int     `json:"auto_submit_on_deadline" dc:"0=不因个人考试倒计时自动交卷或拦截保存"`
+	MemberCount           int     `json:"member_count" dc:"学员数"`
+	CreateTime            string  `json:"create_time" dc:"创建时间"`
 }
 
 type BatchDetailReq struct {
@@ -36,11 +41,16 @@ type BatchDetailRes struct {
 }
 
 type BatchCreateReq struct {
-	g.Meta       `path:"/exam/batch" method:"post" tags:"考试批次" summary:"创建批次"`
-	Title        string  `json:"title" dc:"批次名称"`
-	ExamStartAt  string  `json:"exam_start_at" v:"required#err.invalid_params" dc:"考试允许开始时间，RFC3339 或常见日期时间字符串"`
-	ExamEndAt    string  `json:"exam_end_at" v:"required#err.invalid_params" dc:"考试允许结束时间"`
-	ExamPaperIds []int64 `json:"exam_paper_ids" v:"required#err.invalid_params" dc:"exam_paper.id 多选"`
+	g.Meta                `path:"/exam/batch" method:"post" tags:"考试批次" summary:"创建批次"`
+	Title                 string  `json:"title" dc:"批次名称"`
+	ExamStartAt           string  `json:"exam_start_at" v:"required#err.invalid_params" dc:"考试允许开始时间，RFC3339 或常见日期时间字符串"`
+	ExamEndAt             string  `json:"exam_end_at" v:"required#err.invalid_params" dc:"考试允许结束时间"`
+	ExamPaperIds          []int64 `json:"exam_paper_ids" v:"required#err.invalid_params" dc:"exam_paper.id 多选"`
+	BatchKind             int     `json:"batch_kind" dc:"0=正式 1=练习，默认 0"`
+	AllowMultipleAttempts int     `json:"allow_multiple_attempts" dc:"1=允许多次新建答题会话，默认 0"`
+	MaxAttemptsPerMember  int     `json:"max_attempts_per_member" dc:"可重复时每人每卷上限，0=不限制"`
+	SkipScoring           int     `json:"skip_scoring" dc:"1=跳过正式算分与成绩写入，默认 0"`
+	AutoSubmitOnDeadline  *int    `json:"auto_submit_on_deadline,omitempty" dc:"不传则默认 1；0=不因个人 deadline 自动交卷或拦截保存"`
 }
 
 type BatchCreateRes struct {
@@ -48,12 +58,17 @@ type BatchCreateRes struct {
 }
 
 type BatchUpdateReq struct {
-	g.Meta       `path:"/exam/batch/{id}" method:"put" tags:"考试批次" summary:"更新批次"`
-	Id           int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"批次ID"`
-	Title        string  `json:"title" dc:"批次名称"`
-	ExamStartAt  string  `json:"exam_start_at" v:"required#err.invalid_params" dc:"考试允许开始时间"`
-	ExamEndAt    string  `json:"exam_end_at" v:"required#err.invalid_params" dc:"考试允许结束时间"`
-	ExamPaperIds []int64 `json:"exam_paper_ids" v:"required#err.invalid_params" dc:"exam_paper.id 列表"`
+	g.Meta                `path:"/exam/batch/{id}" method:"put" tags:"考试批次" summary:"更新批次"`
+	Id                    int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"批次ID"`
+	Title                 string  `json:"title" dc:"批次名称"`
+	ExamStartAt           string  `json:"exam_start_at" v:"required#err.invalid_params" dc:"考试允许开始时间"`
+	ExamEndAt             string  `json:"exam_end_at" v:"required#err.invalid_params" dc:"考试允许结束时间"`
+	ExamPaperIds          []int64 `json:"exam_paper_ids" v:"required#err.invalid_params" dc:"exam_paper.id 列表"`
+	BatchKind             int     `json:"batch_kind" dc:"0=正式 1=练习"`
+	AllowMultipleAttempts int     `json:"allow_multiple_attempts" dc:"1=允许多次新建答题会话"`
+	MaxAttemptsPerMember  int     `json:"max_attempts_per_member" dc:"可重复时每人每卷上限，0=不限制"`
+	SkipScoring           int     `json:"skip_scoring" dc:"1=跳过正式算分"`
+	AutoSubmitOnDeadline  *int    `json:"auto_submit_on_deadline,omitempty" dc:"不传则保持库中值；0=不因个人 deadline 自动交卷或拦截保存"`
 }
 
 type BatchUpdateRes struct{}

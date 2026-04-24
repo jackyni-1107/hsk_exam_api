@@ -7,10 +7,11 @@ package batch
 
 import (
 	"context"
-	"exam/internal/model/bo"
-	examentity "exam/internal/model/entity/exam"
 
 	"github.com/gogf/gf/v2/os/gtime"
+
+	"exam/internal/model/bo"
+	examentity "exam/internal/model/entity/exam"
 )
 
 type (
@@ -19,10 +20,10 @@ type (
 		ExamBatchList(ctx context.Context, examPaperID int64, page int, size int, timeFrom, timeTo string) (list []bo.ExamBatchAdminItem, total int, err error)
 		// ExamBatchDetail 批次详情（含 exam_paper.id 列表与学员数）。
 		ExamBatchDetail(ctx context.Context, id int64) (*bo.ExamBatchAdminItem, error)
-		// ExamBatchCreate 创建考试批次
-		ExamBatchCreate(ctx context.Context, title string, examStartAt string, examEndAt string, examPaperIDs []int64, creator string) (int64, error)
+		// ExamBatchCreate 创建考试批次（policy 为策略字段，须先经业务层 normalize）
+		ExamBatchCreate(ctx context.Context, title string, examStartAt string, examEndAt string, examPaperIDs []int64, creator string, policy bo.ExamBatchPolicyInput) (int64, error)
 		// ExamBatchUpdate 更新考试批次
-		ExamBatchUpdate(ctx context.Context, id int64, title string, examStartAt string, examEndAt string, examPaperIDs []int64, updater string) error
+		ExamBatchUpdate(ctx context.Context, id int64, title string, examStartAt string, examEndAt string, examPaperIDs []int64, updater string, policy bo.ExamBatchPolicyInput) error
 		// ExamBatchDelete 删除考试批次
 		ExamBatchDelete(ctx context.Context, id int64) error
 		// ExamBatchMembersAdd 批量向指定批次和试卷（exam_paper.id）添加学员

@@ -13,4 +13,6 @@ type MyExamBatchItem struct {
 	ExamEndAt              *gtime.Time `json:"exam_end_at"`
 	AttemptId              int64       `json:"attempt_id"`
 	WindowStatus           string      `json:"window_status"` // upcoming | open | closed
+	BatchKind              int         `json:"batch_kind"`
+	AllowMultipleAttempts  int         `json:"allow_multiple_attempts"`
 }
