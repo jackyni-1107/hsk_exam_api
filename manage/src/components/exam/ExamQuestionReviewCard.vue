@@ -7,7 +7,6 @@
     }"
   >
     <div class="exam-q-card__head">
-      <span class="exam-q-badge">{{ questionNo }}</span>
       <div class="exam-q-card__meta">
         <span v-if="isExample === 1" class="exam-q-pill">例题</span>
         <span
@@ -49,7 +48,7 @@
       />
       <div v-else class="exam-q-passage-plain">{{ blockPassageText }}</div>
     </div>
-
+    <span class="exam-q-badge">{{ questionNo }}</span>
     <template v-if="showStemSection">
       <div class="exam-q-label">题干</div>
       <ExamScreenTextBlocks
@@ -76,15 +75,15 @@
       />
     </template>
 
-    <div v-if="analysisText" class="exam-q-analysis">
-      <div class="exam-q-label">解析</div>
-      <div
-        v-if="looksLikeHtml(analysisText)"
-        class="exam-q-analysis-body exam-q-analysis-body--html exam-rich-html"
-        v-html="sanitizeHtmlForDisplay(analysisText)"
-      />
-      <div v-else class="exam-q-analysis-body">{{ analysisText }}</div>
-    </div>
+<!--    <div v-if="analysisText" class="exam-q-analysis">-->
+<!--      <div class="exam-q-label">解析</div>-->
+<!--      <div-->
+<!--        v-if="looksLikeHtml(analysisText)"-->
+<!--        class="exam-q-analysis-body exam-q-analysis-body&#45;&#45;html exam-rich-html"-->
+<!--        v-html="sanitizeHtmlForDisplay(analysisText)"-->
+<!--      />-->
+<!--      <div v-else class="exam-q-analysis-body">{{ analysisText }}</div>-->
+<!--    </div>-->
   </article>
 </template>
 
