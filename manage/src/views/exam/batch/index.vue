@@ -191,6 +191,9 @@
             <el-radio :label="0">正式考试</el-radio>
             <el-radio :label="1">练习 / 模拟</el-radio>
           </el-radio-group>
+          <span v-if="form.batch_kind === 1" class="field-hint">
+            练习批次对全体登录学员开放，无需在列表中维护「成员」。
+          </span>
         </el-form-item>
         <el-form-item label="允许多次作答">
           <el-switch

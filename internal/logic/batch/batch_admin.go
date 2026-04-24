@@ -429,13 +429,6 @@ func (s *sBatch) ExamBatchMembersRemove(ctx context.Context, batchID int64, exam
 	if len(ids) == 0 {
 		return 0, gerror.NewCode(consts.CodeExamBatchMemberNotFound)
 	}
-	b, err := examBatchByID(ctx, batchID)
-	if err != nil {
-		return 0, err
-	}
-	if b.BatchKind == consts.ExamBatchKindPractice {
-		return 0, gerror.NewCode(consts.CodeExamBatchPracticeMemberNotAllowed)
-	}
 
 	r, err := dao.ExamBatchMember.Ctx(ctx).
 		Where("batch_id", batchID).
