@@ -44,11 +44,10 @@ func (s *sAttempt) AttemptAdminList(ctx context.Context, page, size int, level s
 		return nil, 0, nil
 	}
 	offset := (page - 1) * size
-	// 列顺序须与 model/bo.AttemptAdminListRow 字段一致，否则 Raw().Scan 错位导致 subjective_graded 等乱值
+	// 列顺序须与 model/bo.AttemptAdminListRow 字段一致，否则 Raw().Scan 错位
 	listSQL := `SELECT r.attempt_id AS id, r.member_id, IFNULL(p.mock_examination_paper_id,0) AS examination_paper_id,
 IFNULL(r.exam_batch_id,0) AS exam_batch_id, IFNULL(r.mock_level_id,0) AS mock_level_id, r.status,
 r.objective_score, r.subjective_score, r.total_score, r.has_subjective,
-IFNULL(subj_gr.has_subjective_graded, 0) AS subjective_graded,
 a.started_at, a.submitted_at, a.ended_at, a.create_time,
 IFNULL(u.username,'') AS username, IFNULL(u.nickname,'') AS nickname,
 	IFNULL(TRIM(IFNULL(m.name,'')), '') AS paper_title,
@@ -132,11 +131,21 @@ func (s *sAttempt) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo
 	correctByQ := loadCorrectOptionIDsByQuestion(ctx, qIDs)
 	optionsByQ := loadOptionsByQuestion(ctx, qIDs)
 
+	var resSnap struct {
+		Status int `orm:"status"`
+	}
+	_ = dao.ExamResult.Ctx(ctx).
+		Fields(dao.ExamResult.Columns().Status).
+		Where("attempt_id", att.Id).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&resSnap)
+
 	out := &bo.AttemptAdminDetailView{
-		Attempt: att,
-		User:    user,
-		Paper:   paper,
-		Answers: make([]bo.AttemptAdminAnswerRow, 0, len(ansRows)),
+		ResultStatus: resSnap.Status,
+		Attempt:      att,
+		User:         user,
+		Paper:        paper,
+		Answers:      make([]bo.AttemptAdminAnswerRow, 0, len(ansRows)),
 	}
 	for _, ar := range ansRows {
 		q := qByID[ar.ExamQuestionId]
@@ -163,25 +172,6 @@ func (s *sAttempt) AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo
 	return out, nil
 }
 
-// hasAnySubjectiveAwarded 该会话下是否已有主观题写入人工分（每会话仅允许保存一次）。
-func hasAnySubjectiveAwarded(ctx context.Context, attemptID int64, paperID int64) (bool, error) {
-	if attemptID <= 0 || paperID <= 0 {
-		return false, nil
-	}
-	var cnt int
-	if err := g.DB().Ctx(ctx).Raw(
-		`SELECT COUNT(1) AS c FROM exam_attempt_answer eaa
-INNER JOIN exam_question eq ON eq.id = eaa.exam_question_id
-  AND eq.exam_paper_id = ? AND eq.is_subjective = 1 AND eq.is_example = 0
-  AND eq.delete_flag = ?
-WHERE eaa.attempt_id = ? AND eaa.delete_flag = ? AND eaa.awarded_score IS NOT NULL`,
-		paperID, consts.DeleteFlagNotDeleted, attemptID, consts.DeleteFlagNotDeleted,
-	).Scan(&cnt); err != nil {
-		return false, err
-	}
-	return cnt > 0, nil
-}
-
 // AttemptAdminSaveSubjectiveScores 写入主观题人工分并汇总 subjective_score、total_score。每会话仅允许首次成功保存。
 func (s *sAttempt) AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, items []bo.SubjectiveScoreItem) (subjectiveSum float64, totalScore float64, err error) {
 	if attemptID <= 0 {
@@ -206,7 +196,7 @@ func (s *sAttempt) AttemptAdminSaveSubjectiveScores(ctx context.Context, attempt
 	if !canGradeSubjectiveAttempt(att) {
 		return 0, 0, gerror.NewCode(consts.CodeExamAttemptNoSubjective)
 	}
-	graded, err := hasAnySubjectiveAwarded(ctx, att.Id, att.ExamPaperId)
+	graded, err := examutil.HasSubjectiveAwarded(ctx, att.Id, att.ExamPaperId)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -238,7 +228,7 @@ func (s *sAttempt) AttemptAdminSaveSubjectiveScores(ctx context.Context, attempt
 			return gerror.NewCode(consts.CodeExamAttemptNoSubjective)
 		}
 		paperID := attTx.ExamPaperId
-		graded, err := hasAnySubjectiveAwardedTx(ctx, tx, attemptID, paperID)
+		graded, err := examutil.HasSubjectiveAwardedTx(ctx, tx, attemptID, paperID)
 		if err != nil {
 			return err
 		}
@@ -372,37 +362,4 @@ func sumSubjectiveAwardedTx(ctx context.Context, tx gdb.TX, attemptID int64, pap
 		sum += *a.AwardedScore
 	}
 	return sum, nil
-}
-
-func hasAnySubjectiveAwardedTx(ctx context.Context, tx gdb.TX, attemptID int64, paperID int64) (bool, error) {
-	type qrow struct {
-		Id int64 `json:"id"`
-	}
-	var qrows []qrow
-	if err := tx.Model(dao.ExamQuestion.Table()).Ctx(ctx).
-		Fields("id").
-		Where("exam_paper_id", paperID).
-		Where("is_subjective", 1).
-		Where("is_example", 0).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Scan(&qrows); err != nil {
-		return false, err
-	}
-	if len(qrows) == 0 {
-		return false, nil
-	}
-	qIDs := make([]interface{}, 0, len(qrows))
-	for _, q := range qrows {
-		qIDs = append(qIDs, q.Id)
-	}
-	cnt, err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
-		Where("attempt_id", attemptID).
-		WhereIn("exam_question_id", qIDs).
-		Where("delete_flag", consts.DeleteFlagNotDeleted).
-		Where("awarded_score IS NOT NULL").
-		Count()
-	if err != nil {
-		return false, err
-	}
-	return cnt > 0, nil
 }

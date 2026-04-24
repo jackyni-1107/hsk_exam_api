@@ -54,6 +54,7 @@
             <el-option label="进行中" :value="2" />
             <el-option label="已交卷" :value="3" />
             <el-option label="已结束" :value="4" />
+            <el-option label="已完成算分" :value="5" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -94,7 +95,7 @@
               <el-button link type="primary" @click="openDetail(row)">详情</el-button>
               <el-tooltip
                 v-if="showSubjectiveGradeButton(row)"
-                content="主观题已评分，不可再次修改"
+                :content="subjectiveGradeTooltipForRow(row)"
                 placement="top"
                 :disabled="!isSubjectiveGradeButtonDisabled(row)"
                 :show-after="200"
@@ -219,7 +220,13 @@
           <template #header><span class="card-h-muted">基础信息</span></template>
           <el-descriptions :column="2" size="small" class="desc-plain">
             <el-descriptions-item label="会话 ID">{{ detail.attempt.id }}</el-descriptions-item>
-            <el-descriptions-item label="状态">{{ statusText(detail.attempt.status) }}</el-descriptions-item>
+            <el-descriptions-item label="状态">{{
+              statusText(
+                detail.result_status != null && detail.result_status > 0
+                  ? detail.result_status
+                  : detail.attempt.status,
+              )
+            }}</el-descriptions-item>
             <el-descriptions-item label="试卷">{{ paperDisplayName }}</el-descriptions-item>
             <el-descriptions-item label="级别">{{ detail.paper.level }}</el-descriptions-item>
             <el-descriptions-item label="卷编号">{{ detail.paper.paper_id || '—' }}</el-descriptions-item>
@@ -344,7 +351,9 @@
       :close-on-click-modal="false"
       @closed="onSubjectiveGradeDlgClosed"
     >
-      <p class="subjective-dlg-hint">每题得分不超过该题满分；保存后更新主观分与总分。</p>
+      <p class="subjective-dlg-hint">
+        每题得分不超过该题满分；保存后更新主观分与总分，并将该场次在列表中标记为「已完成算分」。
+      </p>
       <p v-if="subjectiveDlgMetaLine" class="subjective-dlg-meta">{{ subjectiveDlgMetaLine }}</p>
       <el-skeleton v-if="subjectiveDlgLoading" :rows="5" animated />
       <el-table
@@ -935,6 +944,8 @@ function statusText(s: number) {
       return '已交卷'
     case 4:
       return '已结束'
+    case 5:
+      return '已完成算分'
     default:
       return String(s)
   }
@@ -1024,28 +1035,18 @@ function onSubjectiveGradeDlgClosed() {
   subjectiveDlgScores.value = {}
 }
 
-/** 含主观题且已结束会话时显示「主观题评分」入口；已评过分则仅置灰不可点 */
+/** 含主观题且 exam_result 为已结束(4)或已完成算分(5)时显示入口；status=5 时置灰 */
 function showSubjectiveGradeButton(row: AttemptListItem) {
-  return row.has_subjective === 1 && row.status === 4
-}
-
-/** 列表行主观题是否已评（兼容 camelCase 等） */
-function rowSubjectiveGradedFlag(row: AttemptListItem) {
-  const r = row as unknown as Record<string, unknown>
-  const v = r.subjective_graded ?? r.subjectiveGraded
-  if (v === true || v === 'true' || v === 1 || v === '1') return 1
-  return Number(v) === 1 ? 1 : 0
+  return row.has_subjective === 1 && (row.status === 4 || row.status === 5)
 }
 
 function isSubjectiveGradeButtonDisabled(row: AttemptListItem) {
-  return rowSubjectiveGradedFlag(row) === 1
+  return row.status === 5
 }
 
-function isDetailSubjectiveAlreadyGraded(d: AttemptDetail) {
-  for (const a of d.answers ?? []) {
-    if (a.is_subjective && !a.is_example && a.awarded_score != null) return true
-  }
-  return false
+function subjectiveGradeTooltipForRow(row: AttemptListItem) {
+  if (row.status === 5) return '已完成算分，不可再次进行主观题评分'
+  return ''
 }
 
 async function openSubjectiveGrade(row: AttemptListItem) {
@@ -1053,12 +1054,12 @@ async function openSubjectiveGrade(row: AttemptListItem) {
     ElMessage.info('该场次未包含主观题')
     return
   }
-  if (row.status !== 4) {
-    ElMessage.warning('仅「已结束」的会话可评分')
+  if (row.status === 5) {
+    ElMessage.warning('已完成算分，不可再次进行主观题评分')
     return
   }
-  if (rowSubjectiveGradedFlag(row) === 1) {
-    ElMessage.warning('主观题已评过分，不可再次修改')
+  if (row.status !== 4) {
+    ElMessage.warning('仅「已结束且待主观评阅」的会话可评分（已交卷待客观算分的场次请稍后再试）')
     return
   }
   subjectiveDlgAttemptId.value = row.id
@@ -1075,8 +1076,9 @@ async function openSubjectiveGrade(row: AttemptListItem) {
       subjectiveDlgVisible.value = false
       return
     }
-    if (isDetailSubjectiveAlreadyGraded(d)) {
-      ElMessage.warning('主观题已评过分，不可再次修改')
+    const rs = d.result_status
+    if (rs === 5) {
+      ElMessage.warning('已完成算分，不可再次进行主观题评分')
       subjectiveDlgVisible.value = false
       return
     }

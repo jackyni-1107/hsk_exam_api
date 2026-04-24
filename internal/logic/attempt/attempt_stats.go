@@ -155,15 +155,14 @@ func (s *sAttempt) computeAttemptAdminStatsView(ctx context.Context, q AttemptAd
  COALESCE(SUM(CASE WHEN r.status = 1 THEN 1 ELSE 0 END),0) AS s1,
  COALESCE(SUM(CASE WHEN r.status = 2 THEN 1 ELSE 0 END),0) AS s2,
  COALESCE(SUM(CASE WHEN r.status = 3 THEN 1 ELSE 0 END),0) AS s3,
- COALESCE(SUM(CASE WHEN r.status = 4 THEN 1 ELSE 0 END),0) AS s4,
- COALESCE(SUM(CASE WHEN r.status IN (3,4) THEN 1 ELSE 0 END),0) AS sf,
- COALESCE(SUM(CASE WHEN r.has_subjective = 1 AND r.status = 4 
-   AND IFNULL(subj_gr.has_subjective_graded, 0) = 0 THEN 1 ELSE 0 END),0) AS sp,
+ COALESCE(SUM(CASE WHEN r.status IN (4,5) THEN 1 ELSE 0 END),0) AS s4,
+ COALESCE(SUM(CASE WHEN r.status IN (3,4,5) THEN 1 ELSE 0 END),0) AS sf,
+ COALESCE(SUM(CASE WHEN r.has_subjective = 1 AND r.status = 4 THEN 1 ELSE 0 END),0) AS sp,
  COALESCE(COUNT(1),0) AS tot,
  COALESCE(SUM(CASE WHEN r.create_time >= ? AND r.create_time < ? THEN 1 ELSE 0 END),0) AS tn,
- COALESCE(AVG(CASE WHEN r.status IN (3,4) THEN r.objective_score END),0) AS avgo,
- COALESCE(AVG(CASE WHEN r.status IN (3,4) THEN r.subjective_score END),0) AS avgs,
- COALESCE(AVG(CASE WHEN r.status IN (3,4) THEN r.total_score END),0) AS avgt` + from
+ COALESCE(AVG(CASE WHEN r.status IN (3,4,5) THEN r.objective_score END),0) AS avgo,
+ COALESCE(AVG(CASE WHEN r.status IN (3,4,5) THEN r.subjective_score END),0) AS avgs,
+ COALESCE(AVG(CASE WHEN r.status IN (3,4,5) THEN r.total_score END),0) AS avgt` + from
 	args1 := append([]interface{}{day0, day1}, bind...)
 	if err := g.DB().Ctx(ctx).Raw(sq1, args1...).Scan(&agg); err != nil {
 		return nil, err
@@ -194,7 +193,7 @@ GROUP BY DATE(r.create_time) ORDER BY d`
 		Bl  float64 `orm:"bl"`
 		Cnt int     `orm:"c"`
 	}
-	sq3 := `SELECT FLOOR(r.total_score / 10) * 10 AS bl, COALESCE(COUNT(1),0) AS c` + from + ` AND r.status IN (3,4) AND (r.total_score IS NOT NULL)
+	sq3 := `SELECT FLOOR(r.total_score / 10) * 10 AS bl, COALESCE(COUNT(1),0) AS c` + from + ` AND r.status IN (3,4,5) AND (r.total_score IS NOT NULL)
 GROUP BY bl ORDER BY bl`
 	if err := g.DB().Ctx(ctx).Raw(sq3, bind...).Scan(&brows); err != nil {
 		return nil, err

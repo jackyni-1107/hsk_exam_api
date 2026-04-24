@@ -17,6 +17,27 @@ import (
 	examentity "exam/internal/model/entity/exam"
 )
 
+// resolveExamResultStatusTx 计算 exam_result.status：1–4 随会话；已结束时无主观题或主观已评则置为 ExamResultScoringComplete；已有该终态则保持。
+func resolveExamResultStatusTx(ctx context.Context, tx gdb.TX, att examentity.ExamAttempt, previousResultStatus int) (int, error) {
+	if previousResultStatus == consts.ExamResultScoringComplete {
+		return consts.ExamResultScoringComplete, nil
+	}
+	if att.Status != consts.ExamAttemptEnded {
+		return att.Status, nil
+	}
+	if att.HasSubjective == 0 {
+		return consts.ExamResultScoringComplete, nil
+	}
+	graded, err := HasSubjectiveAwardedTx(ctx, tx, att.Id, att.ExamPaperId)
+	if err != nil {
+		return 0, err
+	}
+	if graded {
+		return consts.ExamResultScoringComplete, nil
+	}
+	return consts.ExamAttemptEnded, nil
+}
+
 // UpsertFromAttemptTx 将会话快照同步到 exam_result（交卷/计分后调用）。
 func UpsertFromAttemptTx(ctx context.Context, tx gdb.TX, attemptID int64) error {
 	var att examentity.ExamAttempt
@@ -26,6 +47,16 @@ func UpsertFromAttemptTx(ctx context.Context, tx gdb.TX, attemptID int64) error 
 	if att.Id == 0 {
 		return nil
 	}
+	var exist examentity.ExamResult
+	_ = tx.Model(dao.ExamResult.Table()).Ctx(ctx).Where("attempt_id", attemptID).Scan(&exist)
+	prevStatus := 0
+	if exist.AttemptId != 0 {
+		prevStatus = exist.Status
+	}
+	resultStatus, err := resolveExamResultStatusTx(ctx, tx, att, prevStatus)
+	if err != nil {
+		return err
+	}
 	row := examdo.ExamResult{
 		AttemptId:              att.Id,
 		MemberId:               att.MemberId,
@@ -33,7 +64,7 @@ func UpsertFromAttemptTx(ctx context.Context, tx gdb.TX, attemptID int64) error 
 		MockExaminationPaperId: att.MockExaminationPaperId,
 		ExamBatchId:            att.ExamBatchId,
 		MockLevelId:            att.MockLevelId,
-		Status:                 att.Status,
+		Status:                 resultStatus,
 		ObjectiveScore:         att.ObjectiveScore,
 		SubjectiveScore:        att.SubjectiveScore,
 		TotalScore:             att.TotalScore,
@@ -45,12 +76,10 @@ func UpsertFromAttemptTx(ctx context.Context, tx gdb.TX, attemptID int64) error 
 		UpdateTime:             gtime.Now(),
 		DeleteFlag:             consts.DeleteFlagNotDeleted,
 	}
-	var exist examentity.ExamResult
-	_ = tx.Model(dao.ExamResult.Table()).Ctx(ctx).Where("attempt_id", attemptID).Scan(&exist)
 	if exist.AttemptId == 0 {
-		_, err := tx.Model(dao.ExamResult.Table()).Ctx(ctx).Insert(row)
+		_, err = tx.Model(dao.ExamResult.Table()).Ctx(ctx).Insert(row)
 		return err
 	}
-	_, err := tx.Model(dao.ExamResult.Table()).Ctx(ctx).Where("attempt_id", attemptID).Data(row).Update()
+	_, err = tx.Model(dao.ExamResult.Table()).Ctx(ctx).Where("attempt_id", attemptID).Data(row).Update()
 	return err
 }

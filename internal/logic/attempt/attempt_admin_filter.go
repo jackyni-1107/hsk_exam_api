@@ -16,7 +16,7 @@ type AttemptAdminListQuery struct {
 	ExamBatchId        int64
 	Status             int // 0: 不限
 	Username           string
-	// SubjectivePending=1: 仅「含主观题、已结束、且尚未写入主观人工分」的会话（与列表/待评按钮一致）
+	// SubjectivePending=1: 含主观题且 exam_result.status=4（已结束、待主观评阅，与 status=5 已完成算分区分）
 	SubjectivePending int
 }
 
@@ -31,16 +31,6 @@ func attemptAdminListJoin() (from string, joinArgs []interface{}) {
 	}
 	from = ` FROM exam_result r
 INNER JOIN exam_attempt a ON a.id = r.attempt_id AND a.delete_flag = ?
-LEFT JOIN (
-  SELECT eaa.attempt_id, 1 AS has_subjective_graded
-  FROM exam_attempt_answer eaa
-  INNER JOIN exam_question eq ON eq.id = eaa.exam_question_id
-    AND eq.is_subjective = 1 AND eq.is_example = 0
-    AND eq.delete_flag = 0
-  WHERE eaa.delete_flag = 0
-    AND eaa.awarded_score IS NOT NULL
-  GROUP BY eaa.attempt_id
-) subj_gr ON subj_gr.attempt_id = r.attempt_id
 LEFT JOIN sys_member u ON u.id = r.member_id AND u.delete_flag = ?
 LEFT JOIN exam_paper p ON p.id = r.exam_paper_id AND p.delete_flag = ?
 LEFT JOIN mock_examination_paper m ON m.id = p.mock_examination_paper_id AND m.delete_flag = ?
@@ -78,7 +68,7 @@ func (q AttemptAdminListQuery) buildAttemptAdminWhere() (where string, args []in
 		args = append(args, "%"+q.Username+"%")
 	}
 	if q.SubjectivePending == 1 {
-		w.WriteString(" AND r.has_subjective = 1 AND r.status = ? AND IFNULL(subj_gr.has_subjective_graded, 0) = 0")
+		w.WriteString(" AND r.has_subjective = 1 AND r.status = ?")
 		args = append(args, consts.ExamAttemptEnded)
 	}
 	return w.String(), args

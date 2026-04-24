@@ -16,8 +16,6 @@ export interface AttemptListItem {
   subjective_score: number;
   total_score: number;
   has_subjective: number;
-  /** 1=已有任意主观题人工分，不可再次评分 */
-  subjective_graded?: number;
   started_at: string;
   submitted_at: string;
   ended_at: string;
@@ -52,6 +50,8 @@ export interface AttemptDetailOption {
 }
 
 export interface AttemptDetail {
+  /** exam_result.status；5=全部算分完成；无结果行时为 0 */
+  result_status?: number;
   attempt: {
     id: number;
     member_id: number;

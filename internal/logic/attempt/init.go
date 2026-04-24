@@ -481,7 +481,7 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 			if !applied {
 				return nil
 			}
-			return nil
+			return examutil.UpsertFromAttemptTx(ctx, tx, attemptID)
 		}
 
 		answers, err := loadAnswersMapTx(ctx, tx, attemptID)

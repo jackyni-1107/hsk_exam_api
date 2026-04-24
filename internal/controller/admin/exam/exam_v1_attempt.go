@@ -40,7 +40,6 @@ func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) 
 			SubjectiveScore:    r.SubjectiveScore,
 			TotalScore:         r.TotalScore,
 			HasSubjective:      r.HasSubjective,
-			SubjectiveGraded:   r.SubjectiveGraded,
 			StartedAt:          utility.ToRFC3339UTC(r.StartedAt),
 			SubmittedAt:        utility.ToRFC3339UTC(r.SubmittedAt),
 			EndedAt:            utility.ToRFC3339UTC(r.EndedAt),
@@ -122,6 +121,7 @@ func (c *ControllerV1) AttemptDetail(ctx context.Context, req *v1.AttemptDetailR
 	}
 
 	out := &v1.AttemptDetailRes{
+		ResultStatus: d.ResultStatus,
 		Attempt: v1.AttemptDetailAttempt{
 			Id:                 a.Id,
 			MemberId:           a.MemberId,

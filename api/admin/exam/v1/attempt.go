@@ -10,9 +10,9 @@ type AttemptListReq struct {
 	MockLevelId        int64  `json:"mock_level_id" dc:"mock_levels.id，与 exam_result.mock_level_id 一致，0 不限"`
 	ExaminationPaperId int64  `json:"examination_paper_id" dc:"mock_examination_paper.id"`
 	ExamBatchId        int64  `json:"exam_batch_id" dc:"考试批次 id，0 不限"`
-	Status             int    `json:"status" dc:"会话状态 1-4，0 表示不限"`
+	Status             int    `json:"status" dc:"exam_result.status：1-4 同会话阶段；5=全部算分完成；0 不限"`
 	Username           string `json:"username" dc:"学员账号（模糊）"`
-	SubjectivePending  int    `json:"subjective_pending" dc:"1=仅待主观题评阅（已结束且未评）"`
+	SubjectivePending  int    `json:"subjective_pending" dc:"1=仅含主观题且 exam_result.status=4（已结束待主观评阅）"`
 }
 
 // AttemptStatsReq 考试监控统计（全量走定时任务快照，带筛时即时聚合）。
@@ -34,7 +34,7 @@ type AttemptStatsRes struct {
 	StatusEnded         int                        `json:"status_ended" dc:"已结束人数"`
 	Total               int                        `json:"total" dc:"会话总数"`
 	FinishedCount       int                        `json:"finished_count" dc:"已交卷+已结束"`
-	SubjectivePending   int                        `json:"subjective_pending" dc:"待主观评阅"`
+	SubjectivePending   int                        `json:"subjective_pending" dc:"含主观题且 exam_result.status=4（待主观评阅）"`
 	TodayNew            int                        `json:"today_new" dc:"今日新会话数"`
 	CompletionRate      float64                    `json:"completion_rate" dc:"完考率 finished/total"`
 	AvgObjective        float64                    `json:"avg_objective"`
@@ -72,12 +72,11 @@ type AttemptListItem struct {
 	PaperTitle         string  `json:"paper_title" dc:"试卷标题"`
 	PaperLevel         string  `json:"paper_level" dc:"试卷级别"`
 	RemotePaperId      string  `json:"remote_paper_id" dc:"远程试卷ID"`
-	Status             int     `json:"status" dc:"会话状态"`
+	Status             int     `json:"status" dc:"exam_result.status：1-4 同会话；5=全部算分完成"`
 	ObjectiveScore     float64 `json:"objective_score" dc:"客观题得分"`
 	SubjectiveScore    float64 `json:"subjective_score" dc:"主观题得分"`
 	TotalScore         float64 `json:"total_score" dc:"总分"`
 	HasSubjective      int     `json:"has_subjective" dc:"是否含主观题：0否 1是"`
-	SubjectiveGraded   int     `json:"subjective_graded" dc:"主观题是否已评过（1=是，仅允许评一次）"`
 	StartedAt          string  `json:"started_at" dc:"开考时间"`
 	SubmittedAt        string  `json:"submitted_at" dc:"交卷时间"`
 	EndedAt            string  `json:"ended_at" dc:"结束时间"`
@@ -90,10 +89,11 @@ type AttemptDetailReq struct {
 }
 
 type AttemptDetailRes struct {
-	Attempt AttemptDetailAttempt  `json:"attempt" dc:"会话信息"`
-	User    AttemptDetailUser     `json:"user" dc:"用户信息"`
-	Paper   AttemptDetailPaper    `json:"paper" dc:"试卷信息"`
-	Answers []AttemptDetailAnswer `json:"answers" dc:"答题列表"`
+	ResultStatus int                   `json:"result_status" dc:"exam_result.status：1-4 同会话；5=全部算分完成；无结果行时为 0"`
+	Attempt      AttemptDetailAttempt  `json:"attempt" dc:"会话信息"`
+	User         AttemptDetailUser     `json:"user" dc:"用户信息"`
+	Paper        AttemptDetailPaper    `json:"paper" dc:"试卷信息"`
+	Answers      []AttemptDetailAnswer `json:"answers" dc:"答题列表"`
 }
 
 type AttemptDetailOption struct {
@@ -109,7 +109,7 @@ type AttemptDetailAttempt struct {
 	Id                 int64   `json:"id" dc:"会话ID"`
 	MemberId           int64   `json:"member_id" dc:"学员ID"`
 	ExaminationPaperId int64   `json:"examination_paper_id" dc:"mock_examination_paper.id"`
-	Status             int     `json:"status" dc:"会话状态"`
+	Status             int     `json:"status" dc:"exam_attempt.status（会话阶段）"`
 	DurationSeconds    int     `json:"duration_seconds" dc:"考试时长(秒)"`
 	ObjectiveScore     float64 `json:"objective_score" dc:"客观题得分"`
 	SubjectiveScore    float64 `json:"subjective_score" dc:"主观题得分"`
