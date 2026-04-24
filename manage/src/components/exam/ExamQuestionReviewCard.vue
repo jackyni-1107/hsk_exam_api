@@ -40,7 +40,6 @@
     </div>
 
     <div v-if="showBlockPassageBlock" class="exam-q-passage">
-      <div class="exam-q-label">阅读材料（套题共用）</div>
       <ExamScreenTextBlocks
         v-if="blockHasRich"
         :raw="blockScreenRaw"
@@ -49,15 +48,6 @@
       <div v-else class="exam-q-passage-plain">{{ blockPassageText }}</div>
     </div>
     <span class="exam-q-badge">{{ questionNo }}</span>
-    <template v-if="showStemSection">
-      <div class="exam-q-label">题干</div>
-      <ExamScreenTextBlocks
-        v-if="stemRich"
-        :raw="stemRichRaw"
-        :source-base-url="sourceBaseUrl"
-      />
-      <ExamQuestionStem v-else :stem-text="stemPlain" />
-    </template>
 
     <template v-if="showYourAnswerBlock">
       <div class="exam-q-label">你的答案</div>
