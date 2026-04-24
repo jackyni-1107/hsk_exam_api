@@ -79,3 +79,5 @@ exam:
   saveAnswersPerSecond: 20
   # 仅测试：POST .../random-answers 随机填答；生产环境必须为 false
   enableRandomAnswerHelper: true
+  audioHlsTicketTTLSeconds: 7200
+  audioHlsPresignTTLSeconds: 7200
