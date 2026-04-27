@@ -7,6 +7,7 @@ import (
 	adminAuditLog "exam/internal/controller/admin/audit_log"
 	adminAuth "exam/internal/controller/admin/auth"
 	adminConfig "exam/internal/controller/admin/config"
+	adminDict "exam/internal/controller/admin/dict"
 	adminExam "exam/internal/controller/admin/exam"
 	adminExceptionLog "exam/internal/controller/admin/exception_log"
 	adminFile "exam/internal/controller/admin/file"
@@ -79,6 +80,7 @@ func registerAdminRoutes(s *ghttp.Server, apiPrefix string) {
 			adminNotification.NewV1(),
 			adminFile.NewV1(),
 			adminConfig.NewV1(),
+			adminDict.NewV1(),
 			adminTask.NewV1(),
 			adminAuditLog.NewV1(),
 			adminLoginLog.NewV1(),

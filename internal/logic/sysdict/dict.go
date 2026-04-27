@@ -1,4 +1,4 @@
-package sysconfig
+package sysdict
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
-func (s *sSysConfig) DictTypeList(ctx context.Context, page, size int, dictType string) ([]sysentity.SysDictType, int, error) {
+func (s *sSysDict) DictTypeList(ctx context.Context, page, size int, dictType string) ([]sysentity.SysDictType, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -35,7 +35,7 @@ func (s *sSysConfig) DictTypeList(ctx context.Context, page, size int, dictType 
 	return list, total, nil
 }
 
-func (s *sSysConfig) DictTypeCreate(ctx context.Context, dictName, dictType, remark, creator string, status int) (int64, error) {
+func (s *sSysDict) DictTypeCreate(ctx context.Context, dictName, dictType, remark, creator string, status int) (int64, error) {
 	cnt, err := dao.SystemDictType.Ctx(ctx).
 		Where("dict_type", dictType).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -65,7 +65,7 @@ func (s *sSysConfig) DictTypeCreate(ctx context.Context, dictName, dictType, rem
 	return id, nil
 }
 
-func (s *sSysConfig) DictTypeUpdate(ctx context.Context, id int64, dictName, remark, updater string, status int) error {
+func (s *sSysDict) DictTypeUpdate(ctx context.Context, id int64, dictName, remark, updater string, status int) error {
 	var before sysentity.SysDictType
 	if err := dao.SystemDictType.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -94,7 +94,7 @@ func (s *sSysConfig) DictTypeUpdate(ctx context.Context, id int64, dictName, rem
 	return nil
 }
 
-func (s *sSysConfig) DictTypeDelete(ctx context.Context, id int64, updater string) error {
+func (s *sSysDict) DictTypeDelete(ctx context.Context, id int64, updater string) error {
 	var before sysentity.SysDictType
 	if err := dao.SystemDictType.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -116,7 +116,7 @@ func (s *sSysConfig) DictTypeDelete(ctx context.Context, id int64, updater strin
 	return nil
 }
 
-func (s *sSysConfig) DictDataList(ctx context.Context, page, size int, dictType string) ([]sysentity.SysDictData, int, error) {
+func (s *sSysDict) DictDataList(ctx context.Context, page, size int, dictType string) ([]sysentity.SysDictData, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -139,7 +139,7 @@ func (s *sSysConfig) DictDataList(ctx context.Context, page, size int, dictType 
 	return list, total, nil
 }
 
-func (s *sSysConfig) DictDataCreate(ctx context.Context, dictType, dictLabel, dictValue, remark, creator string, sort, status int) (int64, error) {
+func (s *sSysDict) DictDataCreate(ctx context.Context, dictType, dictLabel, dictValue, remark, creator string, sort, status int) (int64, error) {
 	r, err := dao.SystemDictData.Ctx(ctx).Insert(sysdo.SysDictData{
 		DictType:   dictType,
 		DictLabel:  dictLabel,
@@ -161,7 +161,7 @@ func (s *sSysConfig) DictDataCreate(ctx context.Context, dictType, dictLabel, di
 	return id, nil
 }
 
-func (s *sSysConfig) DictDataUpdate(ctx context.Context, id int64, dictLabel, dictValue, remark, updater string, sort, status int) error {
+func (s *sSysDict) DictDataUpdate(ctx context.Context, id int64, dictLabel, dictValue, remark, updater string, sort, status int) error {
 	var before sysentity.SysDictData
 	if err := dao.SystemDictData.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -194,7 +194,7 @@ func (s *sSysConfig) DictDataUpdate(ctx context.Context, id int64, dictLabel, di
 	return nil
 }
 
-func (s *sSysConfig) DictDataDelete(ctx context.Context, id int64, updater string) error {
+func (s *sSysDict) DictDataDelete(ctx context.Context, id int64, updater string) error {
 	var before sysentity.SysDictData
 	if err := dao.SystemDictData.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")

@@ -13,6 +13,7 @@ import (
 	_ "exam/internal/logic/paper"
 	_ "exam/internal/logic/security"
 	_ "exam/internal/logic/sysconfig"
+	_ "exam/internal/logic/sysdict"
 	_ "exam/internal/logic/sysfile"
 	_ "exam/internal/logic/syslog"
 	_ "exam/internal/logic/sysmenu"

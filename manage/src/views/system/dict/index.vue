@@ -151,7 +151,7 @@ import {
   deleteDictData,
   type DictTypeItem,
   type DictDataItem,
-} from '@/api/sysConfig'
+} from '@/api/sysDict'
 import { formatUtcForDisplay } from '@/utils/datetime'
 
 const typeLoading = ref(false)
