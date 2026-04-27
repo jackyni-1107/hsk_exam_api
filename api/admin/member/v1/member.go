@@ -6,7 +6,7 @@ import (
 )
 
 type MemberListReq struct {
-	g.Meta   `path:"/member/list" method:"get" tags:"会员" summary:"会员列表"`
+	g.Meta   `path:"/member/list" method:"get" tags:"会员" summary:"会员列表" permission:"member:list"`
 	Page     int    `json:"page" dc:"页码"`
 	Size     int    `json:"size" dc:"每页条数"`
 	Username string `json:"username" dc:"用户名"`
@@ -29,7 +29,7 @@ type MemberItem struct {
 }
 
 type MemberCreateReq struct {
-	g.Meta   `path:"/member" method:"post" tags:"会员" summary:"新增会员"`
+	g.Meta   `path:"/member" method:"post" tags:"会员" summary:"新增会员" permission:"member:create"`
 	Username string `json:"username" v:"required#err.invalid_params" dc:"用户名"`
 	Password string `json:"password" v:"required#err.invalid_params" dc:"密码"`
 	Nickname string `json:"nickname" dc:"昵称"`
@@ -43,7 +43,7 @@ type MemberCreateRes struct {
 }
 
 type MemberUpdateReq struct {
-	g.Meta   `path:"/member/{id}" method:"put" tags:"会员" summary:"更新会员"`
+	g.Meta   `path:"/member/{id}" method:"put" tags:"会员" summary:"更新会员" permission:"member:update"`
 	Id       int64  `json:"id" in:"path" v:"required#err.invalid_params" dc:"会员ID"`
 	Password string `json:"password" dc:"密码"`
 	Nickname string `json:"nickname" dc:"昵称"`
@@ -55,14 +55,14 @@ type MemberUpdateReq struct {
 type MemberUpdateRes struct{}
 
 type MemberDeleteReq struct {
-	g.Meta `path:"/member/{id}" method:"delete" tags:"会员" summary:"删除会员"`
+	g.Meta `path:"/member/{id}" method:"delete" tags:"会员" summary:"删除会员" permission:"member:delete"`
 	Id     int64 `json:"id" in:"path" v:"required#err.invalid_params" dc:"会员ID"`
 }
 
 type MemberDeleteRes struct{}
 
 type MemberImportReq struct {
-	g.Meta `path:"/member/import" method:"post" tags:"会员" summary:"批量导入客户(CSV)"`
+	g.Meta `path:"/member/import" method:"post" tags:"会员" summary:"批量导入客户(CSV)" permission:"member:import"`
 	File   *ghttp.UploadFile `json:"file" type:"file" dc:"CSV 文件（表单字段名 file）"`
 }
 
