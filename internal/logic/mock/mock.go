@@ -61,6 +61,22 @@ func (s *sMock) MockLevelsList(ctx context.Context) ([]mockentity.MockLevels, er
 	return list, nil
 }
 
+func (s *sMock) MockLevelNameByID(ctx context.Context, id int64) (string, error) {
+	if id <= 0 {
+		return "", nil
+	}
+	var level mockentity.MockLevels
+	err := dao.MockLevels.Ctx(ctx).
+		Where("id", id).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Limit(1).
+		Scan(&level)
+	if err != nil {
+		return "", gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	return strings.TrimSpace(level.LevelName), nil
+}
+
 func (s *sMock) ExaminationPaperList(ctx context.Context, levelId int64, importStatus string) ([]bo.MockExaminationPaperWithImport, error) {
 	m := dao.MockExaminationPaper.Ctx(ctx).Where("delete_flag", consts.DeleteFlagNotDeleted).Where("status", 1)
 	if levelId > 0 {

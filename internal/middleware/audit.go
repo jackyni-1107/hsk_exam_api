@@ -9,12 +9,11 @@ import (
 	"github.com/gogf/gf/v2/net/ghttp"
 
 	"exam/internal/consts"
-	sysdao "exam/internal/dao/sys"
-	sysdo "exam/internal/model/do/sys"
+	"exam/internal/model/bo"
+	auditsvc "exam/internal/service/audit"
 	"exam/internal/utility"
 )
 
-// 操作类型
 const (
 	actionCreate = "create"
 	actionUpdate = "update"
@@ -22,7 +21,6 @@ const (
 	actionQuery  = "query"
 )
 
-// 日志类型
 const (
 	logTypeOperation = "operation"
 	logTypeAPIAccess = "api_access"
@@ -32,12 +30,10 @@ type operationLogIdKeyType string
 
 const operationLogIdKey operationLogIdKeyType = "operation_log_id"
 
-// SetOperationLogId 将 operation_log_id 写入 context
 func SetOperationLogId(ctx context.Context, id int64) context.Context {
 	return context.WithValue(ctx, operationLogIdKey, id)
 }
 
-// GetOperationLogId 从 context 获取 operation_log_id
 func GetOperationLogId(ctx context.Context) int64 {
 	if v := ctx.Value(operationLogIdKey); v != nil {
 		if id, ok := v.(int64); ok {
@@ -47,63 +43,46 @@ func GetOperationLogId(ctx context.Context) int64 {
 	return 0
 }
 
-// Audit 操作审计中间件：记录请求/响应到 Sys_operation_audit_log
 func Audit(r *ghttp.Request) {
 	start := time.Now()
 	requestData := sanitizeRequest(r)
 	ctxData := GetCtxData(r.GetCtx())
-	userId := int64(consts.AnonymousUserId)
+	userID := int64(consts.AnonymousUserId)
 	username := ""
 	userType := consts.UserTypeAdmin
 	if ctxData != nil {
-		userId = ctxData.UserId
+		userID = ctxData.UserId
 		username = ctxData.Username
 		userType = ctxData.UserType
 	}
-	action := inferAction(r)
-	module := inferModule(r.URL.Path)
 	method := r.Method
-	path := r.URL.Path
-	ip := r.GetClientIp()
-	userAgent := r.Header.Get("User-Agent")
-	logType := inferLogType(method)
-	traceId := GetTraceId(r.GetCtx())
-	deviceInfo := utility.ParseDeviceInfo(userAgent)
-
-	// 同步插入以获取 ID，供 RecordChange 关联
-	res, err := sysdao.SysOperationAuditLog.Ctx(r.GetCtx()).Insert(sysdo.SysOperationAuditLog{
-		UserId:      userId,
+	opLogID, err := auditsvc.Audit().CreateOperationLog(r.GetCtx(), bo.OperationAuditLogCreateInput{
+		UserId:      userID,
 		Username:    username,
 		UserType:    userType,
-		Module:      module,
-		Action:      action,
-		LogType:     logType,
+		Module:      inferModule(r.URL.Path),
+		Action:      inferAction(r),
+		LogType:     inferLogType(method),
 		Method:      method,
-		Path:        path,
+		Path:        r.URL.Path,
 		RequestData: requestData,
-		Ip:          ip,
-		UserAgent:   userAgent,
-		TraceId:     traceId,
-		DeviceInfo:  deviceInfo,
+		Ip:          r.GetClientIp(),
+		UserAgent:   r.Header.Get("User-Agent"),
+		TraceId:     GetTraceId(r.GetCtx()),
+		DeviceInfo:  utility.ParseDeviceInfo(r.Header.Get("User-Agent")),
 	})
-	if err == nil && res != nil {
-		if id, e := res.LastInsertId(); e == nil && id > 0 {
-			r.SetCtx(SetOperationLogId(r.GetCtx(), id))
-		}
+	if err == nil && opLogID > 0 {
+		r.SetCtx(SetOperationLogId(r.GetCtx(), opLogID))
 	}
 
 	r.Middleware.Next()
 
-	// 异步更新 response 和 duration
 	responseData := getResponseData(r)
 	durationMs := int(time.Since(start).Milliseconds())
-	opLogId := GetOperationLogId(r.GetCtx())
+	opLogID = GetOperationLogId(r.GetCtx())
 	go func() {
-		if opLogId > 0 {
-			_, _ = sysdao.SysOperationAuditLog.Ctx(context.Background()).Where("id", opLogId).Data(sysdo.SysOperationAuditLog{
-				ResponseData: responseData,
-				DurationMs:   durationMs,
-			}).Update()
+		if opLogID > 0 {
+			_ = auditsvc.Audit().FinishOperationLog(context.Background(), opLogID, responseData, durationMs)
 		}
 	}()
 }
@@ -118,7 +97,6 @@ func inferLogType(method string) string {
 }
 
 func inferAction(r *ghttp.Request) string {
-	// 可从 g.Meta 扩展获取，此处按 method 推断
 	switch r.Method {
 	case "POST":
 		return actionCreate
@@ -143,7 +121,6 @@ func inferModule(path string) string {
 }
 
 func sanitizeRequest(r *ghttp.Request) string {
-	// 优先读取 Body（POST/PUT/PATCH 等）
 	body := r.GetBodyString()
 	if body != "" {
 		var m map[string]interface{}
@@ -159,7 +136,6 @@ func sanitizeRequest(r *ghttp.Request) string {
 		data, _ := json.Marshal(m)
 		return truncate(string(data), 4096)
 	}
-	// GET 等无 Body 时，记录 Query 参数
 	if q := r.URL.RawQuery; q != "" {
 		params := make(map[string]interface{})
 		for k, v := range r.URL.Query() {

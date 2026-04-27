@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	sysdao "exam/internal/dao/sys"
+	"exam/internal/model/bo"
 	sysdo "exam/internal/model/do/sys"
 	"exam/internal/utility"
 )
@@ -89,6 +90,46 @@ func (s *sAudit) RecordException(ctx context.Context, path, method, errorMsg, st
 			Ip:       ip,
 		})
 	}()
+}
+
+func (s *sAudit) CreateOperationLog(ctx context.Context, in bo.OperationAuditLogCreateInput) (int64, error) {
+	res, err := sysdao.SysOperationAuditLog.Ctx(ctx).Insert(sysdo.SysOperationAuditLog{
+		UserId:      in.UserId,
+		Username:    in.Username,
+		UserType:    in.UserType,
+		Module:      in.Module,
+		Action:      in.Action,
+		LogType:     in.LogType,
+		Method:      in.Method,
+		Path:        in.Path,
+		RequestData: in.RequestData,
+		Ip:          in.Ip,
+		UserAgent:   in.UserAgent,
+		TraceId:     in.TraceId,
+		DeviceInfo:  in.DeviceInfo,
+	})
+	if err != nil || res == nil {
+		return 0, err
+	}
+	id, lastErr := res.LastInsertId()
+	if lastErr != nil || id <= 0 {
+		return 0, lastErr
+	}
+	return id, nil
+}
+
+func (s *sAudit) FinishOperationLog(ctx context.Context, operationLogId int64, responseData string, durationMs int) error {
+	if operationLogId <= 0 {
+		return nil
+	}
+	_, err := sysdao.SysOperationAuditLog.Ctx(ctx).
+		Where("id", operationLogId).
+		Data(sysdo.SysOperationAuditLog{
+			ResponseData: responseData,
+			DurationMs:   durationMs,
+		}).
+		Update()
+	return err
 }
 
 // 敏感字段（不记录变更前后值）

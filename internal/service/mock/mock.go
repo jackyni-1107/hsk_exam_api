@@ -14,6 +14,7 @@ import (
 type (
 	IMock interface {
 		MockLevelsList(ctx context.Context) ([]mockentity.MockLevels, error)
+		MockLevelNameByID(ctx context.Context, id int64) (string, error)
 		ExaminationPaperList(ctx context.Context, levelId int64, importStatus string) ([]bo.MockExaminationPaperWithImport, error)
 		ExaminationPaperDetail(ctx context.Context, id int64) (*bo.MockExaminationPaperWithImport, error)
 	}

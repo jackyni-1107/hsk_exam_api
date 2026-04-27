@@ -7,11 +7,8 @@ import (
 	"strings"
 
 	v1 "exam/api/admin/exam/v1"
-	"exam/internal/consts"
-	mockdao "exam/internal/dao/mock"
 	"exam/internal/model/bo"
 	examentity "exam/internal/model/entity/exam"
-	mockentity "exam/internal/model/entity/mock"
 	attemptsvc "exam/internal/service/attempt"
 	mocksvc "exam/internal/service/mock"
 	"exam/internal/utility"
@@ -109,14 +106,9 @@ func (c *ControllerV1) AttemptDetail(ctx context.Context, req *v1.AttemptDetailR
 
 	levelDisplay := strings.TrimSpace(d.Paper.Level)
 	if a.MockLevelId > 0 {
-		// MockLevels lookup kept via DAO: no service method for single level by ID yet
-		var lv mockentity.MockLevels
-		_ = mockdao.MockLevels.Ctx(ctx).
-			Where(mockdao.MockLevels.Columns().Id, a.MockLevelId).
-			Where(mockdao.MockLevels.Columns().DeleteFlag, consts.DeleteFlagNotDeleted).
-			Scan(&lv)
-		if strings.TrimSpace(lv.LevelName) != "" {
-			levelDisplay = strings.TrimSpace(lv.LevelName)
+		levelName, levelErr := mocksvc.Mock().MockLevelNameByID(ctx, a.MockLevelId)
+		if levelErr == nil && strings.TrimSpace(levelName) != "" {
+			levelDisplay = strings.TrimSpace(levelName)
 		}
 	}
 

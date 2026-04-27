@@ -7,6 +7,7 @@ package audit
 
 import (
 	"context"
+	"exam/internal/model/bo"
 )
 
 type (
@@ -21,6 +22,8 @@ type (
 		RecordSecurityEvent(ctx context.Context, eventType string, userId int64, ip string, userAgent string, detail string, traceId string)
 		// RecordException 记录异常日志
 		RecordException(ctx context.Context, path string, method string, errorMsg string, stack string, userId int64, ip string, traceId string)
+		CreateOperationLog(ctx context.Context, in bo.OperationAuditLogCreateInput) (int64, error)
+		FinishOperationLog(ctx context.Context, operationLogId int64, responseData string, durationMs int) error
 		// RecordChange 记录变更明细，过滤敏感字段；operationLogId 为 0 时跳过
 		RecordChange(ctx context.Context, tableName string, recordId int64, operationLogId int64, beforeMap map[string]interface{}, afterMap map[string]interface{})
 	}
