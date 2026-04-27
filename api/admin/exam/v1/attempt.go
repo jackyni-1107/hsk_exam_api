@@ -3,7 +3,7 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type AttemptListReq struct {
-	g.Meta             `path:"/exam/attempt/list" method:"get" tags:"考试结果" summary:"答题会话列表"`
+	g.Meta             `path:"/exam/attempt/list" method:"get" tags:"考试结果" summary:"答题会话列表" permission:"exam:result:list"`
 	Page               int    `json:"page" dc:"页码"`
 	Size               int    `json:"size" dc:"每页条数"`
 	Level              string `json:"level" dc:"试卷级别字符串（兼容）；优先使用 mock_level_id"`
@@ -156,7 +156,7 @@ type AttemptDetailAnswer struct {
 }
 
 type AttemptSubjectiveScoresReq struct {
-	g.Meta `path:"/exam/attempt/{id}/subjective-scores" method:"put" tags:"考试结果" summary:"保存主观题得分"`
+	g.Meta `path:"/exam/attempt/{id}/subjective-scores" method:"put" tags:"考试结果" summary:"保存主观题得分" permission:"exam:result:grade"`
 	Id     int64                        `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"会话ID"`
 	Items  []AttemptSubjectiveScoreItem `json:"items" v:"required#err.invalid_params" dc:"评分项列表"`
 }

@@ -5,7 +5,7 @@ import (
 )
 
 type PaperListReq struct {
-	g.Meta      `path:"/exam/paper/list" method:"get" tags:"试卷管理" summary:"exam_paper 试卷列表"`
+	g.Meta      `path:"/exam/paper/list" method:"get" tags:"试卷管理" summary:"exam_paper 试卷列表" permission:"exam:paper:list"`
 	Level       string `json:"level" dc:"级别字符串筛选（兼容）；优先 mock_level_id"`
 	MockLevelId int64  `json:"mock_level_id" dc:"mock_levels.id，按 mock 卷 level_id 筛，0 不限"`
 	Page        int    `json:"page" dc:"页码"`
@@ -34,7 +34,7 @@ type PaperListItem struct {
 }
 
 type PaperImportReq struct {
-	g.Meta                 `path:"/exam/paper/import" method:"post" tags:"试卷管理" summary:"从 Mock 卷 resource_url 推导 index.json 并导入"`
+	g.Meta                 `path:"/exam/paper/import" method:"post" tags:"试卷管理" summary:"导入" permission:"exam:paper:import"`
 	MockExaminationPaperId int64  `json:"mock_examination_paper_id" v:"required|min:1#err.invalid_params" dc:"mock 卷 id，业务主键"`
 	Title                  string `json:"title" dc:"可选，试卷名称；填写则写入 exam_paper.title，否则用 mock 卷 name"`
 	AudioHlsPrefix         string `json:"audio_hls_prefix" dc:"听力 HLS 目录前缀（无首尾/），动态 m3u8 拼接时使用"`
@@ -82,7 +82,7 @@ type PaperEditRes struct{}
 
 // PaperPurgeReq 物理删除 exam_paper（不可恢复）。confirm_text 须与「DELETE:{exam_paper_id}」完全一致（含大小写与冒号）。
 type PaperPurgeReq struct {
-	g.Meta      `path:"/exam/paper/purge" method:"post" tags:"试卷管理" summary:"物理删除试卷（超级管理员，不可恢复）"`
+	g.Meta      `path:"/exam/paper/purge" method:"post" tags:"试卷管理" summary:"物理删除试卷" permission:"exam:paper:purge"`
 	ExamPaperId int64  `json:"exam_paper_id" v:"required|min:1#err.invalid_params" dc:"exam_paper.id"`
 	ConfirmText string `json:"confirm_text" v:"required#err.invalid_params" dc:"二次确认，须为 DELETE:试卷主键"`
 }
