@@ -3,7 +3,7 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type MenuTreeReq struct {
-	g.Meta `path:"/menu/tree" method:"get" tags:"菜单" summary:"菜单树"`
+	g.Meta `path:"/menu/tree" method:"get" tags:"菜单" summary:"菜单树" permission:"menu:tree"`
 }
 
 type MenuTreeRes struct {
@@ -29,7 +29,7 @@ type MenuTreeNode struct {
 }
 
 type MenuCreateReq struct {
-	g.Meta        `path:"/menu" method:"post" tags:"菜单" summary:"新增菜单"`
+	g.Meta        `path:"/menu" method:"post" tags:"菜单" summary:"新增菜单" permission:"menu:create"`
 	Name          string `json:"name" v:"required#err.invalid_params" dc:"菜单名称"`
 	Permission    string `json:"permission" dc:"权限标识"`
 	Type          int    `json:"type" dc:"菜单类型：1目录 2菜单 3按钮"`
@@ -50,7 +50,7 @@ type MenuCreateRes struct {
 }
 
 type MenuUpdateReq struct {
-	g.Meta        `path:"/menu/{id}" method:"put" tags:"菜单" summary:"更新菜单"`
+	g.Meta        `path:"/menu/{id}" method:"put" tags:"菜单" summary:"更新菜单" permission:"menu:update"`
 	Id            int64   `json:"id" in:"path" v:"required#err.invalid_params" dc:"菜单ID"`
 	Name          *string `json:"name" dc:"菜单名称"`
 	Permission    *string `json:"permission" dc:"权限标识"`
@@ -70,7 +70,7 @@ type MenuUpdateReq struct {
 type MenuUpdateRes struct{}
 
 type MenuDeleteReq struct {
-	g.Meta `path:"/menu/{id}" method:"delete" tags:"菜单" summary:"删除菜单"`
+	g.Meta `path:"/menu/{id}" method:"delete" tags:"菜单" summary:"删除菜单" permission:"menu:delete"`
 	Id     int64 `json:"id" in:"path" v:"required#err.invalid_params" dc:"菜单ID"`
 }
 
