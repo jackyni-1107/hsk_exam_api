@@ -19,7 +19,7 @@ export function fetchSecurityEventLogList(params: {
   end_time?: string
 }) {
   return request.get<unknown, { data?: { list?: SecurityEventLogItem[]; total?: number } }>(
-    '/admin/security-event-log/list',
+    '/admin/log/security-event-log/list',
     {
       params: {
         page: params.page ?? 1,

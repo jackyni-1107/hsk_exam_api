@@ -32,7 +32,7 @@ export function fetchLoginLogList(params: {
   if (params.user_type != null && params.user_type >= 1) q.user_type = params.user_type
   if (params.start_time) q.start_time = params.start_time
   if (params.end_time) q.end_time = params.end_time
-  return request.get<unknown, { data?: { list?: LoginLogItem[]; total?: number } }>('/admin/login-log/list', {
+  return request.get<unknown, { data?: { list?: LoginLogItem[]; total?: number } }>('/admin/log/login-log/list', {
     params: q,
   })
 }

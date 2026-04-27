@@ -3,7 +3,7 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type AuditLogListReq struct {
-	g.Meta    `path:"/audit-log/list" method:"get" tags:"审计日志" summary:"操作审计列表"`
+	g.Meta    `path:"/log/audit-log/list" method:"get" tags:"审计日志" summary:"操作审计列表"`
 	Page      int    `json:"page" dc:"页码"`
 	Size      int    `json:"size" dc:"每页条数"`
 	Username  string `json:"username" dc:"操作用户名"`

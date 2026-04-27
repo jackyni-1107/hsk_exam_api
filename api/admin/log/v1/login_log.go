@@ -3,7 +3,7 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type LoginLogListReq struct {
-	g.Meta    `path:"/login-log/list" method:"get" tags:"登录日志" summary:"登录日志列表" permission:"login_log:list"`
+	g.Meta    `path:"/log/login-log/list" method:"get" tags:"登录日志" summary:"登录日志列表" permission:"login_log:list"`
 	Page      int    `json:"page" dc:"页码"`
 	Size      int    `json:"size" dc:"每页条数"`
 	Username  string `json:"username" dc:"用户名"`

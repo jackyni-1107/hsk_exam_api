@@ -41,7 +41,7 @@ export function getAuditLogList(params: {
   start_time?: string
   end_time?: string
 }) {
-  return request.get<unknown, { data?: { list?: AuditLogItem[]; total?: number } }>('/admin/audit-log/list', {
+  return request.get<unknown, { data?: { list?: AuditLogItem[]; total?: number } }>('/admin/log/audit-log/list', {
     params: {
       page: params.page ?? 1,
       size: params.size ?? 10,

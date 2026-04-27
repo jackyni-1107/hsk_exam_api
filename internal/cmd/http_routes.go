@@ -4,21 +4,18 @@ import (
 	"github.com/gogf/gf/v2/net/ghttp"
 
 	appcfg "exam/internal/config"
-	adminAuditLog "exam/internal/controller/admin/audit_log"
 	adminAuth "exam/internal/controller/admin/auth"
 	adminConfig "exam/internal/controller/admin/config"
 	adminDict "exam/internal/controller/admin/dict"
 	adminExam "exam/internal/controller/admin/exam"
-	adminExceptionLog "exam/internal/controller/admin/exception_log"
 	adminFile "exam/internal/controller/admin/file"
-	adminLoginLog "exam/internal/controller/admin/login_log"
+	adminLog "exam/internal/controller/admin/log"
 	adminMe "exam/internal/controller/admin/me"
 	adminMember "exam/internal/controller/admin/member"
 	adminMenu "exam/internal/controller/admin/menu"
 	adminMock "exam/internal/controller/admin/mock"
 	adminNotification "exam/internal/controller/admin/notification"
 	adminRole "exam/internal/controller/admin/role"
-	adminSecurityEventLog "exam/internal/controller/admin/security_event_log"
 	adminTask "exam/internal/controller/admin/task"
 	adminUser "exam/internal/controller/admin/user"
 	clientAuth "exam/internal/controller/client/auth"
@@ -82,10 +79,7 @@ func registerAdminRoutes(s *ghttp.Server, apiPrefix string) {
 			adminConfig.NewV1(),
 			adminDict.NewV1(),
 			adminTask.NewV1(),
-			adminAuditLog.NewV1(),
-			adminLoginLog.NewV1(),
-			adminExceptionLog.NewV1(),
-			adminSecurityEventLog.NewV1(),
+			adminLog.NewV1(),
 			adminExam.NewV1(),
 			adminMock.NewV1(),
 		)

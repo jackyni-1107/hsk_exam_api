@@ -3,7 +3,7 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type SecurityEventLogListReq struct {
-	g.Meta    `path:"/security-event-log/list" method:"get" tags:"安全事件" summary:"安全事件列表"`
+	g.Meta    `path:"/log/security-event-log/list" method:"get" tags:"安全事件" summary:"安全事件列表"`
 	Page      int    `json:"page" dc:"页码"`
 	Size      int    `json:"size" dc:"每页条数"`
 	EventType string `json:"event_type" dc:"事件类型"`

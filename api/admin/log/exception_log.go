@@ -1,9 +1,8 @@
-package exception_log
+package log
 
 import (
 	"context"
-
-	"exam/api/admin/exception_log/v1"
+	"exam/api/admin/log/v1"
 )
 
 type IExceptionLog interface {

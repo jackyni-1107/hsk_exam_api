@@ -1,9 +1,8 @@
-package login_log
+package log
 
 import (
 	"context"
-
-	"exam/api/admin/login_log/v1"
+	"exam/api/admin/log/v1"
 )
 
 type ILoginLog interface {

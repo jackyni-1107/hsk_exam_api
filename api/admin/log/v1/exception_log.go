@@ -3,7 +3,7 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type ExceptionLogListReq struct {
-	g.Meta    `path:"/exception-log/list" method:"get" tags:"异常日志" summary:"异常日志列表"`
+	g.Meta    `path:"/log/exception-log/list" method:"get" tags:"异常日志" summary:"异常日志列表" permisson:"auto"`
 	Page      int    `json:"page" dc:"页码"`
 	Size      int    `json:"size" dc:"每页条数"`
 	TraceId   string `json:"trace_id" dc:"链路追踪ID"`

@@ -21,7 +21,7 @@ export function fetchExceptionLogList(params: {
   end_time?: string
 }) {
   return request.get<unknown, { data?: { list?: ExceptionLogItem[]; total?: number } }>(
-    '/admin/exception-log/list',
+    '/admin/log/exception-log/list',
     {
       params: {
         page: params.page ?? 1,

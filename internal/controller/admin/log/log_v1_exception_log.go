@@ -1,9 +1,9 @@
-package exception_log
+package log
 
 import (
 	"context"
-	"exam/api/admin/log/v1"
 
+	v1 "exam/api/admin/log/v1"
 	syslogsvc "exam/internal/service/syslog"
 	"exam/internal/utility"
 )

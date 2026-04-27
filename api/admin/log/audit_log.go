@@ -1,10 +1,16 @@
-package audit_log
+package log
 
 import (
 	"context"
-
-	v1 "exam/api/admin/audit_log/v1"
+	"exam/api/admin/log/v1"
 )
+
+type ILog interface {
+	IAuditLog
+	IExceptionLog
+	ILoginLog
+	ISecurityEventLog
+}
 
 type IAuditLog interface {
 	AuditLogList(ctx context.Context, req *v1.AuditLogListReq) (res *v1.AuditLogListRes, err error)
