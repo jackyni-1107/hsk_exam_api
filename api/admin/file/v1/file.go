@@ -6,7 +6,7 @@ import (
 )
 
 type FileListReq struct {
-	g.Meta   `path:"/file/list" method:"get" tags:"文件" summary:"文件列表"`
+	g.Meta   `path:"/file/list" method:"get" tags:"文件" summary:"文件列表" permission:"file:list"`
 	Page     int    `json:"page" dc:"页码"`
 	Size     int    `json:"size" dc:"每页条数"`
 	Filename string `json:"filename" dc:"文件名"`
@@ -28,14 +28,14 @@ type FileItem struct {
 }
 
 type FileDeleteReq struct {
-	g.Meta `path:"/file/{id}" method:"delete" tags:"文件" summary:"删除文件"`
+	g.Meta `path:"/file/{id}" method:"delete" tags:"文件" summary:"删除文件" permission:"file:delete"`
 	Id     int64 `json:"id" in:"path" v:"required#err.invalid_params" dc:"文件ID"`
 }
 
 type FileDeleteRes struct{}
 
 type FileUploadReq struct {
-	g.Meta    `path:"/file/upload" method:"post" tags:"文件" summary:"上传文件"`
+	g.Meta    `path:"/file/upload" method:"post" tags:"文件" summary:"上传文件" permission:"file:upload"`
 	IsPrivate int               `json:"is_private" form:"is_private" d:"0" dc:"是否私有：0公开 1私有"`
 	File      *ghttp.UploadFile `json:"file" type:"file" dc:"文件（表单字段名 file）"`
 }
@@ -49,7 +49,7 @@ type FileUploadRes struct {
 }
 
 type StorageConfigListReq struct {
-	g.Meta `path:"/file/storage-config/list" method:"get" tags:"文件存储" summary:"存储配置列表"`
+	g.Meta `path:"/file/storage-config/list" method:"get" tags:"文件存储" summary:"存储配置列表" permission:"file:storage_config_list"`
 }
 
 type StorageConfigListRes struct {
@@ -67,7 +67,7 @@ type StorageConfigItem struct {
 }
 
 type StorageConfigCreateReq struct {
-	g.Meta            `path:"/file/storage-config" method:"post" tags:"文件存储" summary:"新增存储配置"`
+	g.Meta            `path:"/file/storage-config" method:"post" tags:"文件存储" summary:"新增存储配置" permission:"file:storage_config_create"`
 	StorageType       string `json:"storage_type" v:"required#err.invalid_params" dc:"存储类型"`
 	Name              string `json:"name" v:"required#err.invalid_params" dc:"配置名称"`
 	ConfigJson        string `json:"config_json" v:"required#err.invalid_params" dc:"配置JSON"`
@@ -79,7 +79,7 @@ type StorageConfigCreateRes struct {
 }
 
 type StorageConfigUpdateReq struct {
-	g.Meta            `path:"/file/storage-config/{id}" method:"put" tags:"文件存储" summary:"更新存储配置"`
+	g.Meta            `path:"/file/storage-config/{id}" method:"put" tags:"文件存储" summary:"更新存储配置" permission:"file:storage_config_update"`
 	Id                int64  `json:"id" in:"path" v:"required#err.invalid_params" dc:"配置ID"`
 	Name              string `json:"name" dc:"配置名称"`
 	ConfigJson        string `json:"config_json" dc:"配置JSON"`
@@ -89,14 +89,14 @@ type StorageConfigUpdateReq struct {
 type StorageConfigUpdateRes struct{}
 
 type StorageConfigDeleteReq struct {
-	g.Meta `path:"/file/storage-config/{id}" method:"delete" tags:"文件存储" summary:"删除存储配置"`
+	g.Meta `path:"/file/storage-config/{id}" method:"delete" tags:"文件存储" summary:"删除存储配置" permission:"file:storage_config_delete"`
 	Id     int64 `json:"id" in:"path" v:"required#err.invalid_params" dc:"配置ID"`
 }
 
 type StorageConfigDeleteRes struct{}
 
 type StorageConfigSetActiveReq struct {
-	g.Meta `path:"/file/storage-config/{id}/set-active" method:"post" tags:"文件存储" summary:"设为当前存储"`
+	g.Meta `path:"/file/storage-config/{id}/set-active" method:"post" tags:"文件存储" summary:"设为当前存储" permission:"file:storage_config_set_active"`
 	Id     int64 `json:"id" in:"path" v:"required#err.invalid_params" dc:"配置ID"`
 }
 
