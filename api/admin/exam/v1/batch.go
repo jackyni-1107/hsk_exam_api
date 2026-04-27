@@ -6,7 +6,7 @@ import (
 )
 
 type BatchListReq struct {
-	g.Meta      `path:"/exam/batch/list" method:"get" tags:"考试批次" summary:"批次分页列表"`
+	g.Meta      `path:"/exam/batch/list" method:"get" tags:"考试批次" summary:"批次分页列表" permission:"exam:batch:list"`
 	ExamPaperId int64  `json:"exam_paper_id" dc:"按 exam_paper.id 筛选，0 表示不限"`
 	TimeFrom    string `json:"time_from" dc:"可选，与 time_to 组成查询区间；筛选与批次 [exam_start_at, exam_end_at] 有交集的批次（可只传一侧）"`
 	TimeTo      string `json:"time_to" dc:"可选，见 time_from；同时传时须 time_from <= time_to"`
@@ -44,7 +44,7 @@ type BatchDetailRes struct {
 }
 
 type BatchCreateReq struct {
-	g.Meta                `path:"/exam/batch" method:"post" tags:"考试批次" summary:"创建批次"`
+	g.Meta                `path:"/exam/batch" method:"post" tags:"考试批次" summary:"创建批次" permission:"exam:batch:create"`
 	Title                 string  `json:"title" dc:"批次名称"`
 	ExamStartAt           string  `json:"exam_start_at" v:"required#err.invalid_params" dc:"考试允许开始时间，RFC3339 或常见日期时间字符串"`
 	ExamEndAt             string  `json:"exam_end_at" v:"required#err.invalid_params" dc:"考试允许结束时间"`
@@ -61,7 +61,7 @@ type BatchCreateRes struct {
 }
 
 type BatchUpdateReq struct {
-	g.Meta                `path:"/exam/batch/{id}" method:"put" tags:"考试批次" summary:"更新批次"`
+	g.Meta                `path:"/exam/batch/{id}" method:"put" tags:"考试批次" summary:"更新批次" permission:"exam:batch:update"`
 	Id                    int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"批次ID"`
 	Title                 string  `json:"title" dc:"批次名称"`
 	ExamStartAt           string  `json:"exam_start_at" v:"required#err.invalid_params" dc:"考试允许开始时间"`
@@ -77,7 +77,7 @@ type BatchUpdateReq struct {
 type BatchUpdateRes struct{}
 
 type BatchDeleteReq struct {
-	g.Meta `path:"/exam/batch/{id}" method:"delete" tags:"考试批次" summary:"删除批次（逻辑删除）"`
+	g.Meta `path:"/exam/batch/{id}" method:"delete" tags:"考试批次" summary:"删除批次" permission:"exam:batch:delete"`
 	Id     int64 `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"批次ID"`
 }
 
@@ -95,7 +95,7 @@ type BatchMembersImportRes struct {
 }
 
 type BatchMembersImportFileReq struct {
-	g.Meta      `path:"/exam/batch/{id}/members/import-file" method:"post" tags:"考试批次" summary:"按模板 CSV 向批次导入学员"`
+	g.Meta      `path:"/exam/batch/{id}/members/import-file" method:"post" tags:"考试批次" summary:"导入学员" permission:"exam:batch:import-file"`
 	Id          int64             `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"批次ID"`
 	ExamPaperId int64             `json:"exam_paper_id" v:"required|min:1#err.invalid_params" dc:"须属于本批次已配置的 exam_paper"`
 	File        *ghttp.UploadFile `json:"file" type:"file" dc:"CSV 文件（支持列：用户名/username 或 会员ID/member_id）"`
@@ -130,7 +130,7 @@ type BatchMemberListItem struct {
 }
 
 type BatchMembersRemoveReq struct {
-	g.Meta      `path:"/exam/batch/{id}/members/remove" method:"post" tags:"考试批次" summary:"从批次移除学员（指定试卷）"`
+	g.Meta      `path:"/exam/batch/{id}/members/remove" method:"post" tags:"考试批次" summary:"从批次移除学员" permission:"exam:batch:remove"`
 	Id          int64   `json:"id" in:"path" v:"required|min:1#err.invalid_params" dc:"批次ID"`
 	ExamPaperId int64   `json:"exam_paper_id" v:"required|min:1#err.invalid_params" dc:"exam_paper.id"`
 	MemberIds   []int64 `json:"member_ids" v:"required#err.invalid_params" dc:"学员主键列表"`
