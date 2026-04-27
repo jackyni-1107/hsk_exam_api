@@ -3,7 +3,7 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type RoleListReq struct {
-	g.Meta `path:"/role/list" method:"get" tags:"角色" summary:"角色列表"`
+	g.Meta `path:"/role/list" method:"get" tags:"角色" summary:"角色列表" permission:"role:list"`
 	Page   int    `json:"page" dc:"页码"`
 	Size   int    `json:"size" dc:"每页条数"`
 	Name   string `json:"name" dc:"角色名称"`
@@ -28,7 +28,7 @@ type RoleItem struct {
 }
 
 type RoleCreateReq struct {
-	g.Meta `path:"/role" method:"post" tags:"角色" summary:"新增角色"`
+	g.Meta `path:"/role" method:"post" tags:"角色" summary:"新增角色" permission:"role:create"`
 	Name   string `json:"name" v:"required#err.invalid_params" dc:"角色名称"`
 	Code   string `json:"code" v:"required#err.invalid_params" dc:"角色编码"`
 	Status int    `json:"status" dc:"状态：0正常 1停用"`
@@ -42,7 +42,7 @@ type RoleCreateRes struct {
 }
 
 type RoleUpdateReq struct {
-	g.Meta `path:"/role/{id}" method:"put" tags:"角色" summary:"更新角色"`
+	g.Meta `path:"/role/{id}" method:"put" tags:"角色" summary:"更新角色" permission:"role:update"`
 	Id     int64  `json:"id" in:"path" v:"required#err.invalid_params" dc:"角色ID"`
 	Name   string `json:"name" dc:"角色名称"`
 	Code   string `json:"code" dc:"角色编码"`
@@ -55,14 +55,14 @@ type RoleUpdateReq struct {
 type RoleUpdateRes struct{}
 
 type RoleDeleteReq struct {
-	g.Meta `path:"/role/{id}" method:"delete" tags:"角色" summary:"删除角色"`
+	g.Meta `path:"/role/{id}" method:"delete" tags:"角色" summary:"删除角色" permission:"role:delete"`
 	Id     int64 `json:"id" in:"path" v:"required#err.invalid_params" dc:"角色ID"`
 }
 
 type RoleDeleteRes struct{}
 
 type RoleMenuAssignReq struct {
-	g.Meta  `path:"/role/{id}/menus" method:"post" tags:"角色" summary:"分配菜单"`
+	g.Meta  `path:"/role/{id}/menus" method:"post" tags:"角色" summary:"分配菜单" permission:"role:menu_assign"`
 	Id      int64   `json:"id" in:"path" v:"required#err.invalid_params" dc:"角色ID"`
 	MenuIds []int64 `json:"menu_ids" dc:"菜单ID列表"`
 }
