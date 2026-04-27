@@ -21,6 +21,7 @@ func ClientProtectedChain() []ghttp.HandlerFunc {
 func ClientMediaChain() []ghttp.HandlerFunc {
 	return []ghttp.HandlerFunc{
 		Trace,
+		MiddlewareCORS,
 		Response,
 	}
 }
