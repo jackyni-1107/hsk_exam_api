@@ -3,7 +3,7 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type TaskListReq struct {
-	g.Meta  `path:"/task/list" method:"get" tags:"任务" summary:"任务列表"`
+	g.Meta  `path:"/task/list" method:"get" tags:"任务" summary:"任务列表" permission:"task:list"`
 	Page    int    `json:"page" dc:"页码"`
 	Size    int    `json:"size" dc:"每页条数"`
 	Name    string `json:"name" dc:"任务名称"`
@@ -19,15 +19,15 @@ type TaskListRes struct {
 }
 
 type TaskRuntimeStatsReq struct {
-	g.Meta `path:"/task/runtime" method:"get" tags:"浠诲姟" summary:"浠诲姟杩愯鏃舵€佺粺璁?"`
+	g.Meta `path:"/task/runtime" method:"get" tags:"任务" summary:"任务运行时态统计"`
 }
 
 type TaskRuntimeStatsRes struct {
-	DelayQueueSize        int    `json:"delay_queue_size" dc:"寤惰繜闃熷垪鎬绘暟"`
-	DelayDueCount         int    `json:"delay_due_count" dc:"宸插埌鏈熷緟鎵ц鏁伴噺"`
-	DelayScannerActive    bool   `json:"delay_scanner_active" dc:"寤惰繜鎵弿鍣ㄦ槸鍚︽椿璺?`
-	DelayScannerTTLMillis int64  `json:"delay_scanner_ttl_millis" dc:"寤惰繜鎵弿閿佸墿浣欑敓瀛樻椂闂?`
-	DelayOldestDueAt      string `json:"delay_oldest_due_at" dc:"闃熷垪鏈€鏃╁埌鏈熸椂闂?`
+	DelayQueueSize        int    `json:"delay_queue_size" dc:"延迟队列总数"`
+	DelayDueCount         int    `json:"delay_due_count" dc:"已到期待执行数量"`
+	DelayScannerActive    bool   `json:"delay_scanner_active" dc:"延迟扫描器是否活跃"`
+	DelayScannerTTLMillis int64  `json:"delay_scanner_ttl_millis" dc:"延迟扫描器锁剩余生存时间"`
+	DelayOldestDueAt      string `json:"delay_oldest_due_at" dc:"队列最早到期时间"`
 }
 
 type TaskItem struct {
@@ -50,7 +50,7 @@ type TaskItem struct {
 }
 
 type TaskCreateReq struct {
-	g.Meta         `path:"/task" method:"post" tags:"任务" summary:"创建任务"`
+	g.Meta         `path:"/task" method:"post" tags:"任务" summary:"创建任务" permission:"task:create"`
 	Name           string `json:"name" v:"required" dc:"任务名称"`
 	Code           string `json:"code" v:"required" dc:"任务编码"`
 	Type           int    `json:"type" v:"required" dc:"任务类型"`
@@ -72,7 +72,7 @@ type TaskCreateRes struct {
 }
 
 type TaskUpdateReq struct {
-	g.Meta         `path:"/task/{id}" method:"put" tags:"任务" summary:"更新任务"`
+	g.Meta         `path:"/task/{id}" method:"put" tags:"任务" summary:"更新任务" permission:"task:update"`
 	Id             int64  `json:"id" in:"path" v:"required|min:1" dc:"任务ID"`
 	Name           string `json:"name" v:"required" dc:"任务名称"`
 	Code           string `json:"code" v:"required" dc:"任务编码"`
@@ -93,14 +93,14 @@ type TaskUpdateReq struct {
 type TaskUpdateRes struct{}
 
 type TaskDeleteReq struct {
-	g.Meta `path:"/task/{id}" method:"delete" tags:"任务" summary:"删除任务"`
+	g.Meta `path:"/task/{id}" method:"delete" tags:"任务" summary:"删除任务" permission:"task:delete"`
 	Id     int64 `json:"id" in:"path" v:"required|min:1" dc:"任务ID"`
 }
 
 type TaskDeleteRes struct{}
 
 type TaskRunReq struct {
-	g.Meta `path:"/task/run" method:"post" tags:"任务" summary:"手动执行任务"`
+	g.Meta `path:"/task/run" method:"post" tags:"任务" summary:"手动执行任务" permission:"task:run"`
 	Id     int64 `json:"id" v:"required|min:1" dc:"任务ID"`
 }
 
@@ -109,7 +109,7 @@ type TaskRunRes struct {
 }
 
 type TaskLogListReq struct {
-	g.Meta `path:"/task/log" method:"get" tags:"任务" summary:"任务执行日志"`
+	g.Meta `path:"/task/log" method:"get" tags:"任务" summary:"任务执行日志" permission:"task:log"`
 	Page   int    `json:"page" dc:"页码"`
 	Size   int    `json:"size" dc:"每页条数"`
 	TaskId int64  `json:"task_id" dc:"任务ID"`
