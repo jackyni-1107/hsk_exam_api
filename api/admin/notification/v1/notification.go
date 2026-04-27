@@ -3,7 +3,7 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type LogListReq struct {
-	g.Meta    `path:"/notification/log/list" method:"get" tags:"通知" summary:"发送记录"`
+	g.Meta    `path:"/notification/log/list" method:"get" tags:"通知" summary:"发送记录" permission:"notification:log_list"`
 	Page      int    `json:"page" dc:"页码"`
 	Size      int    `json:"size" dc:"每页条数"`
 	Channel   string `json:"channel" dc:"渠道"`
@@ -26,7 +26,7 @@ type LogItem struct {
 }
 
 type ChannelConfigListReq struct {
-	g.Meta  `path:"/notification/channel/list" method:"get" tags:"通知" summary:"渠道配置列表"`
+	g.Meta  `path:"/notification/channel/list" method:"get" tags:"通知" summary:"渠道配置列表" permission:"notification:channel_config_list"`
 	Channel string `json:"channel" dc:"渠道"`
 }
 
@@ -45,7 +45,7 @@ type ChannelConfigItem struct {
 }
 
 type ChannelConfigCreateReq struct {
-	g.Meta     `path:"/notification/channel" method:"post" tags:"通知" summary:"新增渠道配置"`
+	g.Meta     `path:"/notification/channel" method:"post" tags:"通知" summary:"新增渠道配置" permission:"notification:channel_config_create"`
 	Channel    string `json:"channel" v:"required#err.invalid_params" dc:"渠道"`
 	Provider   string `json:"provider" v:"required#err.invalid_params" dc:"服务商"`
 	Name       string `json:"name" v:"required#err.invalid_params" dc:"配置名称"`
@@ -57,7 +57,7 @@ type ChannelConfigCreateRes struct {
 }
 
 type ChannelConfigUpdateReq struct {
-	g.Meta     `path:"/notification/channel/{id}" method:"put" tags:"通知" summary:"更新渠道配置"`
+	g.Meta     `path:"/notification/channel/{id}" method:"put" tags:"通知" summary:"更新渠道配置" permission:"notification:channel_config_update"`
 	Id         int64  `json:"id" in:"path" v:"required#err.invalid_params" dc:"配置ID"`
 	Name       string `json:"name" dc:"配置名称"`
 	ConfigJson string `json:"config_json" dc:"配置JSON"`
@@ -66,21 +66,21 @@ type ChannelConfigUpdateReq struct {
 type ChannelConfigUpdateRes struct{}
 
 type ChannelConfigDeleteReq struct {
-	g.Meta `path:"/notification/channel/{id}" method:"delete" tags:"通知" summary:"删除渠道配置"`
+	g.Meta `path:"/notification/channel/{id}" method:"delete" tags:"通知" summary:"删除渠道配置" permission:"notification:channel_config_delete"`
 	Id     int64 `json:"id" in:"path" v:"required#err.invalid_params" dc:"配置ID"`
 }
 
 type ChannelConfigDeleteRes struct{}
 
 type ChannelConfigSetActiveReq struct {
-	g.Meta `path:"/notification/channel/{id}/set-active" method:"post" tags:"通知" summary:"设为当前渠道"`
+	g.Meta `path:"/notification/channel/{id}/set-active" method:"post" tags:"通知" summary:"设为当前渠道" permission:"notification:channel_config_set_active"`
 	Id     int64 `json:"id" in:"path" v:"required#err.invalid_params" dc:"配置ID"`
 }
 
 type ChannelConfigSetActiveRes struct{}
 
 type TemplateListReq struct {
-	g.Meta  `path:"/notification/template/list" method:"get" tags:"通知" summary:"模板列表"`
+	g.Meta  `path:"/notification/template/list" method:"get" tags:"通知" summary:"模板列表" permission:"notification:template_list"`
 	Page    int    `json:"page" dc:"页码"`
 	Size    int    `json:"size" dc:"每页条数"`
 	Code    string `json:"code" dc:"模板编码"`
@@ -104,7 +104,7 @@ type TemplateItem struct {
 }
 
 type TemplateCreateReq struct {
-	g.Meta    `path:"/notification/template" method:"post" tags:"通知" summary:"新增模板"`
+	g.Meta    `path:"/notification/template" method:"post" tags:"通知" summary:"新增模板" permission:"notification:template_create"`
 	Code      string `json:"code" v:"required#err.invalid_params" dc:"模板编码"`
 	Name      string `json:"name" v:"required#err.invalid_params" dc:"模板名称"`
 	Channel   string `json:"channel" v:"required#err.invalid_params" dc:"渠道"`
@@ -118,7 +118,7 @@ type TemplateCreateRes struct {
 }
 
 type TemplateUpdateReq struct {
-	g.Meta    `path:"/notification/template/{id}" method:"put" tags:"通知" summary:"更新模板"`
+	g.Meta    `path:"/notification/template/{id}" method:"put" tags:"通知" summary:"更新模板" permission:"notification:template_update"`
 	Id        int64  `json:"id" in:"path" v:"required#err.invalid_params" dc:"模板ID"`
 	Name      string `json:"name" dc:"模板名称"`
 	Content   string `json:"content" dc:"模板内容"`
@@ -129,14 +129,14 @@ type TemplateUpdateReq struct {
 type TemplateUpdateRes struct{}
 
 type TemplateDeleteReq struct {
-	g.Meta `path:"/notification/template/{id}" method:"delete" tags:"通知" summary:"删除模板"`
+	g.Meta `path:"/notification/template/{id}" method:"delete" tags:"通知" summary:"删除模板" permission:"notification:template_delete"`
 	Id     int64 `json:"id" in:"path" v:"required#err.invalid_params" dc:"模板ID"`
 }
 
 type TemplateDeleteRes struct{}
 
 type NotificationSendReq struct {
-	g.Meta       `path:"/notification/send" method:"post" tags:"通知" summary:"发送通知"`
+	g.Meta       `path:"/notification/send" method:"post" tags:"通知" summary:"发送通知" permission:"notification:send"`
 	TemplateCode string `json:"template_code" v:"required#err.invalid_params" dc:"模板编码"`
 	Channel      string `json:"channel" v:"required#err.invalid_params" dc:"渠道"`
 	Recipient    string `json:"recipient" v:"required#err.invalid_params" dc:"接收人"`
