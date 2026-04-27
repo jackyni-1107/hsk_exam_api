@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 
+	"exam/internal/config"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gtime"
 
@@ -17,7 +18,7 @@ import (
 
 // RandomFillAnswersForTest 仅返回随机答案草稿列表，不写库。若需生成并保存，使用 RandomFillAndSaveAnswers。
 func (s *sPaper) RandomFillAnswersForTest(ctx context.Context, userID int64, examPaperID int64, attemptID int64) ([]bo.RandomAnswerDraftItem, error) {
-	cfg := LoadExamCfg(ctx)
+	cfg := config.Config.Exam.Normalize()
 	if !cfg.EnableRandomAnswerHelper {
 		return nil, gerror.NewCode(consts.CodeExamTestHelperDisabled)
 	}

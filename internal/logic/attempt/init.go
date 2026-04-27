@@ -23,13 +23,6 @@ const (
 	updaterTask   = "task"
 )
 
-// examSessionCfg 与 internal/logic/exam/exam_session_cfg 同键，避免 attempt 引用 exam 包产生循环依赖。
-type examSessionCfg struct {
-	DefaultDurationSeconds int
-	MaxDurationSeconds     int
-	SaveAnswersPerSecond   int
-}
-
 type sAttempt struct{}
 
 func init() {
@@ -82,32 +75,6 @@ func (s *sAttempt) getPageSize(page, size int) (int, int) {
 		size = 10
 	}
 	return page, size
-}
-
-func (s *sAttempt) loadExamSessionCfg(ctx context.Context) examSessionCfg {
-	c := g.Cfg()
-	return examSessionCfg{
-		DefaultDurationSeconds: c.MustGet(ctx, "exam.defaultDurationSeconds", 3600).Int(),
-		MaxDurationSeconds:     c.MustGet(ctx, "exam.maxDurationSeconds", 14400).Int(),
-		SaveAnswersPerSecond:   c.MustGet(ctx, "exam.saveAnswersPerSecond", 20).Int(),
-	}
-}
-
-func resolveDurationSeconds(cfg examSessionCfg, paperDuration int, clientOverride int) int {
-	d := paperDuration
-	if d <= 0 {
-		d = cfg.DefaultDurationSeconds
-	}
-	if clientOverride > 0 {
-		d = clientOverride
-	}
-	if d > cfg.MaxDurationSeconds {
-		d = cfg.MaxDurationSeconds
-	}
-	if d <= 0 {
-		d = cfg.DefaultDurationSeconds
-	}
-	return d
 }
 
 func boolPtr(b bool) *bool {

@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	appcfg "exam/internal/config"
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
@@ -245,7 +246,7 @@ func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batc
 
 // StartAttempt 开考：进入进行中并写入截止时间。
 func (s *sAttempt) StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDurationSeconds int) error {
-	cfg := s.loadExamSessionCfg(ctx)
+	cfg := appcfg.Config.Exam.Normalize()
 	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		var att examentity.ExamAttempt
 		if err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).
@@ -278,7 +279,7 @@ func (s *sAttempt) StartAttempt(ctx context.Context, userID int64, attemptID int
 		if paper.Id == 0 {
 			return gerror.NewCode(consts.CodeExamPaperNotFound)
 		}
-		dur := resolveDurationSeconds(cfg, paper.DurationSeconds, clientDurationSeconds)
+		dur := cfg.ResolveDurationSeconds(paper.DurationSeconds, clientDurationSeconds)
 		now := gtime.Now()
 		deadline := gtime.NewFromTimeStamp(now.Timestamp() + int64(dur))
 
@@ -367,7 +368,7 @@ func (s *sAttempt) GetAttemptAnswers(ctx context.Context, userID int64, attemptI
 
 // SaveAnswers 保存答案 redis -> db
 func (s *sAttempt) SaveAnswers(ctx context.Context, userID int64, attemptID int64, segmentCode string, items []bo.SaveAnswerItem) error {
-	cfg := s.loadExamSessionCfg(ctx)
+	cfg := appcfg.Config.Exam.Normalize()
 	if err := RateLimitSaveAnswers(ctx, attemptID, cfg.SaveAnswersPerSecond); err != nil {
 		return err
 	}
