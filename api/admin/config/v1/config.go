@@ -3,7 +3,7 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type ConfigListReq struct {
-	g.Meta `path:"/config/list" method:"get" tags:"系统配置" summary:"配置列表"`
+	g.Meta `path:"/config/list" method:"get" tags:"系统配置" summary:"配置列表" permission:"config:list"`
 	Page   int    `json:"page" dc:"页码"`
 	Size   int    `json:"size" dc:"每页条数"`
 	Group  string `json:"group" dc:"配置分组"`
@@ -26,7 +26,7 @@ type ConfigItem struct {
 }
 
 type ConfigCreateReq struct {
-	g.Meta      `path:"/config" method:"post" tags:"系统配置" summary:"新增配置"`
+	g.Meta      `path:"/config" method:"post" tags:"系统配置" summary:"新增配置" permission:"config:create"`
 	ConfigKey   string `json:"config_key" v:"required#err.invalid_params" dc:"配置键"`
 	ConfigValue string `json:"config_value" v:"required#err.invalid_params" dc:"配置值"`
 	ConfigType  string `json:"config_type" dc:"配置类型"`
@@ -39,7 +39,7 @@ type ConfigCreateRes struct {
 }
 
 type ConfigUpdateReq struct {
-	g.Meta      `path:"/config/{id}" method:"put" tags:"系统配置" summary:"更新配置"`
+	g.Meta      `path:"/config/{id}" method:"put" tags:"系统配置" summary:"更新配置" permission:"config:update"`
 	Id          int64  `json:"id" in:"path" v:"required#err.invalid_params" dc:"配置ID"`
 	ConfigValue string `json:"config_value" dc:"配置值"`
 	Remark      string `json:"remark" dc:"备注"`
@@ -48,7 +48,7 @@ type ConfigUpdateReq struct {
 type ConfigUpdateRes struct{}
 
 type ConfigDeleteReq struct {
-	g.Meta `path:"/config/{id}" method:"delete" tags:"系统配置" summary:"删除配置"`
+	g.Meta `path:"/config/{id}" method:"delete" tags:"系统配置" summary:"删除配置" permission:"config:delete"`
 	Id     int64 `json:"id" in:"path" v:"required#err.invalid_params" dc:"配置ID"`
 }
 
