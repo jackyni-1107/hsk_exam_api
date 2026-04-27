@@ -3,7 +3,7 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type UserListReq struct {
-	g.Meta   `path:"/user/list" method:"get" tags:"用户" summary:"用户列表"`
+	g.Meta   `path:"/user/list" method:"get" tags:"用户" summary:"用户列表" permission:"user:list"`
 	Page     int    `json:"page" dc:"页码"`
 	Size     int    `json:"size" dc:"每页条数"`
 	Username string `json:"username" dc:"用户名"`
@@ -27,7 +27,7 @@ type UserItem struct {
 }
 
 type UserCreateReq struct {
-	g.Meta   `path:"/user" method:"post" tags:"用户" summary:"新增用户"`
+	g.Meta   `path:"/user" method:"post" tags:"用户" summary:"新增用户" permission:"user:create"`
 	Username string  `json:"username" v:"required#err.invalid_params" dc:"用户名"`
 	Password string  `json:"password" v:"required#err.invalid_params" dc:"密码"`
 	Nickname string  `json:"nickname" dc:"昵称"`
@@ -42,7 +42,7 @@ type UserCreateRes struct {
 }
 
 type UserUpdateReq struct {
-	g.Meta   `path:"/user/{id}" method:"put" tags:"用户" summary:"更新用户"`
+	g.Meta   `path:"/user/{id}" method:"put" tags:"用户" summary:"更新用户" permission:"user:update"`
 	Id       int64  `json:"id" in:"path" v:"required#err.invalid_params" dc:"用户ID"`
 	Password string `json:"password" dc:"密码"`
 	Nickname string `json:"nickname" dc:"昵称"`
@@ -54,14 +54,14 @@ type UserUpdateReq struct {
 type UserUpdateRes struct{}
 
 type UserDeleteReq struct {
-	g.Meta `path:"/user/{id}" method:"delete" tags:"用户" summary:"删除用户"`
+	g.Meta `path:"/user/{id}" method:"delete" tags:"用户" summary:"删除用户" permission:"user:delete"`
 	Id     int64 `json:"id" in:"path" v:"required#err.invalid_params" dc:"用户ID"`
 }
 
 type UserDeleteRes struct{}
 
 type UserRoleAssignReq struct {
-	g.Meta  `path:"/user/{id}/roles" method:"post" tags:"用户" summary:"分配角色"`
+	g.Meta  `path:"/user/{id}/roles" method:"post" tags:"用户" summary:"分配角色" permission:"user:role_assign"`
 	Id      int64   `json:"id" in:"path" v:"required#err.invalid_params" dc:"用户ID"`
 	RoleIds []int64 `json:"role_ids" dc:"角色ID列表"`
 }
