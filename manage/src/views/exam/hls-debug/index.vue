@@ -52,7 +52,7 @@ import Hls, { ErrorTypes, Events, type HlsConfig } from 'hls.js'
 
 const HLS_PROXY_PREFIX = '/__hls_storage_proxy'
 
-const url = ref('')
+const url = ref('/api/client/exam/media/hls/d7c1bd70-3750-4077-b9e0-26d0cbc06c35.m3u8')
 const videoRef = ref<HTMLVideoElement | null>(null)
 const loading = ref(false)
 const errorMsg = ref('')

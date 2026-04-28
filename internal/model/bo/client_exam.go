@@ -47,3 +47,14 @@ type AttemptAnswerClientItem struct {
 	OptionID   int64
 	Text       string
 }
+
+// AttemptCheatEventRecordInput 会话作弊事件上报入参。
+type AttemptCheatEventRecordInput struct {
+	AttemptID   int64
+	UserID      int64
+	EventType   string
+	SegmentCode string
+	Detail      string
+	IP          string
+	UserAgent   string
+}

@@ -62,25 +62,26 @@ type AttemptListRes struct {
 }
 
 type AttemptListItem struct {
-	Id                 int64   `json:"id" dc:"会话ID"`
-	MemberId           int64   `json:"member_id" dc:"学员ID"`
-	Username           string  `json:"username" dc:"学员账号"`
-	Nickname           string  `json:"nickname" dc:"学员昵称"`
-	ExaminationPaperId int64   `json:"examination_paper_id" dc:"mock_examination_paper.id"`
-	ExamBatchId        int64   `json:"exam_batch_id" dc:"考试批次ID"`
-	MockLevelId        int64   `json:"mock_level_id" dc:"Mock等级ID"`
-	PaperTitle         string  `json:"paper_title" dc:"试卷标题"`
-	PaperLevel         string  `json:"paper_level" dc:"试卷级别"`
-	RemotePaperId      string  `json:"remote_paper_id" dc:"远程试卷ID"`
-	Status             int     `json:"status" dc:"exam_result.status：1-4 同会话；5=全部算分完成"`
-	ObjectiveScore     float64 `json:"objective_score" dc:"客观题得分"`
-	SubjectiveScore    float64 `json:"subjective_score" dc:"主观题得分"`
-	TotalScore         float64 `json:"total_score" dc:"总分"`
-	HasSubjective      int     `json:"has_subjective" dc:"是否含主观题：0否 1是"`
-	StartedAt          string  `json:"started_at" dc:"开考时间"`
-	SubmittedAt        string  `json:"submitted_at" dc:"交卷时间"`
-	EndedAt            string  `json:"ended_at" dc:"结束时间"`
-	CreateTime         string  `json:"create_time" dc:"创建时间"`
+	Id                 int64          `json:"id" dc:"会话ID"`
+	MemberId           int64          `json:"member_id" dc:"学员ID"`
+	Username           string         `json:"username" dc:"学员账号"`
+	Nickname           string         `json:"nickname" dc:"学员昵称"`
+	ExaminationPaperId int64          `json:"examination_paper_id" dc:"mock_examination_paper.id"`
+	ExamBatchId        int64          `json:"exam_batch_id" dc:"考试批次ID"`
+	MockLevelId        int64          `json:"mock_level_id" dc:"Mock等级ID"`
+	PaperTitle         string         `json:"paper_title" dc:"试卷标题"`
+	PaperLevel         string         `json:"paper_level" dc:"试卷级别"`
+	RemotePaperId      string         `json:"remote_paper_id" dc:"远程试卷ID"`
+	Status             int            `json:"status" dc:"exam_result.status：1-4 同会话；5=全部算分完成"`
+	ObjectiveScore     float64        `json:"objective_score" dc:"客观题得分"`
+	SubjectiveScore    float64        `json:"subjective_score" dc:"主观题得分"`
+	TotalScore         float64        `json:"total_score" dc:"总分"`
+	HasSubjective      int            `json:"has_subjective" dc:"是否含主观题：0否 1是"`
+	StartedAt          string         `json:"started_at" dc:"开考时间"`
+	SubmittedAt        string         `json:"submitted_at" dc:"交卷时间"`
+	EndedAt            string         `json:"ended_at" dc:"结束时间"`
+	CreateTime         string         `json:"create_time" dc:"创建时间"`
+	CheatEventCounts   map[string]int `json:"cheat_event_counts" dc:"作弊事件按 event_type 计数"`
 }
 
 type AttemptDetailReq struct {

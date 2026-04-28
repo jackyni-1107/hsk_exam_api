@@ -129,6 +129,15 @@
           </template>
         </el-table-column>
         <el-table-column
+          label="违规"
+          min-width="140"
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">
+            {{ cheatCountsDisplay(row) }}
+          </template>
+        </el-table-column>
+        <el-table-column
           prop="submitted_at"
           label="交卷时间"
           width="172"
@@ -527,6 +536,16 @@ import {
   type MockLevelItem,
 } from "@/api/mockAdmin";
 import { mockLevelOptionLabel } from "@/utils/mockLevel";
+
+/** 列表行作弊事件计数展示 */
+function cheatCountsDisplay(row: AttemptListItem): string {
+  const o = row.cheat_event_counts;
+  if (!o || Object.keys(o).length === 0) return "—";
+  return Object.entries(o)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}×${v}`)
+    .join("，");
+}
 
 type SubjectiveGradeTableRow = AttemptDetailAnswer & {
   sectionTitle: string;

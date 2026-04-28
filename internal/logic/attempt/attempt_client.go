@@ -3,9 +3,11 @@ package attempt
 import (
 	"context"
 	"sort"
+	"strings"
 	"time"
 
 	appcfg "exam/internal/config"
+
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
@@ -462,6 +464,39 @@ func (s *sAttempt) SubmitAttempt(ctx context.Context, userID int64, attemptID in
 		return nil
 	}
 	return markSubmitted(ctx, attemptID, attemptEventSubmit, updaterClient)
+}
+
+// RecordCheatEvent 记录会话作弊行为（切屏、录屏等）。
+func (s *sAttempt) RecordCheatEvent(ctx context.Context, in bo.AttemptCheatEventRecordInput) error {
+	eventType := strings.TrimSpace(in.EventType)
+	if in.AttemptID <= 0 || in.UserID <= 0 || eventType == "" {
+		return gerror.NewCode(consts.CodeInvalidParams)
+	}
+	att, err := LoadAttemptByUser(ctx, in.AttemptID, in.UserID)
+	if err != nil {
+		return err
+	}
+	if !canSaveAttemptAnswers(att.Status) {
+		return gerror.NewCode(consts.CodeExamAlreadySubmitted)
+	}
+	if len(eventType) > 64 || len(in.SegmentCode) > 32 || len(in.Detail) > 1024 {
+		return gerror.NewCode(consts.CodeInvalidParams)
+	}
+	now := gtime.Now()
+	_, err = dao.ExamAttemptCheatEvent.Ctx(ctx).Insert(examdo.ExamAttemptCheatEvent{
+		AttemptId:   in.AttemptID,
+		MemberId:    in.UserID,
+		EventType:   eventType,
+		EventAt:     now,
+		SegmentCode: strings.TrimSpace(in.SegmentCode),
+		Detail:      in.Detail,
+		ClientIp:    in.IP,
+		ClientAgent: in.UserAgent,
+		Creator:     updaterClient,
+		CreateTime:  now,
+		DeleteFlag:  consts.DeleteFlagNotDeleted,
+	})
+	return err
 }
 
 // MarkSubmittedIfOverdue 供定时任务：超时未操作会话标记为已交卷（待算分，不校验用户）。算分由 ExamScoreFinalizeHandler 执行。

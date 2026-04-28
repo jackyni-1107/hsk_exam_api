@@ -10,17 +10,17 @@ type PaperForExamReq struct {
 }
 
 type PaperForExamRes struct {
-	Id                   int64                  `json:"id" dc:"exam_paper.id（主键）"`
-	MockExaminationPaperId int64              `json:"mock_examination_paper_id,omitempty" dc:"冗余：mock_examination_paper.id"`
-	Level                string                 `json:"level" dc:"试卷级别"`
-	PaperId              string                 `json:"paper_id" dc:"远程试卷ID"`
-	Title                string                 `json:"title" dc:"试卷标题"`
-	SourceBaseUrl        string                 `json:"source_base_url" dc:"资源基础URL"`
-	AudioUrl             string                 `json:"audio_url" dc:"m3u8链接"`
-	DurationSeconds      int                    `json:"duration_seconds" dc:"考试时长(秒)"`
-	ListenReviewDuration int                    `json:"listen_review_duration" dc:"听力结束后回顾时间(秒)"`
-	Prepare              PaperForExamPrepare    `json:"prepare" dc:"准备阶段信息"`
-	Items                []PaperForExamItemInit `json:"items" dc:"大题初始化列表"`
+	Id                     int64                  `json:"id" dc:"exam_paper.id（主键）"`
+	MockExaminationPaperId int64                  `json:"mock_examination_paper_id,omitempty" dc:"冗余：mock_examination_paper.id"`
+	Level                  string                 `json:"level" dc:"试卷级别"`
+	PaperId                string                 `json:"paper_id" dc:"远程试卷ID"`
+	Title                  string                 `json:"title" dc:"试卷标题"`
+	SourceBaseUrl          string                 `json:"source_base_url" dc:"资源基础URL"`
+	AudioUrl               string                 `json:"audio_url" dc:"m3u8链接"`
+	DurationSeconds        int                    `json:"duration_seconds" dc:"考试时长(秒)"`
+	ListenReviewDuration   int                    `json:"listen_review_duration" dc:"听力结束后回顾时间(秒)"`
+	Prepare                PaperForExamPrepare    `json:"prepare" dc:"准备阶段信息"`
+	Items                  []PaperForExamItemInit `json:"items" dc:"大题初始化列表"`
 }
 
 type PaperSectionForExamReq struct {
@@ -92,9 +92,9 @@ type AttemptCreateRes struct {
 
 // AttemptCreateByBatchReq 按批次创建答题会话（未开始）；多卷批次须在 body 传 exam_paper_id。
 type AttemptCreateByBatchReq struct {
-	g.Meta        `path:"/exam/batches/{batchId}/attempts" method:"post" tags:"客户端-考试" summary:"按批次创建答题会话"`
-	BatchId       int64 `json:"batchId" in:"path" v:"required|min:1" dc:"exam_batch.id"`
-	ExamPaperId   int64 `json:"exam_paper_id" dc:"用户在批次中绑定的 exam_paper.id；该用户在批次下有多条 member 绑定（多卷）时必填"`
+	g.Meta      `path:"/exam/batches/{batchId}/attempts" method:"post" tags:"客户端-考试" summary:"按批次创建答题会话"`
+	BatchId     int64 `json:"batchId" in:"path" v:"required|min:1" dc:"exam_batch.id"`
+	ExamPaperId int64 `json:"exam_paper_id" dc:"用户在批次中绑定的 exam_paper.id；该用户在批次下有多条 member 绑定（多卷）时必填"`
 }
 
 type AttemptStartReq struct {
@@ -161,6 +161,16 @@ type AttemptSubmitReq struct {
 }
 
 type AttemptSubmitRes struct{}
+
+type AttemptCheatEventReportReq struct {
+	g.Meta      `path:"/exam/attempts/{id}/cheat-events" method:"post" tags:"客户端-考试" summary:"上报考试作弊事件（切屏/录屏等）"`
+	Id          int64  `json:"id" in:"path" v:"required|min:1" dc:"答题会话ID"`
+	EventType   string `json:"event_type" v:"required|length:2,64#err.invalid_params" dc:"事件类型，如 switch_screen、screen_record"`
+	SegmentCode string `json:"segment_code,omitempty" dc:"发生时所在考试环节编码（可选）"`
+	Detail      string `json:"detail,omitempty" dc:"事件补充说明（可选）"`
+}
+
+type AttemptCheatEventReportRes struct{}
 
 // AttemptRandomAnswersReq 测试专用：按试卷全部小题随机填答并保存（需配置 exam.enableRandomAnswerHelper）。
 type AttemptRandomAnswersReq struct {

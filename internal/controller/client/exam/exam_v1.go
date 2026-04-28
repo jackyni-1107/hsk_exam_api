@@ -12,6 +12,7 @@ import (
 	"exam/internal/utility"
 
 	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/net/ghttp"
 )
 
 func (c *ControllerV1) PaperForExam(ctx context.Context, req *v1.PaperForExamReq) (res *v1.PaperForExamRes, err error) {
@@ -203,6 +204,33 @@ func (c *ControllerV1) AttemptSubmit(ctx context.Context, req *v1.AttemptSubmitR
 		return nil, err
 	}
 	return &v1.AttemptSubmitRes{}, nil
+}
+
+func (c *ControllerV1) AttemptCheatEventReport(ctx context.Context, req *v1.AttemptCheatEventReportReq) (res *v1.AttemptCheatEventReportRes, err error) {
+	ctxData := middleware.GetCtxData(ctx)
+	if ctxData == nil {
+		return nil, gerror.NewCode(consts.CodeTokenRequired)
+	}
+	httpReq := ghttp.RequestFromCtx(ctx)
+	ip := ""
+	userAgent := ""
+	if httpReq != nil {
+		ip = httpReq.GetClientIp()
+		userAgent = httpReq.Header.Get("User-Agent")
+	}
+	err = attemptsvc.Attempt().RecordCheatEvent(ctx, bo.AttemptCheatEventRecordInput{
+		AttemptID:   req.Id,
+		UserID:      ctxData.UserId,
+		EventType:   req.EventType,
+		SegmentCode: req.SegmentCode,
+		Detail:      req.Detail,
+		IP:          ip,
+		UserAgent:   userAgent,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &v1.AttemptCheatEventReportRes{}, nil
 }
 
 func (c *ControllerV1) AttemptRandomAnswers(ctx context.Context, req *v1.AttemptRandomAnswersReq) (res *v1.AttemptRandomAnswersRes, err error) {

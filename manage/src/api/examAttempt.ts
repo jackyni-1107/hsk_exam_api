@@ -20,6 +20,9 @@ export interface AttemptListItem {
   submitted_at: string;
   ended_at: string;
   create_time: string;
+  /** 作弊事件按 event_type 聚合次数，无事件时 {}
+   */
+  cheat_event_counts?: Record<string, number>;
 }
 
 export interface AttemptDetailAnswer {

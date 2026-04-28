@@ -18,6 +18,7 @@ type IExam interface {
 	AttemptAnswersGet(ctx context.Context, req *v1.AttemptAnswersGetReq) (res *v1.AttemptAnswersGetRes, err error)
 	AttemptSaveAnswers(ctx context.Context, req *v1.AttemptSaveAnswersReq) (res *v1.AttemptSaveAnswersRes, err error)
 	AttemptSubmit(ctx context.Context, req *v1.AttemptSubmitReq) (res *v1.AttemptSubmitRes, err error)
+	AttemptCheatEventReport(ctx context.Context, req *v1.AttemptCheatEventReportReq) (res *v1.AttemptCheatEventReportRes, err error)
 	AttemptRandomAnswers(ctx context.Context, req *v1.AttemptRandomAnswersReq) (res *v1.AttemptRandomAnswersRes, err error)
 	//AudioHlsPlayIssue(ctx context.Context, req *v1.AudioHlsPlayIssueReq) (res *v1.AudioHlsPlayIssueRes, err error)
 }

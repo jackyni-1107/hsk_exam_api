@@ -41,6 +41,7 @@ func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) 
 			SubmittedAt:        utility.ToRFC3339UTC(r.SubmittedAt),
 			EndedAt:            utility.ToRFC3339UTC(r.EndedAt),
 			CreateTime:         utility.ToRFC3339UTC(r.CreateTime),
+			CheatEventCounts:   r.CheatEventCounts,
 		})
 	}
 	return &v1.AttemptListRes{List: list, Total: total}, nil

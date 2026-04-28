@@ -61,7 +61,63 @@ IFNULL(u.username,'') AS username, IFNULL(u.nickname,'') AS nickname,
 	if err := g.DB().Ctx(ctx).Raw(listSQL, listArgs...).Scan(&rows); err != nil {
 		return nil, 0, err
 	}
+	if err := attachAttemptAdminListCheatCounts(ctx, rows); err != nil {
+		return nil, 0, err
+	}
 	return rows, total, nil
+}
+
+// attachAttemptAdminListCheatCounts 按当前页 attempt_id 批量聚合 exam_attempt_cheat_event，写入 CheatEventCounts。
+func attachAttemptAdminListCheatCounts(ctx context.Context, rows []bo.AttemptAdminListRow) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	attemptIDs := make([]int64, len(rows))
+	for i := range rows {
+		attemptIDs[i] = rows[i].Id
+	}
+	grouped, err := loadCheatEventCountsByAttemptIDs(ctx, attemptIDs)
+	if err != nil {
+		return err
+	}
+	for i := range rows {
+		id := rows[i].Id
+		m := grouped[id]
+		if m == nil {
+			rows[i].CheatEventCounts = map[string]int{}
+		} else {
+			rows[i].CheatEventCounts = m
+		}
+	}
+	return nil
+}
+
+func loadCheatEventCountsByAttemptIDs(ctx context.Context, attemptIDs []int64) (map[int64]map[string]int, error) {
+	out := make(map[int64]map[string]int)
+	if len(attemptIDs) == 0 {
+		return out, nil
+	}
+	var agg []struct {
+		AttemptId int64  `json:"attempt_id"`
+		EventType string `json:"event_type"`
+		Cnt       int    `json:"cnt"`
+	}
+	err := dao.ExamAttemptCheatEvent.Ctx(ctx).
+		Fields("attempt_id", "event_type", "COUNT(1) AS cnt").
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		WhereIn("attempt_id", attemptIDs).
+		Group("attempt_id, event_type").
+		Scan(&agg)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range agg {
+		if out[row.AttemptId] == nil {
+			out[row.AttemptId] = make(map[string]int)
+		}
+		out[row.AttemptId][row.EventType] = row.Cnt
+	}
+	return out, nil
 }
 
 // AttemptAdminDetail 按 id 加载会话、学员、试卷及答题明细（含客观题是否选对）。

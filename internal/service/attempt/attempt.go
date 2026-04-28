@@ -21,8 +21,10 @@ type (
 		AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.AttemptAdminDetailView, error)
 		// AttemptAdminSaveSubjectiveScores 写入主观题人工分并汇总 subjective_score、total_score。每会话仅允许首次成功保存。
 		AttemptAdminSaveSubjectiveScores(ctx context.Context, attemptID int64, items []bo.SubjectiveScoreItem) (subjectiveSum float64, totalScore float64, err error)
-		// CreateAttemptForBatch 按批次创建会话（未开始）；每用户每批次每 exam_paper 仅允许一条未删除记录。
-		// examPaperID 对应用户在 exam_batch_member 中的卷；同批次为该用户配置了多张卷时必须传入，否则返回 11124。
+		// CreateAttemptForBatch 按批次创建会话（未开始）。
+		// 默认每用户每批次每 exam_paper 仅一条未删除记录；批次开启 allow_multiple_attempts 时每次新建会话（受 max_attempts_per_member 限制）。
+		// 正式批次：examPaperID 对应用户在 exam_batch_member 中的卷；同批次为该用户配置了多张卷时必须传入，否则返回 11124。
+		// 练习批次：不校验 exam_batch_member，试卷来自 exam_batch_paper；多卷时必须传入 examPaperID。
 		CreateAttemptForBatch(ctx context.Context, userID int64, batchID int64, examPaperID int64) (int64, error)
 		// StartAttempt 开考：进入进行中并写入截止时间。
 		StartAttempt(ctx context.Context, userID int64, attemptID int64, clientDurationSeconds int) error
@@ -34,6 +36,8 @@ type (
 		SaveAnswers(ctx context.Context, userID int64, attemptID int64, segmentCode string, items []bo.SaveAnswerItem) error
 		// SubmitAttempt 主动交卷：仅标记为已交卷（待算分）。客观分与 exam_result 由 sys_task（ExamScoreFinalizeHandler）统一算分写入。
 		SubmitAttempt(ctx context.Context, userID int64, attemptID int64) error
+		// RecordCheatEvent 记录会话作弊行为（切屏、录屏等）。
+		RecordCheatEvent(ctx context.Context, in bo.AttemptCheatEventRecordInput) error
 		// MarkSubmittedIfOverdue 供定时任务：超时未操作会话标记为已交卷（待算分，不校验用户）。算分由 ExamScoreFinalizeHandler 执行。
 		MarkSubmittedIfOverdue(ctx context.Context, attemptID int64) error
 		// MarkSubmittedByBatchExpired 供定时任务：批次过期后进行中会话标记为已交卷（待算分，不校验用户）。

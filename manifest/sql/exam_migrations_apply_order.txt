@@ -5,3 +5,4 @@
 5) 删除废弃表：在 008 之后执行 migrations/009_drop_exam_batch_mock_level.sql（DROP exam_batch_mock_level）。
 6) 批次关联改为 exam_paper：在 009 之后执行 migrations/010_exam_batch_paper.sql（exam_batch_paper 含 exam_paper_id + mock_examination_paper_id；exam_batch_member 保留 mock 并增加 exam_paper_id；DROP exam_batch_mock_paper）。
 7) 删除废弃表：执行 migrations/010_drop_exam_attempt_question_audio.sql（DROP exam_attempt_question_audio）。
+8) 会话作弊事件记录：执行 migrations/017_exam_attempt_cheat_event.sql（新增 exam_attempt_cheat_event 表，用于记录切屏/录屏等行为）。

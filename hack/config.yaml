@@ -18,7 +18,7 @@ gfcli:
         # doPath: "model/do/mock"
         # daoPath: "dao/mock"
         # entityPath: "model/entity/mock"
-        tables: "exam_*"
+        tables: "exam_attempt_cheat_event"
         doPath: "model/do/exam"
         daoPath: "dao/exam"
         entityPath: "model/entity/exam"

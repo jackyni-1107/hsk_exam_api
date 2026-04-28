@@ -28,6 +28,8 @@ type AttemptAdminListRow struct {
 	PaperTitle         string      `json:"paper_title"`
 	PaperLevel         string      `json:"paper_level"`
 	RemotePaperId      string      `json:"remote_paper_id"`
+	// CheatEventCounts 作弊事件按类型计数（列表页二次查询填充，非 Raw SQL 列）。
+	CheatEventCounts map[string]int `json:"cheat_event_counts"`
 }
 
 // AttemptAdminAnswerRow 单题答题展示行。

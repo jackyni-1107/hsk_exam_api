@@ -40,6 +40,7 @@ var (
 	ExamQuestion           = examdao.ExamQuestion
 	ExamOption             = examdao.ExamOption
 	ExamAttempt            = examdao.ExamAttempt
+	ExamAttemptCheatEvent  = examdao.ExamAttemptCheatEvent
 	ExamAttemptAnswer      = examdao.ExamAttemptAnswer
 	ExamResult             = examdao.ExamResult
 	ExamBatch              = examdao.ExamBatch
