@@ -4,7 +4,7 @@
       <template #header>
         <div class="head">
           <span>字典类型</span>
-          <el-button type="primary" @click="openTypeCreate">新增类型</el-button>
+          <el-button v-permission="'dict:type:create'" type="primary" @click="openTypeCreate">新增类型</el-button>
         </div>
       </template>
       <el-form :inline="true" class="filter">
@@ -33,8 +33,8 @@
         <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openTypeEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="delType(row)">删除</el-button>
+            <el-button v-permission="'dict:type:update'" link type="primary" @click="openTypeEdit(row)">编辑</el-button>
+            <el-button v-permission="'dict:type:delete'" link type="danger" @click="delType(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -52,7 +52,7 @@
       <template #header>
         <div class="head">
           <span>字典数据 — {{ currentDictType }}</span>
-          <el-button type="primary" @click="openDataCreate">新增数据</el-button>
+          <el-button v-permission="'dict:data:create'" type="primary" @click="openDataCreate">新增数据</el-button>
         </div>
       </template>
       <el-table v-loading="dataLoading" :data="dataRows" border stripe>
@@ -67,8 +67,8 @@
         <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openDataEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="delData(row)">删除</el-button>
+            <el-button v-permission="'dict:data:update'" link type="primary" @click="openDataEdit(row)">编辑</el-button>
+            <el-button v-permission="'dict:data:delete'" link type="danger" @click="delData(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

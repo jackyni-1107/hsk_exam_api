@@ -6,7 +6,7 @@
           <span>菜单管理</span>
           <div>
             <el-button @click="loadTree">刷新</el-button>
-            <el-button type="primary" @click="openCreate(0)">新增根菜单</el-button>
+            <el-button v-permission="'menu:create'" type="primary" @click="openCreate(0)">新增根菜单</el-button>
           </div>
         </div>
       </template>
@@ -29,9 +29,9 @@
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="row.type !== MENU_TYPE_BUTTON" link type="primary" @click="openCreate(row.id)">子项</el-button>
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            <el-button v-if="row.type !== MENU_TYPE_BUTTON" v-permission="'menu:create'" link type="primary" @click="openCreate(row.id)">子项</el-button>
+            <el-button v-permission="'menu:update'" link type="primary" @click="openEdit(row)">编辑</el-button>
+            <el-button v-permission="'menu:delete'" link type="danger" @click="onDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

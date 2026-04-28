@@ -6,8 +6,8 @@
           <span>客户管理</span>
           <div class="head-actions">
             <el-button @click="onDownloadTemplate">下载模板</el-button>
-            <el-button @click="importDlg = true">导入客户</el-button>
-            <el-button type="primary" @click="openCreate">新增客户</el-button>
+            <el-button v-permission="'member:import'" @click="importDlg = true">导入客户</el-button>
+            <el-button v-permission="'member:create'" type="primary" @click="openCreate">新增客户</el-button>
           </div>
         </div>
       </template>
@@ -50,10 +50,10 @@
         <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row)"
+            <el-button v-permission="'member:update'" link type="primary" @click="openEdit(row)"
               >编辑</el-button
             >
-            <el-button link type="danger" @click="onDelete(row)"
+            <el-button v-permission="'member:delete'" link type="danger" @click="onDelete(row)"
               >删除</el-button
             >
           </template>

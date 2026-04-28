@@ -1,5 +1,5 @@
 <template>
-  <template v-if="menu.type === 2 && !menu.children?.length">
+  <template v-if="!menu.children?.length">
     <el-menu-item :index="menu.path" class="menu-item-leaf">
       <MenuIcon :name="menu.icon" :is-directory="false" />
       <span>{{ menu.name }}</span>

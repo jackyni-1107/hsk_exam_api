@@ -4,7 +4,7 @@
       <template #header>
         <div class="head">
           <span>试卷管理（exam_paper）</span>
-          <el-button type="primary" @click="openImport">导入试卷</el-button>
+          <el-button v-permission="'exam:paper:import'" type="primary" @click="openImport">导入试卷</el-button>
         </div>
       </template>
       <el-form :inline="true" class="filter" @submit.prevent="loadList">
@@ -82,7 +82,7 @@
             <el-button link type="primary" @click="openSettings(row)"
               >听力 HLS</el-button
             >
-            <el-button link type="danger" @click="openPurge(row)"
+            <el-button v-permission="'exam:paper:purge'" link type="danger" @click="openPurge(row)"
               >物理删除</el-button
             >
           </template>
@@ -501,7 +501,6 @@ import {
   type ExamPaperDetail,
   type ExamPaperItem,
 } from "@/api/exam";
-import { useUserStore } from "@/stores/user";
 import {
   getMockLevelsList,
   getMockExaminationPapers,
@@ -515,14 +514,6 @@ import { blockReadingPassageFromTopic as blockReadingPassage } from "@/utils/exa
 import ExamQuestionSectionTabs, {
   type ExamQuestionSectionTabItem,
 } from "@/components/exam/ExamQuestionSectionTabs.vue";
-
-/** 与后端 sys_menu.permission、试卷物理删除接口一致 */
-const PERM_EXAM_PAPER_PURGE = "exam:paper:purge";
-
-const userStore = useUserStore();
-const canPurgeExamPaper = computed(() =>
-  (userStore.userInfo?.permissions ?? []).includes(PERM_EXAM_PAPER_PURGE),
-);
 
 const loading = ref(false);
 const rows = ref<ExamPaperItem[]>([]);

@@ -547,6 +547,9 @@ import {
   type MockLevelItem,
 } from "@/api/mockAdmin";
 import { mockLevelOptionLabel } from "@/utils/mockLevel";
+import { useUserStore } from "@/stores/user";
+
+const userStore = useUserStore();
 
 /** 列表行作弊事件计数展示 */
 function cheatCountsDisplay(row: AttemptListItem): string {
@@ -1205,7 +1208,11 @@ function onSubjectiveGradeDlgClosed() {
 
 /** 含主观题且 exam_result 为已结束(4)或已完成算分(5)时显示入口；status=5 时置灰 */
 function showSubjectiveGradeButton(row: AttemptListItem) {
-  return row.has_subjective === 1 && (row.status === 4 || row.status === 5);
+  return (
+    userStore.hasPermission("exam:result:grade") &&
+    row.has_subjective === 1 &&
+    (row.status === 4 || row.status === 5)
+  );
 }
 
 function isSubjectiveGradeButtonDisabled(row: AttemptListItem) {

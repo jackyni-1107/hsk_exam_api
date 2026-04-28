@@ -6,7 +6,7 @@
           <span>任务管理</span>
           <div>
             <el-button @click="$router.push('/task/log')">执行日志</el-button>
-            <el-button type="primary" @click="openCreate">新建任务</el-button>
+            <el-button v-permission="'task:create'" type="primary" @click="openCreate">新建任务</el-button>
           </div>
         </div>
       </template>
@@ -65,10 +65,10 @@
         <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
-            <el-button link type="success" :disabled="row.status !== 0" @click="onRun(row)">执行</el-button>
+            <el-button v-permission="'task:run'" link type="success" :disabled="row.status !== 0" @click="onRun(row)">执行</el-button>
             <el-button link type="primary" @click="goLog(row)">日志</el-button>
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            <el-button v-permission="'task:update'" link type="primary" @click="openEdit(row)">编辑</el-button>
+            <el-button v-permission="'task:delete'" link type="danger" @click="onDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

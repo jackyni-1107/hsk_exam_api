@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-head">
           <span>角色管理</span>
-          <el-button type="primary" @click="openCreate">新增角色</el-button>
+          <el-button v-permission="'role:create'" type="primary" @click="openCreate">新增角色</el-button>
         </div>
       </template>
 
@@ -44,8 +44,8 @@
         <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            <el-button v-permission="['role:update', 'role:menu_assign']" link type="primary" @click="openEdit(row)">编辑</el-button>
+            <el-button v-permission="'role:delete'" link type="danger" @click="onDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -97,7 +97,7 @@
             </el-form-item>
           </el-form>
         </el-tab-pane>
-        <el-tab-pane label="菜单权限" name="menus">
+        <el-tab-pane v-if="canAssignMenus" label="菜单权限" name="menus">
           <div class="tree-wrap">
             <el-tree
               v-if="menuTree.length"
@@ -108,6 +108,7 @@
               node-key="id"
               :props="{ label: 'name', children: 'children' }"
               :default-checked-keys="checkedMenuIdsForTree"
+              check-strictly
               default-expand-all
             >
               <template #default="{ data }">
@@ -146,6 +147,10 @@ import {
 } from '@/api/role'
 import { fetchAdminMenuTree, type MenuTreeNode } from '@/api/menu'
 import { formatUtcForDisplay } from '@/utils/datetime'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const canAssignMenus = userStore.hasPermission('role:menu_assign')
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -196,9 +201,7 @@ async function loadMenuTree() {
 function collectMenuIds(): number[] {
   const t = menuTreeRef.value
   if (!t) return [...checkedMenuIdsForTree.value]
-  const checked = t.getCheckedKeys(false) as number[]
-  const half = t.getHalfCheckedKeys() as number[]
-  return [...new Set([...checked, ...half])]
+  return t.getCheckedKeys(false) as number[]
 }
 
 async function loadList() {
@@ -278,7 +281,7 @@ async function submitForm() {
     if (!ok) return
     submitLoading.value = true
     try {
-      const menuIds = collectMenuIds()
+      const menuIds = canAssignMenus ? collectMenuIds() : [...checkedMenuIdsForTree.value]
       if (dialogMode.value === 'create') {
         const res = (await createRole({
           name: form.name,
@@ -290,7 +293,7 @@ async function submitForm() {
         })) as { data?: { id?: number } }
         const newId = res?.data?.id
         if (newId != null) {
-          await assignRoleMenus(newId, menuIds)
+          if (canAssignMenus) await assignRoleMenus(newId, menuIds)
         }
         ElMessage.success('创建成功')
       } else {
@@ -301,7 +304,7 @@ async function submitForm() {
           type: form.type,
           remark: form.remark,
         })
-        await assignRoleMenus(form.id, menuIds)
+        if (canAssignMenus) await assignRoleMenus(form.id, menuIds)
         ElMessage.success('已保存')
       }
       dialogVisible.value = false

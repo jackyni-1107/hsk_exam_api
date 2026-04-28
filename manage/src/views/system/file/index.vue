@@ -13,7 +13,7 @@
             </el-form-item>
             <el-form-item>
               <el-upload :show-file-list="false" accept="*/*" :http-request="handleFileUploadRequest">
-                <el-button type="success">上传</el-button>
+                <el-button v-permission="'file:upload'" type="success">上传</el-button>
               </el-upload>
             </el-form-item>
           </el-form>
@@ -32,7 +32,7 @@
             <el-table-column label="操作" width="140" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" @click="downloadRow(row)">下载</el-button>
-                <el-button link type="danger" @click="delFile(row)">删除</el-button>
+                <el-button v-permission="'file:delete'" link type="danger" @click="delFile(row)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -50,7 +50,7 @@
 
         <el-tab-pane label="存储配置" name="storage">
           <div class="toolbar">
-            <el-button type="primary" @click="openStCreate">新增配置</el-button>
+            <el-button v-permission="'file:storage_config_create'" type="primary" @click="openStCreate">新增配置</el-button>
             <el-button @click="loadStorage">刷新</el-button>
           </div>
           <el-table v-loading="stLoading" :data="stRows" border stripe>
@@ -66,9 +66,9 @@
             <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
             <el-table-column label="操作" width="240" fixed="right">
               <template #default="{ row }">
-                <el-button link type="warning" @click="setStActive(row)">设为当前</el-button>
-                <el-button link type="primary" @click="openStEdit(row)">编辑</el-button>
-                <el-button link type="danger" @click="delSt(row)">删除</el-button>
+                <el-button v-permission="'file:storage_config_set_active'" link type="warning" @click="setStActive(row)">设为当前</el-button>
+                <el-button v-permission="'file:storage_config_update'" link type="primary" @click="openStEdit(row)">编辑</el-button>
+                <el-button v-permission="'file:storage_config_delete'" link type="danger" @click="delSt(row)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>

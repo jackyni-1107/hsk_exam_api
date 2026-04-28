@@ -34,7 +34,7 @@
         <el-form-item>
           <el-button type="primary" @click="loadList">查询</el-button>
           <el-button @click="resetQuery">重置</el-button>
-          <el-button type="success" @click="openCreate">新建批次</el-button>
+          <el-button v-permission="'exam:batch:create'" type="success" @click="openCreate">新建批次</el-button>
         </el-form-item>
       </el-form>
 
@@ -100,6 +100,7 @@
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button
+              v-permission="'exam:batch:update'"
               link
               type="primary"
               :disabled="isExamBatchEnded(row)"
@@ -115,7 +116,7 @@
               @click="openMembers(row)"
               >成员</el-button
             >
-            <el-button link type="danger" @click="onDelete(row)"
+            <el-button v-permission="'exam:batch:delete'" link type="danger" @click="onDelete(row)"
               >删除</el-button
             >
           </template>
@@ -285,6 +286,7 @@
             :disabled="isExamBatchEnded(currentBatch)"
           />
           <el-button
+            v-permission="'exam:batch:import-file'"
             type="primary"
             :loading="importing"
             :disabled="isExamBatchEnded(currentBatch)"
@@ -293,6 +295,7 @@
             导入
           </el-button>
           <el-button
+            v-permission="'exam:batch:import-file'"
             :disabled="isExamBatchEnded(currentBatch)"
             @click="triggerCsvImport"
           >
@@ -377,7 +380,7 @@
           />
           <el-table-column label="" width="88">
             <template #default="{ row }">
-              <el-button link type="danger" @click="removeOne(row)"
+              <el-button v-permission="'exam:batch:remove'" link type="danger" @click="removeOne(row)"
                 >移除</el-button
               >
             </template>

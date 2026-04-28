@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-head">
           <span>用户管理</span>
-          <el-button type="primary" @click="openCreate">新增用户</el-button>
+          <el-button v-permission="'user:create'" type="primary" @click="openCreate">新增用户</el-button>
         </div>
       </template>
 
@@ -46,10 +46,11 @@
         <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="warning" @click="onKick(row)">下线</el-button>
+            <el-button v-permission="'user:update'" link type="primary" @click="openEdit(row)">编辑</el-button>
+            <el-button v-permission="'user:kick_sessions'" link type="warning" @click="onKick(row)">下线</el-button>
             <el-button
               v-if="row.id !== SUPER_ADMIN_ID"
+              v-permission="'user:delete'"
               link
               type="danger"
               @click="onDelete(row)"
@@ -109,7 +110,7 @@
             <el-radio :label="1">停用</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="角色">
+        <el-form-item v-if="canAssignUserRoles" label="角色">
           <el-select v-model="form.role_ids" multiple collapse-tags collapse-tags-tooltip placeholder="选择角色" style="width: 100%">
             <el-option v-for="r in roleOptions" :key="r.id" :label="r.name" :value="r.id" />
           </el-select>
@@ -138,8 +139,11 @@ import {
 } from '@/api/user'
 import { fetchRoleList, type RoleItem } from '@/api/role'
 import { formatUtcForDisplay } from '@/utils/datetime'
+import { useUserStore } from '@/stores/user'
 
 const SUPER_ADMIN_ID = 1
+const userStore = useUserStore()
+const canAssignUserRoles = userStore.hasPermission('user:role_assign')
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -264,7 +268,7 @@ async function submitForm() {
           email: form.email,
           mobile: form.mobile,
           status: form.status,
-          role_ids: form.role_ids,
+          role_ids: canAssignUserRoles ? form.role_ids : [],
         })
         ElMessage.success('创建成功')
       } else {
@@ -275,7 +279,7 @@ async function submitForm() {
           mobile: form.mobile,
           status: form.status,
         })
-        await assignUserRoles(form.id, form.role_ids)
+        if (canAssignUserRoles) await assignUserRoles(form.id, form.role_ids)
         ElMessage.success('已保存')
       }
       dialogVisible.value = false

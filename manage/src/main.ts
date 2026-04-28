@@ -9,6 +9,7 @@ import App from './App.vue'
 import router from './router'
 import i18n from './locales'
 import { siteConfig } from './config/site'
+import { setupPermissionDirective } from './directives/permission'
 
 document.title = siteConfig.documentTitle
 
@@ -19,5 +20,6 @@ app.use(pinia)
 app.use(router)
 app.use(i18n)
 app.use(ElementPlus, { locale: zhCn })
+setupPermissionDirective(app)
 
 app.mount('#app')

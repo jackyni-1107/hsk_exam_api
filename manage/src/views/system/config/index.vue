@@ -4,7 +4,7 @@
       <template #header>
         <div class="head">
           <span>配置中心</span>
-          <el-button type="primary" @click="openCreate">新增配置</el-button>
+          <el-button v-permission="'config:create'" type="primary" @click="openCreate">新增配置</el-button>
         </div>
       </template>
       <el-form :inline="true" class="filter" @submit.prevent="loadList">
@@ -29,8 +29,8 @@
         <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
         <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            <el-button v-permission="'config:update'" link type="primary" @click="openEdit(row)">编辑</el-button>
+            <el-button v-permission="'config:delete'" link type="danger" @click="onDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

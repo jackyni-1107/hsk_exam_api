@@ -31,7 +31,7 @@ export function filterSidebarMenus(nodes: MenuTreeNode[]): MenuTreeNode[] {
       const children = n.children?.length ? filterSidebarMenus(n.children) : undefined
       return { ...n, children }
     })
-  return mapped.filter((n) => n.type !== MENU_TYPE_DIR || (n.children?.length ?? 0) > 0)
+  return mapped.filter((n) => n.type !== MENU_TYPE_DIR || !!n.path || (n.children?.length ?? 0) > 0)
 }
 
 export function getUserMenus() {

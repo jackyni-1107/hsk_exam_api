@@ -13,7 +13,7 @@
             </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="loadTpl">查询</el-button>
-              <el-button type="primary" plain @click="openTplCreate">新增模板</el-button>
+              <el-button v-permission="'notification:template_create'" type="primary" plain @click="openTplCreate">新增模板</el-button>
             </el-form-item>
           </el-form>
           <el-table v-loading="tplLoading" :data="tplRows" border stripe>
@@ -29,8 +29,8 @@
             <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
             <el-table-column label="操作" width="140" fixed="right">
               <template #default="{ row }">
-                <el-button link type="primary" @click="openTplEdit(row)">编辑</el-button>
-                <el-button link type="danger" @click="delTpl(row)">删除</el-button>
+                <el-button v-permission="'notification:template_update'" link type="primary" @click="openTplEdit(row)">编辑</el-button>
+                <el-button v-permission="'notification:template_delete'" link type="danger" @click="delTpl(row)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -46,7 +46,7 @@
 
         <el-tab-pane label="渠道配置" name="ch">
           <div class="toolbar">
-            <el-button type="primary" @click="openChCreate">新增渠道</el-button>
+            <el-button v-permission="'notification:channel_config_create'" type="primary" @click="openChCreate">新增渠道</el-button>
             <el-button @click="loadCh">刷新</el-button>
           </div>
           <el-table v-loading="chLoading" :data="chRows" border stripe>
@@ -62,9 +62,9 @@
             <el-table-column prop="create_time" label="创建时间" width="170" :formatter="formatUtcForDisplay" />
             <el-table-column label="操作" width="220" fixed="right">
               <template #default="{ row }">
-                <el-button link type="warning" @click="setChActive(row)">设为当前</el-button>
-                <el-button link type="primary" @click="openChEdit(row)">编辑</el-button>
-                <el-button link type="danger" @click="delCh(row)">删除</el-button>
+                <el-button v-permission="'notification:channel_config_set_active'" link type="warning" @click="setChActive(row)">设为当前</el-button>
+                <el-button v-permission="'notification:channel_config_update'" link type="primary" @click="openChEdit(row)">编辑</el-button>
+                <el-button v-permission="'notification:channel_config_delete'" link type="danger" @click="delCh(row)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>

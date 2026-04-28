@@ -17,7 +17,7 @@
         active-text-color="#1d4ed8"
       >
         <template v-for="item in menuList" :key="item.id">
-          <el-menu-item v-if="item.type === 2 && !item.children?.length" :index="item.path" class="menu-item-leaf">
+          <el-menu-item v-if="!item.children?.length" :index="item.path" class="menu-item-leaf">
             <MenuIcon :name="item.icon" :is-directory="false" />
             <span>{{ item.name }}</span>
           </el-menu-item>
@@ -62,13 +62,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Grid, ArrowDown } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { logout } from '@/api/auth'
-import { getUserMenus, filterSidebarMenus } from '@/api/menu'
-import type { MenuTreeNode } from '@/api/menu'
 import MenuItem from './MenuItem.vue'
 import MenuIcon from '@/components/MenuIcon.vue'
 import { siteConfig } from '@/config/site'
@@ -77,8 +75,8 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const menuList = ref<MenuTreeNode[]>([])
-const menuLoading = ref(false)
+const menuList = computed(() => userStore.sidebarMenus)
+const menuLoading = computed(() => userStore.menusLoading)
 
 const displayName = computed(() => {
   const u = userStore.userInfo
@@ -91,64 +89,10 @@ const userInitial = computed(() => displayName.value.slice(0, 1).toUpperCase())
 
 const pageTitle = computed(() => (route.meta?.title as string) || '')
 
-onMounted(async () => {
-  menuLoading.value = true
-  try {
-    const res = (await getUserMenus()) as { data?: { list?: MenuTreeNode[] } }
-    const list = filterSidebarMenus(res?.data?.list ?? [])
-    const hasDashboardPath = (nodes: MenuTreeNode[]): boolean => {
-      for (const n of nodes) {
-        if (n.path === '/dashboard') return true
-        if (n.children?.length && hasDashboardPath(n.children)) return true
-      }
-      return false
-    }
-    // 若数据库未配置「工作台」侧栏，则补一条（与 HLS 联调同级）
-    if (!hasDashboardPath(list)) {
-      list.unshift({
-        id: -998,
-        name: '工作台',
-        permission: '',
-        type: 2,
-        sort: 0,
-        parent_id: 0,
-        path: '/dashboard',
-        icon: 'Odometer',
-        component: '',
-        component_name: '',
-        status: 1,
-        visible: true,
-        children: [],
-      })
-    }
-    // 临时：HLS 联调入口（不写入菜单表，上线前可删）
-    list.push({
-      id: -999,
-      name: 'HLS 联调',
-      permission: '',
-      type: 2,
-      sort: 9999,
-      parent_id: 0,
-      path: '/exam/hls-debug',
-      icon: 'VideoPlay',
-      component: '',
-      component_name: '',
-      status: 1,
-      visible: true,
-      children: [],
-    })
-
-    menuList.value = list
-  } finally {
-    menuLoading.value = false
-  }
-})
-
 function handleCommand(cmd: string) {
   if (cmd === 'logout') {
     logout()
     userStore.logout()
-    menuList.value = []
     router.push('/login')
   }
 }
