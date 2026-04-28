@@ -89,9 +89,7 @@ func (s *sSysNotification) TemplateUpdate(ctx context.Context, id int64, name, c
 	if content != "" {
 		data["content"] = content
 	}
-	if variables != "" {
-		data["variables"] = variables
-	}
+	data["variables"] = variables
 	_, err := dao.SysNotificationTemplate.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Data(data).Update()
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
