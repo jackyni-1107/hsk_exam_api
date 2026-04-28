@@ -1,9 +1,8 @@
 <template>
   <div class="page">
     <el-card shadow="never">
-      <template #header><span>通知管理</span></template>
-      <el-tabs v-model="tab">
-        <el-tab-pane label="模板" name="tpl">
+      <template #header><span>{{ pageTitle }}</span></template>
+      <template v-if="section === 'template'">
           <el-form :inline="true" class="filter">
             <el-form-item label="编码">
               <el-input v-model="tplQuery.code" clearable style="width: 160px" />
@@ -48,9 +47,9 @@
             layout="total, prev, pager, next"
             @current-change="loadTpl"
           />
-        </el-tab-pane>
+      </template>
 
-        <el-tab-pane label="渠道配置" name="ch">
+      <template v-else-if="section === 'channel'">
           <div class="toolbar">
             <el-button v-permission="'notification:channel_config_create'" type="primary" @click="openChCreate">新增渠道</el-button>
             <el-button @click="loadCh">刷新</el-button>
@@ -78,9 +77,9 @@
               </template>
             </el-table-column>
           </el-table>
-        </el-tab-pane>
+      </template>
 
-        <el-tab-pane label="发送记录" name="log">
+      <template v-else>
           <el-form :inline="true" class="filter">
             <el-form-item label="渠道">
               <el-select v-model="logQuery.channel" clearable style="width: 120px">
@@ -117,8 +116,7 @@
             layout="total, prev, pager, next"
             @current-change="loadLog"
           />
-        </el-tab-pane>
-      </el-tabs>
+      </template>
     </el-card>
 
     <el-dialog v-model="tplDlg" :title="tplMode === 'create' ? '新增模板' : '编辑模板'" width="560px" destroy-on-close>
@@ -285,7 +283,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, onMounted } from 'vue'
+import { computed, reactive, ref, onMounted } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -305,7 +303,27 @@ import {
 } from '@/api/notification'
 import { formatUtcForDisplay } from '@/utils/datetime'
 
-const tab = ref('tpl')
+type NotificationSection = 'template' | 'channel' | 'log'
+
+const props = withDefaults(
+  defineProps<{
+    section?: NotificationSection
+  }>(),
+  {
+    section: 'template',
+  }
+)
+
+const pageTitle = computed(() => {
+  const titleMap: Record<NotificationSection, string> = {
+    template: '通知模板',
+    channel: '通知渠道',
+    log: '发送记录',
+  }
+  return titleMap[props.section]
+})
+
+const section = computed(() => props.section)
 const tplLoading = ref(false)
 const chLoading = ref(false)
 const logLoading = ref(false)
@@ -815,15 +833,13 @@ async function doSend() {
   }
 }
 
-watch(tab, (v) => {
-  if (v === 'tpl') loadTpl()
-  if (v === 'ch') loadCh()
-  if (v === 'log') loadLog()
-})
+function loadCurrentSection() {
+  if (section.value === 'template') loadTpl()
+  if (section.value === 'channel') loadCh()
+  if (section.value === 'log') loadLog()
+}
 
-onMounted(() => {
-  loadTpl()
-})
+onMounted(loadCurrentSection)
 </script>
 
 <style scoped>

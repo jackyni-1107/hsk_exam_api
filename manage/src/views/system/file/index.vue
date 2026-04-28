@@ -1,9 +1,8 @@
 <template>
   <div class="page">
     <el-card shadow="never">
-      <template #header><span>文件中心</span></template>
-      <el-tabs v-model="tab">
-        <el-tab-pane label="文件列表" name="files">
+      <template #header><span>{{ pageTitle }}</span></template>
+      <template v-if="section === 'files'">
           <el-form :inline="true" class="filter">
             <el-form-item label="文件名">
               <el-input v-model="fileQuery.filename" clearable style="width: 200px" />
@@ -46,9 +45,9 @@
             @size-change="loadFiles"
             @current-change="loadFiles"
           />
-        </el-tab-pane>
+      </template>
 
-        <el-tab-pane label="存储配置" name="storage">
+      <template v-else>
           <div class="toolbar">
             <el-button v-permission="'file:storage_config_create'" type="primary" @click="openStCreate">新增配置</el-button>
             <el-button @click="loadStorage">刷新</el-button>
@@ -72,8 +71,7 @@
               </template>
             </el-table-column>
           </el-table>
-        </el-tab-pane>
-      </el-tabs>
+      </template>
     </el-card>
 
     <el-dialog v-model="stDlg" :title="stMode === 'create' ? '新增存储' : '编辑存储'" width="680px" destroy-on-close>
@@ -179,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, onMounted, computed } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -197,7 +195,26 @@ import {
 } from '@/api/file'
 import { formatUtcForDisplay } from '@/utils/datetime'
 
-const tab = ref('files')
+type FileSection = 'files' | 'storage'
+
+const props = withDefaults(
+  defineProps<{
+    section?: FileSection
+  }>(),
+  {
+    section: 'files',
+  }
+)
+
+const pageTitle = computed(() => {
+  const titleMap: Record<FileSection, string> = {
+    files: '文件列表',
+    storage: '存储配置',
+  }
+  return titleMap[props.section]
+})
+
+const section = computed(() => props.section)
 const fileLoading = ref(false)
 const stLoading = ref(false)
 const fileRows = ref<FileItemRow[]>([])
@@ -473,12 +490,12 @@ function setStActive(row: StorageConfigItem) {
     .catch(() => {})
 }
 
-watch(tab, (v) => {
-  if (v === 'files') loadFiles()
-  if (v === 'storage') loadStorage()
-})
+function loadCurrentSection() {
+  if (section.value === 'files') loadFiles()
+  if (section.value === 'storage') loadStorage()
+}
 
-onMounted(() => loadFiles())
+onMounted(loadCurrentSection)
 </script>
 
 <style scoped>
