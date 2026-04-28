@@ -16,7 +16,7 @@ import (
 type (
 	IAttempt interface {
 		// AttemptAdminList 分页查询答题会话（联表学员、试卷）。
-		AttemptAdminList(ctx context.Context, page int, size int, level string, examinationPaperId int64, examBatchId int64, status int, username string, subjectivePending int, mockLevelId int64) ([]bo.AttemptAdminListRow, int, error)
+		AttemptAdminList(ctx context.Context, page int, size int, level string, examinationPaperId int64, examBatchId int64, status int, username string, subjectivePending int, mockLevelId int64, batchKind int) ([]bo.AttemptAdminListRow, int, error)
 		// AttemptAdminDetail 按 id 加载会话、学员、试卷及答题明细（含客观题是否选对）。
 		AttemptAdminDetail(ctx context.Context, attemptID int64) (*bo.AttemptAdminDetailView, error)
 		// AttemptAdminSaveSubjectiveScores 写入主观题人工分并汇总 subjective_score、total_score。每会话仅允许首次成功保存。

@@ -12,6 +12,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
 
+	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/model/bo"
 )
@@ -36,12 +37,13 @@ func (s *sAttempt) AttemptAdminStats(ctx context.Context, level string, examinat
 		MockLevelId:        mockLevelId,
 		ExaminationPaperId: examinationPaperId,
 		ExamBatchId:        examBatchId,
+		BatchKind:          consts.ExamBatchKindFilterAll,
 	})
 }
 
 // RefreshAttemptDashboardSnapshot 定时任务：全量重算并写入快照表。
 func (s *sAttempt) RefreshAttemptDashboardSnapshot(ctx context.Context) error {
-	v, err := s.computeAttemptAdminStatsView(ctx, AttemptAdminListQuery{})
+	v, err := s.computeAttemptAdminStatsView(ctx, AttemptAdminListQuery{BatchKind: consts.ExamBatchKindFilterAll})
 	if err != nil {
 		return err
 	}

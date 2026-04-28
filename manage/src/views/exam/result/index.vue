@@ -52,6 +52,17 @@
             style="width: 120px"
           />
         </el-form-item>
+        <el-form-item label="批次类型">
+          <el-select
+            v-model="query.batch_kind"
+            placeholder="正式考试"
+            style="width: 140px"
+          >
+            <el-option label="正式考试" :value="0" />
+            <el-option label="练习" :value="1" />
+            <el-option label="全部" :value="-1" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="状态">
           <el-select
             v-model="query.status"
@@ -665,6 +676,8 @@ const query = reactive({
   status: 0 as number,
   examination_paper_id: 0 as number,
   exam_batch_id: 0 as number,
+  /** 批次类型：-1 全部；0 正式；1 练习（默认正式） */
+  batch_kind: 0 as number,
   /** 0 不限；1 仅待主观题评阅 */
   subjective_pending: 0 as number,
 });
@@ -1136,6 +1149,7 @@ async function loadList() {
       exam_batch_id: query.exam_batch_id > 0 ? query.exam_batch_id : undefined,
       status: query.status || undefined,
       subjective_pending: query.subjective_pending === 1 ? 1 : undefined,
+      batch_kind: query.batch_kind,
     })) as { data?: { list?: AttemptListItem[]; total?: number } };
     rows.value = res?.data?.list ?? [];
     total.value = res?.data?.total ?? 0;
@@ -1151,6 +1165,7 @@ function resetQuery() {
   query.mock_level_id = undefined;
   query.status = 0;
   query.exam_batch_id = 0;
+  query.batch_kind = 0;
   query.subjective_pending = 0;
   paperSel.value = undefined;
   loadList();

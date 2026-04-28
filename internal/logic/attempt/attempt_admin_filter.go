@@ -18,19 +18,30 @@ type AttemptAdminListQuery struct {
 	Username           string
 	// SubjectivePending=1: 含主观题且 exam_result.status=4（已结束、待主观评阅，与 status=5 已完成算分区分）
 	SubjectivePending int
+	// BatchKind 按考试批次类型筛：ExamBatchKindFilterAll 不过滤；ExamBatchKindFormal/ExamBatchKindPractice 时 INNER JOIN exam_batch
+	BatchKind int
 }
 
 // attemptAdminListJoin 返回与列表相同的 FROM 片段（至 WHERE 之前不含 WHERE 关键字）及 JOIN 侧绑定参数。
-func attemptAdminListJoin() (from string, joinArgs []interface{}) {
+// batchKind 为正式/练习时附加 exam_batch 内联，仅保留该类型批次下产生的成绩行；FilterAll 不连表（含无批次历史数据）。
+func attemptAdminListJoin(batchKind int) (from string, joinArgs []interface{}) {
 	joinArgs = []interface{}{
-		consts.DeleteFlagNotDeleted,
-		consts.DeleteFlagNotDeleted,
-		consts.DeleteFlagNotDeleted,
-		consts.DeleteFlagNotDeleted,
 		consts.DeleteFlagNotDeleted,
 	}
 	from = ` FROM exam_result r
-INNER JOIN exam_attempt a ON a.id = r.attempt_id AND a.delete_flag = ?
+INNER JOIN exam_attempt a ON a.id = r.attempt_id AND a.delete_flag = ?`
+	if batchKind == consts.ExamBatchKindFormal || batchKind == consts.ExamBatchKindPractice {
+		from += `
+INNER JOIN exam_batch eb ON eb.id = r.exam_batch_id AND eb.delete_flag = ? AND eb.batch_kind = ?`
+		joinArgs = append(joinArgs, consts.DeleteFlagNotDeleted, batchKind)
+	}
+	joinArgs = append(joinArgs,
+		consts.DeleteFlagNotDeleted,
+		consts.DeleteFlagNotDeleted,
+		consts.DeleteFlagNotDeleted,
+		consts.DeleteFlagNotDeleted,
+	)
+	from += `
 LEFT JOIN sys_member u ON u.id = r.member_id AND u.delete_flag = ?
 LEFT JOIN exam_paper p ON p.id = r.exam_paper_id AND p.delete_flag = ?
 LEFT JOIN mock_examination_paper m ON m.id = p.mock_examination_paper_id AND m.delete_flag = ?
@@ -76,7 +87,11 @@ func (q AttemptAdminListQuery) buildAttemptAdminWhere() (where string, args []in
 
 // buildAttemptAdminListFrom 拼接 `FROM ... WHERE <cond>`，与 count/list SQL 组装一致。
 func (q AttemptAdminListQuery) buildAttemptAdminListFrom() (fromSQL string, joinArgs []interface{}, whereArgs []interface{}) {
-	from, joinArgs := attemptAdminListJoin()
+	bk := q.BatchKind
+	if bk != consts.ExamBatchKindFilterAll && bk != consts.ExamBatchKindFormal && bk != consts.ExamBatchKindPractice {
+		bk = consts.ExamBatchKindFormal
+	}
+	from, joinArgs := attemptAdminListJoin(bk)
 	where, wArgs := q.buildAttemptAdminWhere()
 	fromSQL = from + where
 	return fromSQL, joinArgs, wArgs

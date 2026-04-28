@@ -19,7 +19,7 @@ import (
 )
 
 // AttemptAdminList 分页查询答题会话（联表学员、试卷）。
-func (s *sAttempt) AttemptAdminList(ctx context.Context, page, size int, level string, examinationPaperId int64, examBatchId int64, status int, username string, subjectivePending int, mockLevelId int64) ([]bo.AttemptAdminListRow, int, error) {
+func (s *sAttempt) AttemptAdminList(ctx context.Context, page, size int, level string, examinationPaperId int64, examBatchId int64, status int, username string, subjectivePending int, mockLevelId int64, batchKind int) ([]bo.AttemptAdminListRow, int, error) {
 	page, size = s.getPageSize(page, size)
 	q := AttemptAdminListQuery{
 		Level:              level,
@@ -29,6 +29,7 @@ func (s *sAttempt) AttemptAdminList(ctx context.Context, page, size int, level s
 		Status:             status,
 		Username:           username,
 		SubjectivePending:  subjectivePending,
+		BatchKind:          batchKind,
 	}
 	from, joinArgs, whereArgs := q.buildAttemptAdminListFrom()
 	countSQL := "SELECT COUNT(1) AS total" + from

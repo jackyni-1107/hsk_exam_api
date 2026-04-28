@@ -15,7 +15,7 @@ import (
 )
 
 func (c *ControllerV1) AttemptList(ctx context.Context, req *v1.AttemptListReq) (res *v1.AttemptListRes, err error) {
-	rows, total, err := attemptsvc.Attempt().AttemptAdminList(ctx, req.Page, req.Size, req.Level, req.ExaminationPaperId, req.ExamBatchId, req.Status, req.Username, req.SubjectivePending, req.MockLevelId)
+	rows, total, err := attemptsvc.Attempt().AttemptAdminList(ctx, req.Page, req.Size, req.Level, req.ExaminationPaperId, req.ExamBatchId, req.Status, req.Username, req.SubjectivePending, req.MockLevelId, req.BatchKind)
 	if err != nil {
 		return nil, err
 	}

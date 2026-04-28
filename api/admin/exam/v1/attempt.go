@@ -13,6 +13,8 @@ type AttemptListReq struct {
 	Status             int    `json:"status" dc:"exam_result.status：1-4 同会话阶段；5=全部算分完成；0 不限"`
 	Username           string `json:"username" dc:"学员账号（模糊）"`
 	SubjectivePending  int    `json:"subjective_pending" dc:"1=仅含主观题且 exam_result.status=4（已结束待主观评阅）"`
+	// BatchKind 与 exam_batch.batch_kind 一致：-1=全部；0=正式（默认）；1=练习
+	BatchKind int `json:"batch_kind" d:"0" dc:"批次类型：-1 全部；0 正式（默认）；1 练习"`
 }
 
 // AttemptStatsReq 考试监控统计（全量走定时任务快照，带筛时即时聚合）。

@@ -101,6 +101,8 @@ export function getAttemptList(params: {
   username?: string;
   /** 1=仅待主观题评阅 */
   subjective_pending?: number;
+  /** -1 全部；0 正式（默认）；1 练习 */
+  batch_kind?: number;
 }) {
   return request.get<any, { data: { list: AttemptListItem[]; total: number } }>(
     "/admin/exam/attempt/list",
