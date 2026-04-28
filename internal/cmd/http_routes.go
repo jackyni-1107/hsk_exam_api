@@ -19,6 +19,7 @@ import (
 	adminTask "exam/internal/controller/admin/task"
 	adminUser "exam/internal/controller/admin/user"
 	clientAuth "exam/internal/controller/client/auth"
+	clientConfig "exam/internal/controller/client/config"
 	clientExam "exam/internal/controller/client/exam"
 	clientMe "exam/internal/controller/client/me"
 	"exam/internal/controller/health"
@@ -47,7 +48,7 @@ func registerClientRoutes(s *ghttp.Server, apiPrefix string) {
 
 	s.Group(clientAPI, func(group *ghttp.RouterGroup) {
 		group.Middleware(middleware.ClientPublicChain()...)
-		group.Bind(clientAuth.NewV1())
+		group.Bind(clientAuth.NewV1(), clientConfig.NewV1())
 	})
 	s.Group(clientAPI, func(group *ghttp.RouterGroup) {
 		group.Middleware(middleware.ClientProtectedChain()...)

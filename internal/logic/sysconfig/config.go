@@ -135,3 +135,22 @@ func (s *sSysConfig) ConfigGet(ctx context.Context, key string) (string, error) 
 	}
 	return e.ConfigValue, nil
 }
+
+func (s *sSysConfig) ConfigBatchGet(ctx context.Context, keys []string) (map[string]string, error) {
+	result := make(map[string]string, len(keys))
+	if len(keys) == 0 {
+		return result, nil
+	}
+	var list []sysentity.SysConfig
+	err := dao.SystemConfig.Ctx(ctx).
+		WhereIn("config_key", keys).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&list)
+	if err != nil {
+		return nil, gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	for _, item := range list {
+		result[item.ConfigKey] = item.ConfigValue
+	}
+	return result, nil
+}

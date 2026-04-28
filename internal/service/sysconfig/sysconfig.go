@@ -17,6 +17,7 @@ type (
 		ConfigUpdate(ctx context.Context, id int64, configValue string, remark string, updater string) error
 		ConfigDelete(ctx context.Context, id int64, updater string) error
 		ConfigGet(ctx context.Context, key string) (string, error)
+		ConfigBatchGet(ctx context.Context, keys []string) (map[string]string, error)
 	}
 )
 
