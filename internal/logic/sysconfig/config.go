@@ -84,13 +84,9 @@ func (s *sSysConfig) ConfigUpdate(ctx context.Context, id int64, configValue, re
 		return gerror.NewCode(consts.CodeConfigNotFound)
 	}
 	data := map[string]interface{}{
-		"updater": updater,
-	}
-	if configValue != "" {
-		data["config_value"] = configValue
-	}
-	if remark != "" {
-		data["remark"] = remark
+		"updater":      updater,
+		"config_value": configValue,
+		"remark":       remark,
 	}
 	_, err := dao.SystemConfig.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Data(data).Update()
 	if err != nil {
