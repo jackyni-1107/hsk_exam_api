@@ -9,8 +9,8 @@ import (
 	"github.com/gogf/gf/v2/net/ghttp"
 )
 
-// memberImportTemplateBody UTF-8 BOM + 表头与示例行（密码需符合系统口令策略，示例为常见强密码格式）
-const memberImportTemplateBody = "\xef\xbb\xbf用户名,密码,昵称,邮箱,手机,状态\r\ndemo_import,Aa1!demo88,示例昵称,,,0\r\n"
+// memberImportTemplateBody UTF-8 BOM + 表头与示例行（无状态列；密码可省略，省略时由邮箱第 1、3、5 位 + @hskmock 生成）
+const memberImportTemplateBody = "\xef\xbb\xbf昵称,邮箱,手机\r\n示例昵称,demo@example.com,\r\n"
 
 // ServeMemberImportTemplate 下载客户导入 CSV 模板（与 cmd 中注册路由一致）
 func ServeMemberImportTemplate(r *ghttp.Request) {

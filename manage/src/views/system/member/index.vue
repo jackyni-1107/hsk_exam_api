@@ -122,15 +122,63 @@
     <el-dialog
       v-model="importDlg"
       title="导入客户"
-      width="520px"
+      width="600px"
       destroy-on-close
+      class="import-member-dialog"
+      @opened="onImportDlgOpened"
       @closed="onImportDlgClosed"
     >
-      <p class="import-hint">
-        请先下载 CSV 模板，按列填写后上传。文件须为 UTF-8 编码；首行为表头；密码需符合系统安全策略；单次最多
-        2000 条有效数据行。
-      </p>
+      <el-alert type="info" :closable="false" show-icon class="import-alert">
+        <template #title>说明</template>
+        <div class="import-alert-body">
+          请先下载模板，按列填写 CSV（UTF-8）。<strong>昵称、邮箱</strong>为必填；<strong>密码</strong>可留空，留空时由系统按「邮箱第
+          1、3、5 位 + @hskmock」生成（须满足系统口令策略，否则请在本行填写密码）；单次最多 2000
+          条有效行。下方为<strong>自动生成用户名</strong>规则，与 CSV 列无关；同一规则下多次导入会从已有最大序号后继续编号。
+        </div>
+      </el-alert>
+
+      <div class="import-section-title">用户名生成规则</div>
+      <el-form label-width="88px" class="import-rule-form" @submit.prevent>
+        <el-row :gutter="12">
+          <el-col :xs="24" :sm="8">
+            <el-form-item label="国家">
+              <el-input
+                v-model="importRule.country"
+                placeholder="如 TH"
+                maxlength="8"
+                show-word-limit
+                clearable
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="8">
+            <el-form-item label="年份">
+              <el-input v-model="importRule.year" placeholder="如 2026" maxlength="8" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="8">
+            <el-form-item label="序号位数">
+              <el-input-number
+                v-model="importRule.seq_digits"
+                class="import-seq-digits"
+                :min="1"
+                :max="12"
+                :step="1"
+                controls-position="right"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="import-preview">
+          <span class="import-preview-label">示例用户名</span>
+          <code class="import-preview-code">{{ importUsernamePreview }}</code>
+          <span class="import-preview-hint">（格式：国家 + 年份 + 「-」+ 固定位序号）</span>
+        </div>
+      </el-form>
+
+      <div class="import-section-title">上传 CSV</div>
       <el-upload
+        :key="importUploadKey"
         drag
         :limit="1"
         accept=".csv,text/csv"
@@ -141,14 +189,19 @@
         <el-icon class="el-icon--upload"><upload-filled /></el-icon>
         <div class="el-upload__text">将文件拖到此处，或<em>点击选择</em></div>
         <template #tip>
-          <div class="el-upload__tip">仅支持 .csv</div>
+          <div class="el-upload__tip">仅支持 .csv；表头须与模板一致</div>
         </template>
       </el-upload>
       <template #footer>
         <el-button @click="importDlg = false">取消</el-button>
-        <el-button type="primary" :loading="importing" :disabled="!importFile" @click="submitImport"
-          >开始导入</el-button
+        <el-button
+          type="primary"
+          :loading="importing"
+          :disabled="!canSubmitImport"
+          @click="submitImport"
         >
+          开始导入
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -181,6 +234,32 @@ const editId = ref(0);
 const importDlg = ref(false);
 const importFile = ref<File | null>(null);
 const importing = ref(false);
+const MEMBER_IMPORT_RULE_STORAGE = "member_import_username_rule_v1";
+
+const importUploadKey = ref(0);
+const importRule = reactive({
+  country: "TH",
+  year: String(new Date().getFullYear()),
+  seq_digits: 5,
+});
+
+const importUsernamePreview = computed(() => {
+  const c = importRule.country.trim().toUpperCase();
+  const y = importRule.year.trim();
+  const d = importRule.seq_digits;
+  if (!c || !y || !Number.isFinite(d) || d < 1) {
+    return "—";
+  }
+  return `${c}${y}-${String(1).padStart(d, "0")}`;
+});
+
+const canSubmitImport = computed(() => {
+  if (!importFile.value) return false;
+  const c = importRule.country.trim();
+  const y = importRule.year.trim();
+  const d = importRule.seq_digits;
+  return Boolean(c && y && Number.isFinite(d) && d >= 1);
+});
 
 const query = reactive({ page: 1, size: 10, username: "", status: -1 });
 const form = reactive({
@@ -317,8 +396,51 @@ function onImportExceed() {
   ElMessage.warning("请先移除已选文件，再选择新文件");
 }
 
+function loadImportRuleFromStorage() {
+  try {
+    const raw = sessionStorage.getItem(MEMBER_IMPORT_RULE_STORAGE);
+    if (!raw) return;
+    const j = JSON.parse(raw) as {
+      country?: string;
+      year?: string;
+      seq_digits?: number;
+    };
+    if (j.country != null && String(j.country).trim() !== "") {
+      importRule.country = String(j.country).trim();
+    }
+    if (j.year != null && String(j.year).trim() !== "") {
+      importRule.year = String(j.year).trim();
+    }
+    if (typeof j.seq_digits === "number" && Number.isFinite(j.seq_digits) && j.seq_digits >= 1) {
+      importRule.seq_digits = j.seq_digits;
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function saveImportRuleToStorage() {
+  try {
+    sessionStorage.setItem(
+      MEMBER_IMPORT_RULE_STORAGE,
+      JSON.stringify({
+        country: importRule.country.trim(),
+        year: importRule.year.trim(),
+        seq_digits: importRule.seq_digits,
+      })
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+function onImportDlgOpened() {
+  loadImportRuleFromStorage();
+}
+
 function onImportDlgClosed() {
   importFile.value = null;
+  importUploadKey.value += 1;
 }
 
 async function submitImport() {
@@ -327,9 +449,23 @@ async function submitImport() {
     ElMessage.warning("请选择 CSV 文件");
     return;
   }
+  const c = importRule.country.trim();
+  const y = importRule.year.trim();
+  if (!c || !y) {
+    ElMessage.warning("请填写国家标识与年份");
+    return;
+  }
+  if (!Number.isFinite(importRule.seq_digits) || importRule.seq_digits < 1) {
+    ElMessage.warning("序号位数须为大于等于 1 的整数");
+    return;
+  }
   importing.value = true;
   try {
-    const res = (await importMembersCsv(f)) as {
+    const res = (await importMembersCsv(f, {
+      country: c.toUpperCase(),
+      year: y,
+      seq_digits: importRule.seq_digits,
+    })) as {
       data?: { total: number; success: number; failed: number; errors?: string[] };
     };
     const d = res?.data;
@@ -342,6 +478,7 @@ async function submitImport() {
       return;
     }
     ElMessage.success(`导入完成：成功 ${d.success} 条，失败 ${d.failed} 条`);
+    saveImportRuleToStorage();
     if (d.errors?.length) {
       await ElMessageBox.alert(d.errors.join("\n"), "失败明细", {
         confirmButtonText: "确定",
@@ -375,11 +512,54 @@ onMounted(loadList);
   gap: 8px;
   justify-content: flex-end;
 }
-.import-hint {
-  margin: 0 0 12px;
+.import-alert {
+  margin-bottom: 16px;
+}
+.import-alert-body {
   font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+}
+.import-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.import-rule-form {
+  margin-bottom: 8px;
+}
+.import-seq-digits {
+  width: 100%;
+}
+.import-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  margin-top: 4px;
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-border-radius-base);
+  font-size: 13px;
+}
+.import-preview-label {
   color: var(--el-text-color-secondary);
-  line-height: 1.5;
+  flex-shrink: 0;
+}
+.import-preview-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  padding: 2px 8px;
+  background: var(--el-bg-color);
+  border-radius: 4px;
+  color: var(--el-color-primary);
+}
+.import-preview-hint {
+  color: var(--el-text-color-placeholder);
+  font-size: 12px;
 }
 .filter {
   margin-bottom: 12px;

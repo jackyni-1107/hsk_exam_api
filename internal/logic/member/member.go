@@ -51,9 +51,9 @@ func (s *sMember) MemberCreate(ctx context.Context, username, password, nickname
 	if username == "" {
 		return 0, gerror.NewCode(consts.CodeInvalidParams)
 	}
-	if err := secsvc.Security().ValidatePasswordPolicy(ctx, password); err != nil {
-		return 0, err
-	}
+	//if err := secsvc.Security().ValidatePasswordPolicy(ctx, password); err != nil {
+	//	return 0, err
+	//}
 	passwordHash, err := hashMemberPassword(password)
 	if err != nil {
 		return 0, err

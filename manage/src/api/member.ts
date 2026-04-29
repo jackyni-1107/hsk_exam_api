@@ -54,9 +54,15 @@ export interface MemberImportResult {
   errors: string[]
 }
 
-/** multipart 导入客户（表单字段名 file，CSV UTF-8） */
-export function importMembersCsv(file: File) {
+/** multipart 导入客户（表单字段名 file，CSV UTF-8；用户名规则由表单参数传入） */
+export function importMembersCsv(
+  file: File,
+  params: { country: string; year: string; seq_digits: number }
+) {
   const fd = new FormData()
+  fd.append('country', params.country)
+  fd.append('year', params.year)
+  fd.append('seq_digits', String(params.seq_digits))
   fd.append('file', file)
   return request.post<unknown, { data?: MemberImportResult }>('/admin/member/import', fd)
 }

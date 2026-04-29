@@ -6,9 +6,12 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"exam/internal/consts"
+	"exam/internal/dao"
 	"exam/internal/model/bo"
 
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -32,7 +35,7 @@ var memberImportHeaderKeys = map[string]string{
 	"状态":       "status",
 }
 
-func (s *sMember) MemberImport(ctx context.Context, r io.Reader, creator string) (*bo.MemberImportResult, error) {
+func (s *sMember) MemberImport(ctx context.Context, r io.Reader, creator string, country, year string, seqDigits int) (*bo.MemberImportResult, error) {
 	raw, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -63,8 +66,21 @@ func (s *sMember) MemberImport(ctx context.Context, r io.Reader, creator string)
 	if err != nil {
 		return nil, err
 	}
+	pwdCol := memberImportCol(colIdx, "password")
+	nickCol := memberImportCol(colIdx, "nickname")
+	emailCol := memberImportCol(colIdx, "email")
+	mobileCol := memberImportCol(colIdx, "mobile")
 
 	out := &bo.MemberImportResult{Errors: make([]string, 0, 8)}
+	usernameRule, err := memberImportValidateUsernameParams(country, year, seqDigits)
+	if err != nil {
+		return nil, err
+	}
+	nextSeq, err := s.memberImportLoadNextSeq(ctx, usernameRule)
+	if err != nil {
+		return nil, err
+	}
+	seenEmails := make(map[string]int, len(records))
 	for i := 1; i < len(records); i++ {
 		lineNo := i + 1
 		row := records[i]
@@ -72,26 +88,51 @@ func (s *sMember) MemberImport(ctx context.Context, r io.Reader, creator string)
 			continue
 		}
 		out.Total++
-		username := memberImportCell(row, colIdx["username"])
-		password := memberImportCell(row, colIdx["password"])
-		nickname := memberImportCell(row, colIdx["nickname"])
-		email := memberImportCell(row, colIdx["email"])
-		mobile := memberImportCell(row, colIdx["mobile"])
-		statusStr := memberImportCell(row, colIdx["status"])
-		status := memberImportParseStatus(statusStr)
+		password := memberImportCell(row, pwdCol)
+		nickname := memberImportCell(row, nickCol)
+		email := memberImportCell(row, emailCol)
+		mobile := memberImportCell(row, mobileCol)
 
-		if username == "" || password == "" {
+		if nickname == "" || email == "" {
 			out.Failed++
-			memberImportAppendErr(out, lineNo, "用户名与密码不能为空")
+			memberImportAppendErr(out, lineNo, "昵称与邮箱不能为空")
 			continue
 		}
-
-		_, err := s.MemberCreate(ctx, username, password, nickname, email, mobile, creator, status)
+		if password == "" {
+			pwd, genErr := memberImportPasswordFromEmail(email)
+			if genErr != nil {
+				out.Failed++
+				memberImportAppendErr(out, lineNo, "邮箱不足 5 个字符，无法按规则生成默认密码，请填写密码列")
+				continue
+			}
+			password = pwd
+		}
+		emailKey := strings.ToLower(email)
+		if prevLine, ok := seenEmails[emailKey]; ok {
+			out.Failed++
+			memberImportAppendErr(out, lineNo, fmt.Sprintf("邮箱「%s」在第%d行已出现", email, prevLine))
+			continue
+		}
+		exists, err := s.memberImportEmailExists(ctx, email)
+		if err != nil {
+			out.Failed++
+			memberImportAppendErr(out, lineNo, memberImportFormatRowErr("", err))
+			continue
+		}
+		if exists {
+			out.Failed++
+			memberImportAppendErr(out, lineNo, fmt.Sprintf("邮箱「%s」已存在", email))
+			continue
+		}
+		username := memberImportBuildUsername(usernameRule, nextSeq)
+		_, err = s.MemberCreate(ctx, username, password, nickname, email, mobile, creator, consts.StatusNormal)
 		if err != nil {
 			out.Failed++
 			memberImportAppendErr(out, lineNo, memberImportFormatRowErr(username, err))
 			continue
 		}
+		seenEmails[emailKey] = lineNo
+		nextSeq++
 		out.Success++
 	}
 	return out, nil
@@ -112,13 +153,35 @@ func memberImportParseHeader(header []string) (map[string]int, error) {
 			idx[canon] = i
 		}
 	}
-	if _, ok := idx["username"]; !ok {
+	if _, ok := idx["nickname"]; !ok {
 		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
-	if _, ok := idx["password"]; !ok {
+	if _, ok := idx["email"]; !ok {
 		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	return idx, nil
+}
+
+// memberImportCol 读取列下标；表头未包含该列时返回 -1，避免 map 缺键时误用 0。
+func memberImportCol(idx map[string]int, key string) int {
+	if i, ok := idx[key]; ok {
+		return i
+	}
+	return -1
+}
+
+// memberImportPasswordFromEmail 邮箱第 1、3、5 个字符（按 Unicode 计）与固定后缀组成默认密码。
+func memberImportPasswordFromEmail(email string) (string, error) {
+	runes := []rune(strings.TrimSpace(email))
+	if len(runes) < 5 {
+		return "", gerror.NewCode(consts.CodeInvalidParams)
+	}
+	var b strings.Builder
+	b.WriteRune(runes[0])
+	b.WriteRune(runes[2])
+	b.WriteRune(runes[4])
+	b.WriteString("@hskmock")
+	return b.String(), nil
 }
 
 func memberImportRowEmpty(row []string) bool {
@@ -135,21 +198,6 @@ func memberImportCell(row []string, col int) string {
 		return ""
 	}
 	return strings.TrimSpace(row[col])
-}
-
-func memberImportParseStatus(s string) int {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return consts.StatusNormal
-	}
-	switch strings.ToLower(s) {
-	case "0", "正常", "启用":
-		return consts.StatusNormal
-	case "1", "停用", "禁用":
-		return consts.StatusDisabled
-	default:
-		return consts.StatusNormal
-	}
 }
 
 func memberImportAppendErr(out *bo.MemberImportResult, line int, msg string) {
@@ -178,4 +226,75 @@ func memberImportFormatRowErr(username string, err error) string {
 		}
 	}
 	return err.Error()
+}
+
+type memberImportUsernameRule struct {
+	country string
+	year    string
+	digits  int
+}
+
+func memberImportValidateUsernameParams(country, year string, seqDigits int) (*memberImportUsernameRule, error) {
+	country = strings.TrimSpace(country)
+	year = strings.TrimSpace(year)
+	if country == "" || year == "" {
+		return nil, gerror.NewCode(consts.CodeInvalidParams)
+	}
+	if seqDigits < 1 {
+		return nil, gerror.NewCodef(consts.CodeInvalidParams, "序号位数必须大于等于1")
+	}
+	return &memberImportUsernameRule{
+		country: strings.ToUpper(country),
+		year:    year,
+		digits:  seqDigits,
+	}, nil
+}
+
+func (s *sMember) memberImportLoadNextSeq(ctx context.Context, rule *memberImportUsernameRule) (int, error) {
+	var usernames []string
+	prefix := fmt.Sprintf("%s%s-", rule.country, rule.year)
+	if err := dao.SysMember.Ctx(ctx).
+		Fields("username").
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		WhereLike("username", prefix+"%").
+		Scan(&usernames); err != nil {
+		return 0, err
+	}
+	maxSeq := 0
+	for _, username := range usernames {
+		seq, ok := memberImportParseUsernameSeq(username, rule)
+		if ok && seq > maxSeq {
+			maxSeq = seq
+		}
+	}
+	return maxSeq + 1, nil
+}
+
+func memberImportBuildUsername(rule *memberImportUsernameRule, seq int) string {
+	return fmt.Sprintf("%s%s-%0*d", rule.country, rule.year, rule.digits, seq)
+}
+
+func memberImportParseUsernameSeq(username string, rule *memberImportUsernameRule) (int, bool) {
+	pattern := fmt.Sprintf("^%s%s-(\\d+)$", regexp.QuoteMeta(rule.country), regexp.QuoteMeta(rule.year))
+	re := regexp.MustCompile(pattern)
+	matches := re.FindStringSubmatch(strings.TrimSpace(username))
+	if len(matches) != 2 {
+		return 0, false
+	}
+	seq, err := strconv.Atoi(matches[1])
+	if err != nil || seq < 1 {
+		return 0, false
+	}
+	return seq, true
+}
+
+func (s *sMember) memberImportEmailExists(ctx context.Context, email string) (bool, error) {
+	cnt, err := dao.SysMember.Ctx(ctx).
+		Where("email", email).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Count()
+	if err != nil {
+		return false, err
+	}
+	return cnt > 0, nil
 }

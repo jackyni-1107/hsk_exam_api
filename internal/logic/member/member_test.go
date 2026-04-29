@@ -27,3 +27,26 @@ func TestNormalizeMemberStatus(t *testing.T) {
 		t.Fatalf("expected default normal status, got %d", got)
 	}
 }
+
+func TestMemberImportPasswordFromEmail(t *testing.T) {
+	pwd, err := memberImportPasswordFromEmail("demo@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "dm@@hskmock"; pwd != want {
+		t.Fatalf("got %q want %q", pwd, want)
+	}
+	if _, err := memberImportPasswordFromEmail("a@b"); err == nil {
+		t.Fatal("expected error for short email")
+	}
+}
+
+func TestMemberImportCol(t *testing.T) {
+	idx := map[string]int{"password": 2}
+	if got := memberImportCol(idx, "password"); got != 2 {
+		t.Fatalf("got %d", got)
+	}
+	if got := memberImportCol(idx, "nickname"); got != -1 {
+		t.Fatalf("missing key should be -1, got %d", got)
+	}
+}

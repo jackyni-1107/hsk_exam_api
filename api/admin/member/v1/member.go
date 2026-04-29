@@ -62,8 +62,11 @@ type MemberDeleteReq struct {
 type MemberDeleteRes struct{}
 
 type MemberImportReq struct {
-	g.Meta `path:"/member/import" method:"post" tags:"会员" summary:"批量导入客户(CSV)" permission:"member:import"`
-	File   *ghttp.UploadFile `json:"file" type:"file" dc:"CSV 文件（表单字段名 file）"`
+	g.Meta    `path:"/member/import" method:"post" tags:"会员" summary:"批量导入客户(CSV)" permission:"member:import"`
+	Country   string            `json:"country" form:"country" dc:"自动生成用户名：国家标识，如 TH"`
+	Year      string            `json:"year" form:"year" dc:"自动生成用户名：年份，如 2026"`
+	SeqDigits int               `json:"seq_digits" form:"seq_digits" dc:"自动生成用户名：序号位数（≥1）"`
+	File      *ghttp.UploadFile `json:"file" type:"file" dc:"CSV 文件（表单字段名 file）"`
 }
 
 type MemberImportRes struct {

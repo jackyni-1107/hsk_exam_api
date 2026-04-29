@@ -30,7 +30,7 @@ func (c *ControllerV1) MemberImport(ctx context.Context, req *v1.MemberImportReq
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	out, err := membersvc.Member().MemberImport(ctx, rf, creator)
+	out, err := membersvc.Member().MemberImport(ctx, rf, creator, req.Country, req.Year, req.SeqDigits)
 	if err != nil {
 		return nil, err
 	}
