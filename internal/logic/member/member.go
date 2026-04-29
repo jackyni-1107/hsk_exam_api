@@ -151,6 +151,51 @@ func (s *sMember) MemberUpdate(ctx context.Context, id int64, password, nickname
 	return nil
 }
 
+func (s *sMember) MemberUpdatePwd(ctx context.Context, id int64, password string) error {
+	before, err := loadMemberByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	data := sysdo.SysMember{
+		Password: password,
+	}
+	shouldRevokeSessions := false
+	passwordChanged := false
+	if password != "" {
+		passwordHash, err := prepareMemberPasswordChange(ctx, before.Id, before.Password, password)
+		if err != nil {
+			return err
+		}
+		data.Password = passwordHash
+		data.PasswordChangedAt = gtime.Now()
+		shouldRevokeSessions = true
+		passwordChanged = true
+	}
+
+	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		if _, err := tx.Model(dao.SysMember.Table()).Ctx(ctx).Where("id", id).Data(data).Update(); err != nil {
+			return err
+		}
+		if passwordChanged {
+			return secsvc.Security().SavePasswordHistory(ctx, consts.UserTypeClient, id, before.Password)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if shouldRevokeSessions {
+		bestEffortRevokeClientSessions(ctx, id)
+	}
+
+	var after sysentity.SysMember
+	if err := dao.SysMember.Ctx(ctx).Where("id", id).Scan(&after); err == nil {
+		auditutil.RecordEntityDiff(ctx, dao.SysMember.Table(), id, before, &after)
+	}
+	return nil
+}
+
 func (s *sMember) MemberDelete(ctx context.Context, id int64, updater string) error {
 	before, err := loadMemberByID(ctx, id)
 	if err != nil {
@@ -184,6 +229,21 @@ func (s *sMember) FindByUsername(ctx context.Context, username string) (*sysenti
 	var member sysentity.SysMember
 	err := dao.SysMember.Ctx(ctx).
 		Where("username", username).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&member)
+	if err != nil {
+		return nil, err
+	}
+	if member.Id == 0 {
+		return nil, nil
+	}
+	return &member, nil
+}
+
+func (s *sMember) FindByEmail(ctx context.Context, email string) (*sysentity.SysMember, error) {
+	var member sysentity.SysMember
+	err := dao.SysMember.Ctx(ctx).
+		Where("email", email).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		Scan(&member)
 	if err != nil {

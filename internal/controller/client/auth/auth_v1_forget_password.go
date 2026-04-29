@@ -26,8 +26,8 @@ import (
 )
 
 func (c *ControllerV1) ForgetPassword(ctx context.Context, req *v1.ForgetPasswordReq) (res *v1.ForgetPasswordRes, err error) {
-	username := strings.TrimSpace(req.Username)
-	if username == "" {
+	email := strings.TrimSpace(req.Email)
+	if email == "" {
 		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
 	httpReq := ghttp.RequestFromCtx(ctx)
@@ -37,26 +37,26 @@ func (c *ControllerV1) ForgetPassword(ctx context.Context, req *v1.ForgetPasswor
 		userAgent = httpReq.Header.Get("User-Agent")
 	}
 	traceId := middleware.GetTraceId(ctx)
-	if blocked := checkForgetPasswordRateLimit(ctx, ip, username); blocked {
-		auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_rate_limited", 0, ip, userAgent, fmt.Sprintf("username=%s", username), traceId)
+	if blocked := checkForgetPasswordRateLimit(ctx, ip, email); blocked {
+		auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_rate_limited", 0, ip, userAgent, fmt.Sprintf("email=%s", email), traceId)
 		return &v1.ForgetPasswordRes{}, nil
 	}
 
-	member, err := membersvc.Member().FindByUsername(ctx, username)
+	member, err := membersvc.Member().FindByUsername(ctx, email)
 	if err != nil {
-		return nil, err
+		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
-	// Avoid username enumeration: return success when account does not exist.
+	// Avoid email enumeration: return success when account does not exist.
 	if member == nil {
-		auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_user_not_found", 0, ip, userAgent, fmt.Sprintf("username=%s", username), traceId)
+		auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_user_not_found", 0, ip, userAgent, fmt.Sprintf("email=%s", email), traceId)
 		return &v1.ForgetPasswordRes{}, nil
 	}
 	if member.Status == consts.StatusDisabled {
-		auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_user_disabled", member.Id, ip, userAgent, fmt.Sprintf("username=%s", username), traceId)
+		auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_user_disabled", member.Id, ip, userAgent, fmt.Sprintf("email=%s", email), traceId)
 		return &v1.ForgetPasswordRes{}, nil
 	}
-	if coolingDown := checkForgetPasswordCooldown(ctx, username); coolingDown {
-		auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_cooldown", member.Id, ip, userAgent, fmt.Sprintf("username=%s", username), traceId)
+	if coolingDown := checkForgetPasswordCooldown(ctx, email); coolingDown {
+		auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_cooldown", member.Id, ip, userAgent, fmt.Sprintf("email=%s", email), traceId)
 		return &v1.ForgetPasswordRes{}, nil
 	}
 
@@ -64,14 +64,10 @@ func (c *ControllerV1) ForgetPassword(ctx context.Context, req *v1.ForgetPasswor
 	if err != nil {
 		return nil, err
 	}
-	updater := ""
-	if d := middleware.GetCtxData(ctx); d != nil && d.Username != "" {
-		updater = d.Username
-	}
-	if err = membersvc.Member().MemberUpdate(ctx, member.Id, password, member.Nickname, member.Email, member.Mobile, updater, member.Status); err != nil {
+	if err = membersvc.Member().MemberUpdatePwd(ctx, member.Id, password); err != nil {
 		return nil, err
 	}
-	auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_password_reset", member.Id, ip, userAgent, fmt.Sprintf("trigger=forget_password username=%s", username), traceId)
+	auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_password_reset", member.Id, ip, userAgent, fmt.Sprintf("trigger=forget_password email=%s", email), traceId)
 
 	template, err := loadActiveTemplateByCode(ctx, "forget_password")
 	if err != nil {
@@ -85,7 +81,7 @@ func (c *ControllerV1) ForgetPassword(ctx context.Context, req *v1.ForgetPasswor
 		"password": password,
 	})
 	if _, err = notisvc.SysNotification().Send(ctx, "forget_password", template.Channel, recipient, string(vars)); err != nil {
-		g.Log().Errorf(ctx, "[forget_password] notification send failed username=%s template=forget_password channel=%s recipient=%s err=%v", username, template.Channel, recipient, err)
+		g.Log().Errorf(ctx, "[forget_password] notification send failed email=%s template=forget_password channel=%s recipient=%s err=%v", email, template.Channel, recipient, err)
 		auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_notify_failed", member.Id, ip, userAgent, fmt.Sprintf("channel=%s recipient=%s", template.Channel, recipient), traceId)
 		return &v1.ForgetPasswordRes{}, nil
 	}
@@ -93,10 +89,10 @@ func (c *ControllerV1) ForgetPassword(ctx context.Context, req *v1.ForgetPasswor
 	return &v1.ForgetPasswordRes{}, nil
 }
 
-func checkForgetPasswordRateLimit(ctx context.Context, ip, username string) bool {
+func checkForgetPasswordRateLimit(ctx context.Context, ip, email string) bool {
 	nowMinute := time.Now().Unix() / 60
 	ipKey := fmt.Sprintf("fp:rl:ip:%s:%d", ip, nowMinute)
-	userKey := fmt.Sprintf("fp:rl:user:%s:%d", strings.ToLower(strings.TrimSpace(username)), nowMinute)
+	userKey := fmt.Sprintf("fp:rl:user:%s:%d", strings.ToLower(strings.TrimSpace(email)), nowMinute)
 	const ipLimit = 30
 	const userLimit = 5
 
