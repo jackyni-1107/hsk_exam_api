@@ -29,7 +29,7 @@ func (s *sSysNotification) ChannelConfigList(ctx context.Context, channel string
 func (s *sSysNotification) ChannelConfigCreate(ctx context.Context, channel, provider, name, configJson, creator string) (int64, error) {
 	switch channel {
 	case "email":
-		if provider != "smtp" {
+		if provider != "smtp" && provider != "sendgrid" {
 			return 0, gerror.NewCode(consts.CodeEmailMustUseSmtp)
 		}
 	case "sms":

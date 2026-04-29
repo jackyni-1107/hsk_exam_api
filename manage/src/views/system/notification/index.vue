@@ -382,6 +382,7 @@
           >
             <template v-if="chForm.channel === 'email'">
               <el-option label="SMTP" value="smtp" />
+              <el-option label="SendGrid" value="sendgrid" />
             </template>
             <template v-else-if="chForm.channel === 'sms'">
               <el-option label="阿里云" value="aliyun" />
@@ -423,6 +424,33 @@
             <el-input
               v-model="chConfig.from"
               placeholder="noreply@example.com"
+            />
+          </el-form-item>
+        </template>
+        <template
+          v-else-if="
+            chForm.channel === 'email' && chForm.provider === 'sendgrid'
+          "
+        >
+          <el-divider content-position="left">SendGrid 配置</el-divider>
+          <el-form-item label="API Key" prop="sendgrid_api_key">
+            <el-input
+              v-model="chConfig.sendgrid_api_key"
+              type="password"
+              show-password
+              autocomplete="new-password"
+            />
+          </el-form-item>
+          <el-form-item label="发件邮箱" prop="from">
+            <el-input
+              v-model="chConfig.from"
+              placeholder="noreply@example.com"
+            />
+          </el-form-item>
+          <el-form-item label="发件人名称">
+            <el-input
+              v-model="chConfig.from_name"
+              placeholder="例如：HSK考试中心"
             />
           </el-form-item>
         </template>
@@ -512,13 +540,24 @@
         <el-form-item label="模板编码">
           <el-input v-model="sendForm.template_code" disabled />
         </el-form-item>
+        <el-form-item label="模板类型">
+          <el-input :model-value="templateTypeLabel(sendForm.template_type)" disabled />
+        </el-form-item>
+        <el-form-item
+          v-if="sendForm.template_type === 2"
+          label="第三方模板ID"
+        >
+          <el-input v-model="sendForm.third_party_template_id" disabled />
+        </el-form-item>
         <el-form-item label="渠道">
           <el-input :model-value="channelLabel(sendForm.channel)" disabled />
         </el-form-item>
         <el-form-item label="收件人" required>
           <el-input v-model="sendForm.recipient" />
         </el-form-item>
-        <el-form-item label="变量配置">
+        <el-form-item
+          :label="sendForm.template_type === 2 ? '第三方参数/变量' : '变量配置'"
+        >
           <div class="variable-config-list">
             <div
               v-for="(item, index) in sendVariableRows"
@@ -639,6 +678,8 @@ const chConfig = reactive({
   user: "",
   pass: "",
   from: "",
+  from_name: "",
+  sendgrid_api_key: "",
   access_key: "",
   secret_key: "",
   sign_name: "",
@@ -658,6 +699,8 @@ const chRules: FormRules = {
 const sendDlg = ref(false);
 const sendForm = reactive({
   template_code: "",
+  template_type: 1,
+  third_party_template_id: "",
   channel: "email",
   recipient: "",
 });
@@ -675,6 +718,7 @@ function channelLabel(channel: string) {
 function providerLabel(provider: string) {
   const map: Record<string, string> = {
     smtp: "SMTP",
+    sendgrid: "SendGrid",
     aliyun: "阿里云",
     tencent: "腾讯云",
   };
@@ -1008,13 +1052,62 @@ function fillSendVariablesFromTemplate(variables?: string) {
     .map((key) => ({ key, value: "" }));
 }
 
+function parseVariableRowsFromText(value?: string) {
+  const content = value?.trim() ?? "";
+  if (!content) return [] as { key: string; value: string }[];
+  try {
+    const parsed = JSON.parse(content) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return Object.entries(parsed as Record<string, unknown>).map(
+        ([key, val]) => ({
+          key,
+          value: stringifyTplVariableValue(val),
+        }),
+      );
+    }
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => ({
+        key: stringifyTplVariableValue(item),
+        value: "",
+      }));
+    }
+  } catch {
+    /* Historical data can be comma-separated instead of JSON. */
+  }
+  return content
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((key) => ({ key, value: "" }));
+}
+
+function fillSendParamsByTemplate(row: TemplateItem) {
+  const merged = new Map<string, string>();
+  // Third-party template params are treated as defaults.
+  for (const item of parseVariableRowsFromText(row.third_party_template_params)) {
+    if (!item.key.trim()) continue;
+    merged.set(item.key.trim(), item.value);
+  }
+  // Variables overwrite defaults when same key exists.
+  for (const item of parseVariableRowsFromText(row.variables)) {
+    if (!item.key.trim()) continue;
+    merged.set(item.key.trim(), item.value);
+  }
+  sendVariableRows.value = Array.from(merged.entries()).map(([key, value]) => ({
+    key,
+    value,
+  }));
+}
+
 function openTplSend(row: TemplateItem) {
   Object.assign(sendForm, {
     template_code: row.code,
+    template_type: row.template_type || 1,
+    third_party_template_id: row.third_party_template_id || "",
     channel: row.channel,
     recipient: "",
   });
-  fillSendVariablesFromTemplate(row.variables);
+  fillSendParamsByTemplate(row);
   sendDlg.value = true;
 }
 
@@ -1025,6 +1118,8 @@ function resetChConfig() {
     user: "",
     pass: "",
     from: "",
+    from_name: "",
+    sendgrid_api_key: "",
     access_key: "",
     secret_key: "",
     sign_name: "",
@@ -1117,6 +1212,10 @@ function buildChConfigJson() {
     setString("user");
     setString("pass");
     setString("from");
+  } else if (chForm.channel === "email" && chForm.provider === "sendgrid") {
+    setString("sendgrid_api_key");
+    setString("from");
+    setString("from_name");
   } else if (chForm.channel === "sms" && chForm.provider === "aliyun") {
     setString("access_key");
     setString("secret_key");
@@ -1242,8 +1341,10 @@ async function doSend() {
     if (res?.data?.ok) ElMessage.success("已提交发送");
     else ElMessage.success("请求已完成");
     sendDlg.value = false;
-  } catch {
-    /* */
+  } catch (error: unknown) {
+    const err = error as { message?: string; response?: { data?: { message?: string } } };
+    const msg = err?.response?.data?.message || err?.message || "发送失败，请查看后端日志";
+    ElMessage.error(msg);
   } finally {
     sendLoading.value = false;
   }

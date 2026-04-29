@@ -140,7 +140,8 @@ func sendFailAlert(ctx context.Context, t *sysentity.SysTask, runID, errMsg stri
 		}
 		content := notification.RenderTemplate("任务 {{task_name}} 执行失败\nRunID: {{run_id}}\n错误: {{error_msg}}", vars)
 		if strings.Contains(r, "@") {
-			_ = (&notification.EmailSender{}).Send(ctx, r, content)
+			subject := "任务执行失败告警 - " + t.Name
+			_ = (&notification.EmailSender{}).Send(ctx, r, subject, content)
 		} else {
 			_ = (&notification.SMSSender{}).Send(ctx, r, content)
 		}

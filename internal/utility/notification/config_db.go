@@ -18,6 +18,12 @@ type SMTPConfig struct {
 	From string `json:"from"`
 }
 
+type SendGridConfig struct {
+	ApiKey   string `json:"sendgrid_api_key"`
+	From     string `json:"from"`
+	FromName string `json:"from_name"`
+}
+
 // AliyunSMSConfig 闂冨潡鍣锋禍鎴犵叚娣囷繝鍘ら敓
 type AliyunSMSConfig struct {
 	AccessKey    string `json:"access_key"`
@@ -50,6 +56,12 @@ func GetActiveEmailConfig(ctx context.Context) (provider string, cfg interface{}
 		var c SMTPConfig
 		if json.Unmarshal([]byte(e.ConfigJson), &c) == nil {
 			return "smtp", &c, true
+		}
+	}
+	if e.Provider == "sendgrid" && e.ConfigJson != "" {
+		var c SendGridConfig
+		if json.Unmarshal([]byte(e.ConfigJson), &c) == nil {
+			return "sendgrid", &c, true
 		}
 	}
 	return e.Provider, nil, false
