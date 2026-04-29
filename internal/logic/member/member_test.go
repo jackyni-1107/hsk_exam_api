@@ -50,3 +50,21 @@ func TestMemberImportCol(t *testing.T) {
 		t.Fatalf("missing key should be -1, got %d", got)
 	}
 }
+
+func TestMemberImportParseUsernameSeq_digitWidth(t *testing.T) {
+	r5 := &memberImportUsernameRule{country: "TH", year: "2026", digits: 5}
+	if seq, ok := memberImportParseUsernameSeq("TH2026-00004", r5); !ok || seq != 4 {
+		t.Fatalf("5-digit rule TH2026-00004: ok=%v seq=%d", ok, seq)
+	}
+	if _, ok := memberImportParseUsernameSeq("TH2026-000004", r5); ok {
+		t.Fatal("6-char numeric suffix should not match 5-digit rule")
+	}
+
+	r6 := &memberImportUsernameRule{country: "TH", year: "2026", digits: 6}
+	if seq, ok := memberImportParseUsernameSeq("TH2026-000004", r6); !ok || seq != 4 {
+		t.Fatalf("6-digit rule TH2026-000004: ok=%v seq=%d", ok, seq)
+	}
+	if _, ok := memberImportParseUsernameSeq("TH2026-00004", r6); ok {
+		t.Fatal("5-char numeric suffix should not match 6-digit rule")
+	}
+}

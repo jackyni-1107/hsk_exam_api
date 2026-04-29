@@ -13,6 +13,7 @@ import (
 	"exam/internal/consts"
 	"exam/internal/dao"
 	"exam/internal/model/bo"
+	sysentity "exam/internal/model/entity/sys"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 )
@@ -251,18 +252,19 @@ func memberImportValidateUsernameParams(country, year string, seqDigits int) (*m
 }
 
 func (s *sMember) memberImportLoadNextSeq(ctx context.Context, rule *memberImportUsernameRule) (int, error) {
-	var usernames []string
+	// 单次查询：取当前规则前缀下已有用户名，在内存中解析最大序号（勿用 Scan(&[]string)，多行结果在 ORM 中不可靠）
 	prefix := fmt.Sprintf("%s%s-", rule.country, rule.year)
+	var rows []sysentity.SysMember
 	if err := dao.SysMember.Ctx(ctx).
 		Fields("username").
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
 		WhereLike("username", prefix+"%").
-		Scan(&usernames); err != nil {
+		Scan(&rows); err != nil {
 		return 0, err
 	}
 	maxSeq := 0
-	for _, username := range usernames {
-		seq, ok := memberImportParseUsernameSeq(username, rule)
+	for _, row := range rows {
+		seq, ok := memberImportParseUsernameSeq(row.Username, rule)
 		if ok && seq > maxSeq {
 			maxSeq = seq
 		}
@@ -274,8 +276,18 @@ func memberImportBuildUsername(rule *memberImportUsernameRule, seq int) string {
 	return fmt.Sprintf("%s%s-%0*d", rule.country, rule.year, rule.digits, seq)
 }
 
+// memberImportParseUsernameSeq 仅识别「连字符后恰好 rule.digits 位数字」的用户名，使不同位数互不影响序号。
+// 例如 5 位 TH2026-00004 与 6 位 TH2026-000004 分属两套序列；切换位数且库中无同位数记录时从 1 起号。
 func memberImportParseUsernameSeq(username string, rule *memberImportUsernameRule) (int, bool) {
-	pattern := fmt.Sprintf("^%s%s-(\\d+)$", regexp.QuoteMeta(rule.country), regexp.QuoteMeta(rule.year))
+	if rule == nil || rule.digits < 1 {
+		return 0, false
+	}
+	pattern := fmt.Sprintf(
+		`^%s%s-(\d{%d})$`,
+		regexp.QuoteMeta(rule.country),
+		regexp.QuoteMeta(rule.year),
+		rule.digits,
+	)
 	re := regexp.MustCompile(pattern)
 	matches := re.FindStringSubmatch(strings.TrimSpace(username))
 	if len(matches) != 2 {
