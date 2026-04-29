@@ -29,6 +29,10 @@ type (
 		NormalizeLoginName(name string) string
 		// CheckIPLoginRateLimit 单 IP 每分钟尝试次数，超限返回 true
 		CheckIPLoginRateLimit(ctx context.Context, ip string) (blocked bool)
+		// CheckForgetPasswordAccess 每日找回密码访问频控（账号/IP 任一超限都返回 true）
+		CheckForgetPasswordAccess(ctx context.Context, ip string, username string) bool
+		// CheckForgetPasswordCooldown 是否处于找回密码冷却窗口
+		CheckForgetPasswordCooldown(ctx context.Context, username string) bool
 		// IsAccountLocked 账号是否处于锁定窗口
 		IsAccountLocked(ctx context.Context, userType int, username string) bool
 		// ShouldRequireCaptcha 是否必须提交验证码（失败次数达到阈值）
