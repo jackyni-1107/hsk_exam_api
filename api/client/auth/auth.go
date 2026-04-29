@@ -11,6 +11,7 @@ type IAuth interface {
 	ILogout
 	ICaptcha
 	IPublicKey
+	IForgetPassword
 }
 
 type ILogin interface {
@@ -27,4 +28,8 @@ type ICaptcha interface {
 
 type IPublicKey interface {
 	PublicKey(ctx context.Context, req *v1.PublicKeyReq) (res *v1.PublicKeyRes, err error)
+}
+
+type IForgetPassword interface {
+	ForgetPassword(ctx context.Context, req *v1.ForgetPasswordReq) (res *v1.ForgetPasswordRes, err error)
 }

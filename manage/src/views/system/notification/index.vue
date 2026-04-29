@@ -43,7 +43,11 @@
               channelLabel(row.channel)
             }}</template>
           </el-table-column>
-          <el-table-column label="绑定渠道配置" min-width="160" show-overflow-tooltip>
+          <el-table-column
+            label="绑定渠道配置"
+            min-width="160"
+            show-overflow-tooltip
+          >
             <template #default="{ row }">{{
               channelConfigLabel(row.channel_config_id)
             }}</template>
@@ -254,7 +258,10 @@
           <el-input v-model="tplForm.name" />
         </el-form-item>
         <el-form-item label="模板类型" prop="template_type">
-          <el-radio-group v-model="tplForm.template_type" @change="onTplTemplateTypeChange">
+          <el-radio-group
+            v-model="tplForm.template_type"
+            @change="onTplTemplateTypeChange"
+          >
             <el-radio :label="1">系统模板</el-radio>
             <el-radio :label="2">第三方模板</el-radio>
           </el-radio-group>
@@ -279,7 +286,11 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item v-if="tplForm.template_type === 1" label="内容" prop="content">
+        <el-form-item
+          v-if="tplForm.template_type === 1"
+          label="内容"
+          prop="content"
+        >
           <el-input
             v-model="tplForm.content"
             type="textarea"
@@ -299,8 +310,14 @@
                 class="variable-config-row"
               >
                 <el-input v-model="item.key" placeholder="参数名，如 code" />
-                <el-input v-model="item.value" placeholder="参数值，如 123456" />
-                <el-button link type="danger" @click="removeTplThirdPartyParam(index)"
+                <el-input
+                  v-model="item.value"
+                  placeholder="参数值，如 123456"
+                />
+                <el-button
+                  link
+                  type="danger"
+                  @click="removeTplThirdPartyParam(index)"
                   >删除</el-button
                 >
               </div>
@@ -541,12 +558,12 @@
           <el-input v-model="sendForm.template_code" disabled />
         </el-form-item>
         <el-form-item label="模板类型">
-          <el-input :model-value="templateTypeLabel(sendForm.template_type)" disabled />
+          <el-input
+            :model-value="templateTypeLabel(sendForm.template_type)"
+            disabled
+          />
         </el-form-item>
-        <el-form-item
-          v-if="sendForm.template_type === 2"
-          label="第三方模板ID"
-        >
+        <el-form-item v-if="sendForm.template_type === 2" label="第三方模板ID">
           <el-input v-model="sendForm.third_party_template_id" disabled />
         </el-form-item>
         <el-form-item label="渠道">
@@ -995,7 +1012,9 @@ function buildTplThirdPartyParams() {
     .map((row) => ({ key: row.key.trim(), value: row.value }))
     .filter((row) => row.key);
   if (!rows.length) return "";
-  return JSON.stringify(Object.fromEntries(rows.map((row) => [row.key, row.value])));
+  return JSON.stringify(
+    Object.fromEntries(rows.map((row) => [row.key, row.value])),
+  );
 }
 
 function addTplThirdPartyParam() {
@@ -1084,7 +1103,9 @@ function parseVariableRowsFromText(value?: string) {
 function fillSendParamsByTemplate(row: TemplateItem) {
   const merged = new Map<string, string>();
   // Third-party template params are treated as defaults.
-  for (const item of parseVariableRowsFromText(row.third_party_template_params)) {
+  for (const item of parseVariableRowsFromText(
+    row.third_party_template_params,
+  )) {
     if (!item.key.trim()) continue;
     merged.set(item.key.trim(), item.value);
   }
@@ -1342,8 +1363,14 @@ async function doSend() {
     else ElMessage.success("请求已完成");
     sendDlg.value = false;
   } catch (error: unknown) {
-    const err = error as { message?: string; response?: { data?: { message?: string } } };
-    const msg = err?.response?.data?.message || err?.message || "发送失败，请查看后端日志";
+    const err = error as {
+      message?: string;
+      response?: { data?: { message?: string } };
+    };
+    const msg =
+      err?.response?.data?.message ||
+      err?.message ||
+      "发送失败，请查看后端日志";
     ElMessage.error(msg);
   } finally {
     sendLoading.value = false;

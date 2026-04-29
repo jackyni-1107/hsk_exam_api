@@ -7,6 +7,7 @@ import (
 	"exam/internal/auditutil"
 	"exam/internal/consts"
 	"exam/internal/dao"
+	"exam/internal/middleware"
 	sysdo "exam/internal/model/do/sys"
 	sysentity "exam/internal/model/entity/sys"
 	secsvc "exam/internal/service/security"
@@ -70,6 +71,7 @@ func (s *sMember) MemberCreate(ctx context.Context, username, password, nickname
 
 	status = normalizeMemberStatus(status)
 	nickname, email, mobile = normalizeMemberProfile(nickname, email, mobile)
+	creator = sanitizeActorByContext(ctx, creator)
 	id, err := dao.SysMember.Ctx(ctx).InsertAndGetId(sysdo.SysMember{
 		Username:          username,
 		Password:          passwordHash,
@@ -102,7 +104,9 @@ func (s *sMember) MemberUpdate(ctx context.Context, id int64, password, nickname
 		Nickname: nickname,
 		Email:    email,
 		Mobile:   mobile,
-		Updater:  updater,
+	}
+	if actor := sanitizeActorByContext(ctx, updater); actor != "" {
+		data.Updater = actor
 	}
 	shouldRevokeSessions := false
 	if status == consts.StatusNormal || status == consts.StatusDisabled {
@@ -248,4 +252,15 @@ func bestEffortRevokeClientSessions(ctx context.Context, memberID int64) {
 	if err := secsvc.Security().RevokeAllUserSessions(ctx, consts.UserTypeClient, memberID); err != nil {
 		g.Log().Warningf(ctx, "revoke client sessions failed member_id=%d: %v", memberID, err)
 	}
+}
+
+func sanitizeActorByContext(ctx context.Context, actor string) string {
+	actor = strings.TrimSpace(actor)
+	if actor == "" {
+		return ""
+	}
+	if d := middleware.GetCtxData(ctx); d != nil && strings.TrimSpace(d.Username) == actor {
+		return actor
+	}
+	return ""
 }
