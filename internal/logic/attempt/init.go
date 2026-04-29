@@ -17,12 +17,6 @@ import (
 	"exam/internal/utility/examutil"
 )
 
-const (
-	updaterClient = "client"
-	updaterAdmin  = "admin"
-	updaterTask   = "task"
-)
-
 type sAttempt struct{}
 
 func init() {
@@ -271,7 +265,7 @@ func maybeAutoSubmitIfOverdue(ctx context.Context, userID int64, attemptID int64
 	if !isAttemptDeadlineReached(att, now) {
 		return nil
 	}
-	return markSubmitted(ctx, attemptID, attemptEventTimeout, updaterClient)
+	return markSubmitted(ctx, attemptID, attemptEventTimeout)
 }
 
 func isExamBatchExpired(ctx context.Context, batchID int64, now *gtime.Time) (bool, error) {
@@ -335,7 +329,7 @@ func applyAttemptTransitionTx(ctx context.Context, tx gdb.TX, att examentity.Exa
 	return n > 0, nil
 }
 
-func markSubmitted(ctx context.Context, attemptID int64, event attemptEvent, updater string) error {
+func markSubmitted(ctx context.Context, attemptID int64, event attemptEvent) error {
 	ok, err := AcquireSubmitLockWithRetry(ctx, attemptID)
 	if err != nil {
 		return err
@@ -345,10 +339,10 @@ func markSubmitted(ctx context.Context, attemptID int64, event attemptEvent, upd
 	}
 	defer ReleaseSubmitLock(ctx, attemptID)
 
-	return markSubmittedLocked(ctx, attemptID, event, updater)
+	return markSubmittedLocked(ctx, attemptID, event)
 }
 
-func markSubmittedLocked(ctx context.Context, attemptID int64, event attemptEvent, updater string) error {
+func markSubmittedLocked(ctx context.Context, attemptID int64, event attemptEvent) error {
 	return g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		var att examentity.ExamAttempt
 		if err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Scan(&att); err != nil {
@@ -363,12 +357,11 @@ func markSubmittedLocked(ctx context.Context, attemptID int64, event attemptEven
 				return nil
 			}
 		}
-		if err := syncAttemptDraftsToDBTx(ctx, tx, attemptID, updater); err != nil {
+		if err := syncAttemptDraftsToDBTx(ctx, tx, attemptID); err != nil {
 			return err
 		}
 		_, err := applyAttemptTransitionTx(ctx, tx, att, event, examdo.ExamAttempt{
 			SubmittedAt: now,
-			Updater:     updater,
 			UpdateTime:  gtime.Now(),
 		})
 		return err
@@ -399,7 +392,7 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 		if !canAttempt(att.Status, attemptEventFinalize) {
 			return nil
 		}
-		if err := syncAttemptDraftsToDBTx(ctx, tx, attemptID, updaterTask); err != nil {
+		if err := syncAttemptDraftsToDBTx(ctx, tx, attemptID); err != nil {
 			return err
 		}
 
@@ -439,7 +432,6 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 				SubjectiveScore: 0,
 				TotalScore:      0,
 				HasSubjective:   hasFlag,
-				Updater:         updaterTask,
 				UpdateTime:      gtime.Now(),
 			})
 			if err != nil {
@@ -465,7 +457,6 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 			SubjectiveScore: 0,
 			TotalScore:      objScore,
 			HasSubjective:   hasFlag,
-			Updater:         updaterTask,
 			UpdateTime:      gtime.Now(),
 		})
 		if err != nil {
@@ -478,7 +469,7 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 	})
 }
 
-func syncAttemptDraftsToDBTx(ctx context.Context, tx gdb.TX, attemptID int64, updater string) error {
+func syncAttemptDraftsToDBTx(ctx context.Context, tx gdb.TX, attemptID int64) error {
 	draftMap, err := RedisHGetAllAttemptDrafts(ctx, attemptID)
 	if err != nil {
 		return err
@@ -486,10 +477,7 @@ func syncAttemptDraftsToDBTx(ctx context.Context, tx gdb.TX, attemptID int64, up
 	if len(draftMap) == 0 {
 		return nil
 	}
-	if updater == "" {
-		updater = updaterTask
-	}
-	items := examutil.BuildAttemptAnswerDraftRows(attemptID, draftMap, updater)
+	items := examutil.BuildAttemptAnswerDraftRows(attemptID, draftMap)
 	if len(items) == 0 {
 		return nil
 	}

@@ -159,8 +159,6 @@ func (s *sAttempt) CreateAttemptForBatch(ctx context.Context, userID int64, batc
 			AttemptUniquenessScope: uniqScope,
 			Status:                 int(attemptStateNotStarted),
 			DurationSeconds:        0,
-			Creator:                updaterClient,
-			Updater:                updaterClient,
 			DeleteFlag:             consts.DeleteFlagNotDeleted,
 			CreateTime:             gtime.Now(),
 			UpdateTime:             gtime.Now(),
@@ -289,7 +287,6 @@ func (s *sAttempt) StartAttempt(ctx context.Context, userID int64, attemptID int
 			DurationSeconds: dur,
 			StartedAt:       now,
 			DeadlineAt:      deadline,
-			Updater:         updaterClient,
 			UpdateTime:      gtime.Now(),
 		})
 		if err != nil {
@@ -397,11 +394,11 @@ func (s *sAttempt) SaveAnswers(ctx context.Context, userID int64, attemptID int6
 		return err
 	}
 	if expired {
-		_ = markSubmittedLocked(ctx, attemptID, attemptEventBatchExpired, updaterTask)
+		_ = markSubmittedLocked(ctx, attemptID, attemptEventBatchExpired)
 		return gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
 	}
 	if isAttemptDeadlineReached(att, now) && batchFlags.AutoSubmitOnDeadline {
-		_ = markSubmittedLocked(ctx, attemptID, attemptEventTimeout, updaterClient)
+		_ = markSubmittedLocked(ctx, attemptID, attemptEventTimeout)
 		return gerror.NewCode(consts.CodeExamAlreadySubmitted)
 	}
 	if isAttemptSubmittedOrScored(att.Status) {
@@ -451,7 +448,7 @@ func (s *sAttempt) SubmitAttempt(ctx context.Context, userID int64, attemptID in
 		return err
 	}
 	if expired {
-		_ = markSubmitted(ctx, attemptID, attemptEventBatchExpired, updaterTask)
+		_ = markSubmitted(ctx, attemptID, attemptEventBatchExpired)
 		return gerror.NewCode(consts.CodeExamBatchWindowNotOpen)
 	}
 	if isAttemptScored(att.Status) {
@@ -463,7 +460,7 @@ func (s *sAttempt) SubmitAttempt(ctx context.Context, userID int64, attemptID in
 	if !canSubmitAttempt(att.Status) {
 		return nil
 	}
-	return markSubmitted(ctx, attemptID, attemptEventSubmit, updaterClient)
+	return markSubmitted(ctx, attemptID, attemptEventSubmit)
 }
 
 // RecordCheatEvent 记录会话作弊行为（切屏、录屏等）。
@@ -492,7 +489,6 @@ func (s *sAttempt) RecordCheatEvent(ctx context.Context, in bo.AttemptCheatEvent
 		Detail:      in.Detail,
 		ClientIp:    in.IP,
 		ClientAgent: in.UserAgent,
-		Creator:     updaterClient,
 		CreateTime:  now,
 		DeleteFlag:  consts.DeleteFlagNotDeleted,
 	})
@@ -501,12 +497,12 @@ func (s *sAttempt) RecordCheatEvent(ctx context.Context, in bo.AttemptCheatEvent
 
 // MarkSubmittedIfOverdue 供定时任务：超时未操作会话标记为已交卷（待算分，不校验用户）。算分由 ExamScoreFinalizeHandler 执行。
 func (s *sAttempt) MarkSubmittedIfOverdue(ctx context.Context, attemptID int64) error {
-	return markSubmitted(ctx, attemptID, attemptEventTimeout, updaterTask)
+	return markSubmitted(ctx, attemptID, attemptEventTimeout)
 }
 
 // MarkSubmittedByBatchExpired 供定时任务：批次过期后进行中会话标记为已交卷（待算分，不校验用户）。
 func (s *sAttempt) MarkSubmittedByBatchExpired(ctx context.Context, attemptID int64) error {
-	return markSubmitted(ctx, attemptID, attemptEventBatchExpired, updaterTask)
+	return markSubmitted(ctx, attemptID, attemptEventBatchExpired)
 }
 
 // FinalizeAttempt 对已交卷（待算分）会话计算客观分并置为已结束，写入 exam_result。仅应由 ExamScoreFinalizeHandler（sys_task）调用。

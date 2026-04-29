@@ -12,7 +12,7 @@ import (
 	"exam/internal/dao"
 )
 
-func BuildAttemptAnswerDraftRows(attemptID int64, draftMap map[string]string, updater string) []g.Map {
+func BuildAttemptAnswerDraftRows(attemptID int64, draftMap map[string]string) []g.Map {
 	items := make([]g.Map, 0, len(draftMap))
 	for _, val := range draftMap {
 		itemMap := gconv.Map(val)
@@ -34,9 +34,7 @@ func BuildAttemptAnswerDraftRows(attemptID int64, draftMap map[string]string, up
 			"exam_question_id": qid,
 			"answer_json":      answerJSON,
 			"version":          gconv.Int(itemMap["v"]),
-			"creator":          updater,
 			"create_time":      saveAt,
-			"updater":          updater,
 			"update_time":      saveAt,
 			"delete_flag":      consts.DeleteFlagNotDeleted,
 		})
@@ -54,7 +52,6 @@ func UpsertAttemptAnswerDraftRowsTx(ctx context.Context, tx gdb.TX, items []g.Ma
 		OnDuplicate(gdb.Raw(`
 			answer_json = IF(VALUES(version) >= version, VALUES(answer_json), answer_json),
 			update_time = IF(VALUES(version) >= version, VALUES(update_time), update_time),
-			updater     = IF(VALUES(version) >= version, VALUES(updater), updater),
 			version     = IF(VALUES(version) >= version, VALUES(version), version)
 		`)).Save()
 	return err

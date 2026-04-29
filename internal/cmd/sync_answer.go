@@ -116,7 +116,7 @@ func doDatabaseSync(ctx context.Context, attemptID int64) error {
 	for k, val := range rawMap {
 		draftMap[gconv.String(k)] = gconv.String(val)
 	}
-	items := examutil.BuildAttemptAnswerDraftRows(attemptID, draftMap, "system_async_worker")
+	items := examutil.BuildAttemptAnswerDraftRows(attemptID, draftMap)
 
 	if len(items) == 0 {
 		return nil
