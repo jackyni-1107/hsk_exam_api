@@ -39,7 +39,7 @@ func (c *ControllerV1) ForgetPassword(ctx context.Context, req *v1.ForgetPasswor
 		return &v1.ForgetPasswordRes{}, nil
 	}
 
-	member, err := membersvc.Member().FindByUsername(ctx, email)
+	member, err := membersvc.Member().FindByEmail(ctx, email)
 	if err != nil {
 		return nil, gerror.NewCode(consts.CodeInvalidParams)
 	}
