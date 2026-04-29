@@ -11,18 +11,22 @@ import (
 
 // SysNotificationTemplate is the golang structure of table sys_notification_template for DAO operations like Where/Data.
 type SysNotificationTemplate struct {
-	g.Meta     `orm:"table:sys_notification_template, do:true"`
-	Id         any         // 主键ID
-	Code       any         // 模板编码
-	Name       any         // 模板名称
-	Channel    any         // 渠道：sms/email/template
-	Content    any         // 模板内容，支持变量 {{var}}
-	Variables  any         // 变量列表，逗号分隔
-	Status     any         // 状态：0-启用，1-停用
-	Remark     any         // 备注
-	Creator    any         // 创建者
-	CreateTime *gtime.Time // 创建时间
-	Updater    any         // 更新者
-	UpdateTime *gtime.Time // 更新时间
-	DeleteFlag any         // 逻辑删除
+	g.Meta                   `orm:"table:sys_notification_template, do:true"`
+	Id                       any         // 主键ID
+	Code                     any         // 模板编码
+	Name                     any         // 模板名称
+	Channel                  any         // 渠道：sms/email/template
+	ChannelConfigId          any         // 绑定的通知渠道配置ID（sys_notification_channel_config.id）
+	TemplateType             any         // 模板类型：1=系统模板 2=第三方模板
+	Content                  any         // 模板内容，支持变量 {{var}}
+	ThirdPartyTemplateId     any         // 第三方模板ID
+	ThirdPartyTemplateParams any         // 第三方模板参数(JSON)
+	Variables                any         // 变量列表，逗号分隔
+	Status                   any         // 状态：0-启用，1-停用
+	Remark                   any         // 备注
+	Creator                  any         // 创建者
+	CreateTime               *gtime.Time // 创建时间
+	Updater                  any         // 更新者
+	UpdateTime               *gtime.Time // 更新时间
+	DeleteFlag               any         // 逻辑删除
 }

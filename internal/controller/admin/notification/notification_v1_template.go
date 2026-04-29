@@ -18,7 +18,9 @@ func (c *ControllerV1) TemplateList(ctx context.Context, req *v1.TemplateListReq
 	for _, e := range list {
 		item := &v1.TemplateItem{
 			Id: int64(e.Id), Code: e.Code, Name: e.Name, Channel: e.Channel,
-			Content: e.Content, Variables: e.Variables, Status: e.Status,
+			ChannelConfigId: int64(e.ChannelConfigId), TemplateType: e.TemplateType,
+			Content: e.Content, ThirdPartyTemplateId: e.ThirdPartyTemplateId,
+			ThirdPartyTemplateParams: e.ThirdPartyTemplateParams, Variables: e.Variables, Status: e.Status,
 		}
 		if e.CreateTime != nil {
 			item.CreateTime = utility.ToRFC3339UTC(e.CreateTime)
@@ -33,7 +35,20 @@ func (c *ControllerV1) TemplateCreate(ctx context.Context, req *v1.TemplateCreat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	id, err := notisvc.SysNotification().TemplateCreate(ctx, req.Code, req.Name, req.Channel, req.Content, req.Variables, creator, req.Status)
+	id, err := notisvc.SysNotification().TemplateCreate(
+		ctx,
+		req.Code,
+		req.Name,
+		req.Channel,
+		req.ChannelConfigId,
+		req.TemplateType,
+		req.Content,
+		req.ThirdPartyTemplateId,
+		req.ThirdPartyTemplateParams,
+		req.Variables,
+		creator,
+		req.Status,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +60,20 @@ func (c *ControllerV1) TemplateUpdate(ctx context.Context, req *v1.TemplateUpdat
 	if d := middleware.GetCtxData(ctx); d != nil {
 		updater = d.Username
 	}
-	err = notisvc.SysNotification().TemplateUpdate(ctx, req.Id, req.Name, req.Content, req.Variables, updater, req.Status)
+	err = notisvc.SysNotification().TemplateUpdate(
+		ctx,
+		req.Id,
+		req.Name,
+		req.Channel,
+		req.ChannelConfigId,
+		req.TemplateType,
+		req.Content,
+		req.ThirdPartyTemplateId,
+		req.ThirdPartyTemplateParams,
+		req.Variables,
+		updater,
+		req.Status,
+	)
 	if err != nil {
 		return nil, err
 	}

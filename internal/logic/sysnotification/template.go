@@ -2,6 +2,8 @@ package sysnotification
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 
 	"exam/internal/consts"
 	"exam/internal/dao"
@@ -39,7 +41,7 @@ func (s *sSysNotification) TemplateList(ctx context.Context, page, size int, cod
 	return list, total, nil
 }
 
-func (s *sSysNotification) TemplateCreate(ctx context.Context, code, name, channel, content, variables, creator string, status int) (int64, error) {
+func (s *sSysNotification) TemplateCreate(ctx context.Context, code, name, channel string, channelConfigId int64, templateType int, content, thirdPartyTemplateId, thirdPartyTemplateParams, variables, creator string, status int) (int64, error) {
 	cnt, err := dao.SysNotificationTemplate.Ctx(ctx).
 		Where("code", code).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
@@ -50,15 +52,27 @@ func (s *sSysNotification) TemplateCreate(ctx context.Context, code, name, chann
 	if cnt > 0 {
 		return 0, gerror.NewCode(consts.CodeTemplateExists)
 	}
+	channel, err = s.validateTemplateInput(ctx, channel, channelConfigId, templateType, content, thirdPartyTemplateId, thirdPartyTemplateParams)
+	if err != nil {
+		return 0, err
+	}
+	if templateType == 1 {
+		thirdPartyTemplateId = ""
+		thirdPartyTemplateParams = ""
+	}
 	r, err := dao.SysNotificationTemplate.Ctx(ctx).Insert(sysdo.SysNotificationTemplate{
-		Code:       code,
-		Name:       name,
-		Channel:    channel,
-		Content:    content,
-		Variables:  variables,
-		Creator:    creator,
-		Status:     status,
-		DeleteFlag: consts.DeleteFlagNotDeleted,
+		Code:                     code,
+		Name:                     name,
+		Channel:                  channel,
+		ChannelConfigId:          channelConfigId,
+		TemplateType:             templateType,
+		Content:                  content,
+		ThirdPartyTemplateId:     thirdPartyTemplateId,
+		ThirdPartyTemplateParams: thirdPartyTemplateParams,
+		Variables:                variables,
+		Creator:                  creator,
+		Status:                   status,
+		DeleteFlag:               consts.DeleteFlagNotDeleted,
 	})
 	if err != nil {
 		return 0, gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -71,7 +85,7 @@ func (s *sSysNotification) TemplateCreate(ctx context.Context, code, name, chann
 	return id, nil
 }
 
-func (s *sSysNotification) TemplateUpdate(ctx context.Context, id int64, name, content, variables, updater string, status int) error {
+func (s *sSysNotification) TemplateUpdate(ctx context.Context, id int64, name, channel string, channelConfigId int64, templateType int, content, thirdPartyTemplateId, thirdPartyTemplateParams, variables, updater string, status int) error {
 	var before sysentity.SysNotificationTemplate
 	if err := dao.SysNotificationTemplate.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Scan(&before); err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
@@ -79,9 +93,46 @@ func (s *sSysNotification) TemplateUpdate(ctx context.Context, id int64, name, c
 	if before.Id == 0 {
 		return gerror.NewCode(consts.CodeTemplateNotFound)
 	}
+	inputChannel := channel
+	if inputChannel == "" {
+		inputChannel = before.Channel
+	}
+	inputChannelConfigId := channelConfigId
+	if inputChannelConfigId == 0 {
+		inputChannelConfigId = int64(before.ChannelConfigId)
+	}
+	inputTemplateType := templateType
+	if inputTemplateType == 0 {
+		inputTemplateType = before.TemplateType
+	}
+	inputContent := content
+	if inputContent == "" {
+		inputContent = before.Content
+	}
+	inputThirdPartyTemplateId := thirdPartyTemplateId
+	if inputThirdPartyTemplateId == "" {
+		inputThirdPartyTemplateId = before.ThirdPartyTemplateId
+	}
+	inputThirdPartyTemplateParams := thirdPartyTemplateParams
+	if inputThirdPartyTemplateParams == "" {
+		inputThirdPartyTemplateParams = before.ThirdPartyTemplateParams
+	}
+	if inputTemplateType == 1 {
+		inputThirdPartyTemplateId = ""
+		inputThirdPartyTemplateParams = ""
+	}
+	validatedChannel, err := s.validateTemplateInput(ctx, inputChannel, inputChannelConfigId, inputTemplateType, inputContent, inputThirdPartyTemplateId, inputThirdPartyTemplateParams)
+	if err != nil {
+		return err
+	}
 	data := map[string]interface{}{
-		"updater": updater,
-		"status":  status,
+		"updater":                     updater,
+		"status":                      status,
+		"channel":                     validatedChannel,
+		"channel_config_id":           inputChannelConfigId,
+		"template_type":               inputTemplateType,
+		"third_party_template_id":     inputThirdPartyTemplateId,
+		"third_party_template_params": inputThirdPartyTemplateParams,
 	}
 	if name != "" {
 		data["name"] = name
@@ -90,7 +141,7 @@ func (s *sSysNotification) TemplateUpdate(ctx context.Context, id int64, name, c
 		data["content"] = content
 	}
 	data["variables"] = variables
-	_, err := dao.SysNotificationTemplate.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Data(data).Update()
+	_, err = dao.SysNotificationTemplate.Ctx(ctx).Where("id", id).Where("delete_flag", consts.DeleteFlagNotDeleted).Data(data).Update()
 	if err != nil {
 		return gerror.WrapCode(consts.CodeInvalidParams, err, "")
 	}
@@ -99,6 +150,46 @@ func (s *sSysNotification) TemplateUpdate(ctx context.Context, id int64, name, c
 		auditutil.RecordEntityDiff(ctx, dao.SysNotificationTemplate.Table(), id, &before, &after)
 	}
 	return nil
+}
+
+func (s *sSysNotification) validateTemplateInput(ctx context.Context, channel string, channelConfigId int64, templateType int, content, thirdPartyTemplateId, thirdPartyTemplateParams string) (string, error) {
+	if channelConfigId <= 0 {
+		return "", gerror.NewCode(consts.CodeInvalidParams)
+	}
+	var config sysentity.SysNotificationChannelConfig
+	if err := dao.SysNotificationChannelConfig.Ctx(ctx).
+		Where("id", channelConfigId).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&config); err != nil {
+		return "", gerror.WrapCode(consts.CodeInvalidParams, err, "")
+	}
+	if config.Id == 0 {
+		return "", gerror.NewCode(consts.CodeInvalidParams)
+	}
+	resolvedChannel := config.Channel
+	if channel != "" && channel != resolvedChannel {
+		return "", gerror.NewCode(consts.CodeInvalidParams)
+	}
+	if templateType == 1 {
+		if strings.TrimSpace(content) == "" {
+			return "", gerror.NewCode(consts.CodeInvalidParams)
+		}
+		return resolvedChannel, nil
+	}
+	if templateType == 2 {
+		if strings.TrimSpace(thirdPartyTemplateId) == "" {
+			return "", gerror.NewCode(consts.CodeInvalidParams)
+		}
+		params := strings.TrimSpace(thirdPartyTemplateParams)
+		if params != "" {
+			var payload map[string]interface{}
+			if err := json.Unmarshal([]byte(params), &payload); err != nil {
+				return "", gerror.WrapCode(consts.CodeInvalidParams, err, "")
+			}
+		}
+		return resolvedChannel, nil
+	}
+	return "", gerror.NewCode(consts.CodeInvalidParams)
 }
 
 func (s *sSysNotification) TemplateDelete(ctx context.Context, id int64, updater string) error {

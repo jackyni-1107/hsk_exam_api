@@ -21,36 +21,44 @@ type SysNotificationTemplateDao struct {
 
 // SysNotificationTemplateColumns defines and stores column names for the table sys_notification_template.
 type SysNotificationTemplateColumns struct {
-	Id         string // 主键ID
-	Code       string // 模板编码
-	Name       string // 模板名称
-	Channel    string // 渠道：sms/email/template
-	Content    string // 模板内容，支持变量 {{var}}
-	Variables  string // 变量列表，逗号分隔
-	Status     string // 状态：0-启用，1-停用
-	Remark     string // 备注
-	Creator    string // 创建者
-	CreateTime string // 创建时间
-	Updater    string // 更新者
-	UpdateTime string // 更新时间
-	DeleteFlag string // 逻辑删除
+	Id                       string // 主键ID
+	Code                     string // 模板编码
+	Name                     string // 模板名称
+	Channel                  string // 渠道：sms/email/template
+	ChannelConfigId          string // 绑定的通知渠道配置ID（sys_notification_channel_config.id）
+	TemplateType             string // 模板类型：1=系统模板 2=第三方模板
+	Content                  string // 模板内容，支持变量 {{var}}
+	ThirdPartyTemplateId     string // 第三方模板ID
+	ThirdPartyTemplateParams string // 第三方模板参数(JSON)
+	Variables                string // 变量列表，逗号分隔
+	Status                   string // 状态：0-启用，1-停用
+	Remark                   string // 备注
+	Creator                  string // 创建者
+	CreateTime               string // 创建时间
+	Updater                  string // 更新者
+	UpdateTime               string // 更新时间
+	DeleteFlag               string // 逻辑删除
 }
 
 // sysNotificationTemplateColumns holds the columns for the table sys_notification_template.
 var sysNotificationTemplateColumns = SysNotificationTemplateColumns{
-	Id:         "id",
-	Code:       "code",
-	Name:       "name",
-	Channel:    "channel",
-	Content:    "content",
-	Variables:  "variables",
-	Status:     "status",
-	Remark:     "remark",
-	Creator:    "creator",
-	CreateTime: "create_time",
-	Updater:    "updater",
-	UpdateTime: "update_time",
-	DeleteFlag: "delete_flag",
+	Id:                       "id",
+	Code:                     "code",
+	Name:                     "name",
+	Channel:                  "channel",
+	ChannelConfigId:          "channel_config_id",
+	TemplateType:             "template_type",
+	Content:                  "content",
+	ThirdPartyTemplateId:     "third_party_template_id",
+	ThirdPartyTemplateParams: "third_party_template_params",
+	Variables:                "variables",
+	Status:                   "status",
+	Remark:                   "remark",
+	Creator:                  "creator",
+	CreateTime:               "create_time",
+	Updater:                  "updater",
+	UpdateTime:               "update_time",
+	DeleteFlag:               "delete_flag",
 }
 
 // NewSysNotificationTemplateDao creates and returns a new DAO object for table data access.

@@ -93,24 +93,32 @@ type TemplateListRes struct {
 }
 
 type TemplateItem struct {
-	Id         int64  `json:"id" dc:"模板ID"`
-	Code       string `json:"code" dc:"模板编码"`
-	Name       string `json:"name" dc:"模板名称"`
-	Channel    string `json:"channel" dc:"渠道"`
-	Content    string `json:"content" dc:"模板内容"`
-	Variables  string `json:"variables" dc:"变量(JSON)"`
-	Status     int    `json:"status" dc:"状态：0启用 1停用"`
-	CreateTime string `json:"create_time" dc:"创建时间"`
+	Id                       int64  `json:"id" dc:"模板ID"`
+	Code                     string `json:"code" dc:"模板编码"`
+	Name                     string `json:"name" dc:"模板名称"`
+	Channel                  string `json:"channel" dc:"渠道"`
+	ChannelConfigId          int64  `json:"channel_config_id" dc:"通知渠道配置ID"`
+	TemplateType             int    `json:"template_type" dc:"模板类型：1-系统模板 2-第三方模板"`
+	Content                  string `json:"content" dc:"模板内容"`
+	ThirdPartyTemplateId     string `json:"third_party_template_id" dc:"第三方模板ID"`
+	ThirdPartyTemplateParams string `json:"third_party_template_params" dc:"第三方模板参数(JSON)"`
+	Variables                string `json:"variables" dc:"变量(JSON)"`
+	Status                   int    `json:"status" dc:"状态：0启用 1停用"`
+	CreateTime               string `json:"create_time" dc:"创建时间"`
 }
 
 type TemplateCreateReq struct {
-	g.Meta    `path:"/notification/template" method:"post" tags:"通知" summary:"新增模板" permission:"notification:template_create"`
-	Code      string `json:"code" v:"required#err.invalid_params" dc:"模板编码"`
-	Name      string `json:"name" v:"required#err.invalid_params" dc:"模板名称"`
-	Channel   string `json:"channel" v:"required#err.invalid_params" dc:"渠道"`
-	Content   string `json:"content" v:"required#err.invalid_params" dc:"模板内容"`
-	Variables string `json:"variables" dc:"变量(JSON)"`
-	Status    int    `json:"status" dc:"状态：0启用 1停用"`
+	g.Meta                   `path:"/notification/template" method:"post" tags:"通知" summary:"新增模板" permission:"notification:template_create"`
+	Code                     string `json:"code" v:"required#err.invalid_params" dc:"模板编码"`
+	Name                     string `json:"name" v:"required#err.invalid_params" dc:"模板名称"`
+	Channel                  string `json:"channel" v:"required#err.invalid_params" dc:"渠道"`
+	ChannelConfigId          int64  `json:"channel_config_id" v:"required#err.invalid_params" dc:"通知渠道配置ID"`
+	TemplateType             int    `json:"template_type" v:"required#err.invalid_params" dc:"模板类型：1-系统模板 2-第三方模板"`
+	Content                  string `json:"content" dc:"模板内容"`
+	ThirdPartyTemplateId     string `json:"third_party_template_id" dc:"第三方模板ID"`
+	ThirdPartyTemplateParams string `json:"third_party_template_params" dc:"第三方模板参数(JSON)"`
+	Variables                string `json:"variables" dc:"变量(JSON)"`
+	Status                   int    `json:"status" dc:"状态：0启用 1停用"`
 }
 
 type TemplateCreateRes struct {
@@ -118,12 +126,17 @@ type TemplateCreateRes struct {
 }
 
 type TemplateUpdateReq struct {
-	g.Meta    `path:"/notification/template/{id}" method:"put" tags:"通知" summary:"更新模板" permission:"notification:template_update"`
-	Id        int64  `json:"id" in:"path" v:"required#err.invalid_params" dc:"模板ID"`
-	Name      string `json:"name" dc:"模板名称"`
-	Content   string `json:"content" dc:"模板内容"`
-	Variables string `json:"variables" dc:"变量(JSON)"`
-	Status    int    `json:"status" dc:"状态：0启用 1停用"`
+	g.Meta                   `path:"/notification/template/{id}" method:"put" tags:"通知" summary:"更新模板" permission:"notification:template_update"`
+	Id                       int64  `json:"id" in:"path" v:"required#err.invalid_params" dc:"模板ID"`
+	Name                     string `json:"name" dc:"模板名称"`
+	Channel                  string `json:"channel" dc:"渠道"`
+	ChannelConfigId          int64  `json:"channel_config_id" dc:"通知渠道配置ID"`
+	TemplateType             int    `json:"template_type" dc:"模板类型：1-系统模板 2-第三方模板"`
+	Content                  string `json:"content" dc:"模板内容"`
+	ThirdPartyTemplateId     string `json:"third_party_template_id" dc:"第三方模板ID"`
+	ThirdPartyTemplateParams string `json:"third_party_template_params" dc:"第三方模板参数(JSON)"`
+	Variables                string `json:"variables" dc:"变量(JSON)"`
+	Status                   int    `json:"status" dc:"状态：0启用 1停用"`
 }
 
 type TemplateUpdateRes struct{}

@@ -20,8 +20,8 @@ type (
 		LogList(ctx context.Context, page int, size int, channel string, recipient string) ([]sysentity.SysNotificationLog, int, error)
 		Send(ctx context.Context, templateCode string, channel string, recipient string, variables string) (bool, error)
 		TemplateList(ctx context.Context, page int, size int, code string, channel string) ([]sysentity.SysNotificationTemplate, int, error)
-		TemplateCreate(ctx context.Context, code string, name string, channel string, content string, variables string, creator string, status int) (int64, error)
-		TemplateUpdate(ctx context.Context, id int64, name string, content string, variables string, updater string, status int) error
+		TemplateCreate(ctx context.Context, code string, name string, channel string, channelConfigId int64, templateType int, content string, thirdPartyTemplateId string, thirdPartyTemplateParams string, variables string, creator string, status int) (int64, error)
+		TemplateUpdate(ctx context.Context, id int64, name string, channel string, channelConfigId int64, templateType int, content string, thirdPartyTemplateId string, thirdPartyTemplateParams string, variables string, updater string, status int) error
 		TemplateDelete(ctx context.Context, id int64, updater string) error
 	}
 )
