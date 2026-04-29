@@ -37,8 +37,11 @@ func (s *sSecurity) Login(ctx context.Context, input bo.LoginInput) (*bo.LoginRe
 
 	loginName := s.NormalizeLoginName(input.Username)
 	if s.ShouldRequireCaptcha(ctx, input.UserType, loginName) {
-		if input.CaptchaId == "" || !s.VerifyCaptcha(ctx, input.CaptchaId, input.CaptchaAnswer) {
+		if input.CaptchaId == "" || input.CaptchaAnswer == "" {
 			return nil, gerror.NewCode(consts.CodeCaptchaRequired)
+		}
+		if !s.VerifyCaptcha(ctx, input.CaptchaId, input.CaptchaAnswer) {
+			return nil, gerror.NewCode(consts.CodeCaptchaInvalid)
 		}
 	}
 	if s.IsAccountLocked(ctx, input.UserType, loginName) {
