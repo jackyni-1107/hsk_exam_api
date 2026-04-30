@@ -428,6 +428,7 @@ import {
   formatUtcForDisplay,
   getDisplayTimeZone,
   isoOrRfcToWallClockForPicker,
+  wallClockStringToRFC3339Local,
   wallClockStringToRFC3339UTC,
 } from "@/utils/datetime";
 
@@ -636,8 +637,8 @@ async function submitForm() {
     let exam_start_at: string;
     let exam_end_at: string;
     try {
-      exam_start_at = wallClockStringToRFC3339UTC(start);
-      exam_end_at = wallClockStringToRFC3339UTC(end);
+      exam_start_at = wallClockStringToRFC3339Local(start);
+      exam_end_at = wallClockStringToRFC3339Local(end);
     } catch (e) {
       ElMessage.error(e instanceof Error ? e.message : "时间转换失败");
       return;
