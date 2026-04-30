@@ -37,6 +37,7 @@ type ExamAttemptColumns struct {
 	ObjectiveScore         string // 客观题得分
 	SubjectiveScore        string // 主观题得分（未批阅时为空）
 	TotalScore             string // 总分（无主观或主观未批时可能为客观分）
+	SegmentScoreJson       string // 按 segment_code 的整数分数字典 JSON
 	HasSubjective          string // 本卷是否含主观题（交卷快照）
 	Creator                string // 创建者
 	CreateTime             string // 创建时间
@@ -63,6 +64,7 @@ var examAttemptColumns = ExamAttemptColumns{
 	ObjectiveScore:         "objective_score",
 	SubjectiveScore:        "subjective_score",
 	TotalScore:             "total_score",
+	SegmentScoreJson:       "segment_score_json",
 	HasSubjective:          "has_subjective",
 	Creator:                "creator",
 	CreateTime:             "create_time",

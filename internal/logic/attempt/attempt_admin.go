@@ -345,12 +345,25 @@ func (s *sAttempt) AttemptAdminSaveSubjectiveScores(ctx context.Context, attempt
 		if err != nil {
 			return err
 		}
-		obj := attTx.ObjectiveScore
-		tot := obj + sum
+		meta, err := loadQuestionScoreMetaTx(ctx, tx, paperID)
+		if err != nil {
+			return err
+		}
+		answers, err := loadAnswersMapTx(ctx, tx, attemptID)
+		if err != nil {
+			return err
+		}
+		awardedByQ, err := loadAwardedScoresMapTx(ctx, tx, attemptID)
+		if err != nil {
+			return err
+		}
+		segmentScores, totalScoreInt, _ := examutil.ScoreBySegment(meta, answers, awardedByQ)
+		tot := float64(totalScoreInt)
 		if _, err := tx.Model(dao.ExamAttempt.Table()).Ctx(ctx).Where("id", attemptID).Update(examdo.ExamAttempt{
-			SubjectiveScore: sum,
-			TotalScore:      tot,
-			UpdateTime:      gtime.Now(),
+			SubjectiveScore:  sum,
+			TotalScore:       tot,
+			SegmentScoreJson: marshalSegmentScores(segmentScores),
+			UpdateTime:       gtime.Now(),
 		}); err != nil {
 			return err
 		}

@@ -2,6 +2,7 @@ package attempt
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -427,12 +428,13 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 
 		if skipScoring {
 			applied, err := applyAttemptTransitionTx(ctx, tx, att, attemptEventFinalize, examdo.ExamAttempt{
-				EndedAt:         now,
-				ObjectiveScore:  0,
-				SubjectiveScore: 0,
-				TotalScore:      0,
-				HasSubjective:   hasFlag,
-				UpdateTime:      gtime.Now(),
+				EndedAt:          now,
+				ObjectiveScore:   0,
+				SubjectiveScore:  0,
+				TotalScore:       0,
+				SegmentScoreJson: "{}",
+				HasSubjective:    hasFlag,
+				UpdateTime:       gtime.Now(),
 			})
 			if err != nil {
 				return err
@@ -447,17 +449,24 @@ func finalizeScoring(ctx context.Context, attemptID int64) error {
 		if err != nil {
 			return err
 		}
-		objScore, hasSubj := examutil.ScoreObjective(meta, answers)
+		awardedByQ, err := loadAwardedScoresMapTx(ctx, tx, attemptID)
+		if err != nil {
+			return err
+		}
+		segmentScores, totalScore, hasSubj := examutil.ScoreBySegment(meta, answers, awardedByQ)
+		segmentScoreJSON := marshalSegmentScores(segmentScores)
+		objScore := float64(totalScore)
 		if hasSubj {
 			hasFlag = 1
 		}
 		applied, err := applyAttemptTransitionTx(ctx, tx, att, attemptEventFinalize, examdo.ExamAttempt{
-			EndedAt:         now,
-			ObjectiveScore:  objScore,
-			SubjectiveScore: 0,
-			TotalScore:      objScore,
-			HasSubjective:   hasFlag,
-			UpdateTime:      gtime.Now(),
+			EndedAt:          now,
+			ObjectiveScore:   objScore,
+			SubjectiveScore:  0,
+			TotalScore:       objScore,
+			SegmentScoreJson: segmentScoreJSON,
+			HasSubjective:    hasFlag,
+			UpdateTime:       gtime.Now(),
 		})
 		if err != nil {
 			return err
@@ -495,6 +504,19 @@ func loadQuestionScoreMetaTx(ctx context.Context, tx gdb.TX, paperID int64) ([]b
 	if len(qs) == 0 {
 		return nil, nil
 	}
+	blockIDs := make([]interface{}, 0, len(qs))
+	seenBlock := make(map[int64]struct{}, len(qs))
+	for _, q := range qs {
+		if _, ok := seenBlock[q.BlockId]; ok {
+			continue
+		}
+		seenBlock[q.BlockId] = struct{}{}
+		blockIDs = append(blockIDs, q.BlockId)
+	}
+	segmentByBlock, err := loadSegmentCodeByBlockTx(ctx, tx, blockIDs)
+	if err != nil {
+		return nil, err
+	}
 	qIDs := make([]interface{}, len(qs))
 	for i, q := range qs {
 		qIDs[i] = q.Id
@@ -516,11 +538,61 @@ func loadQuestionScoreMetaTx(ctx context.Context, tx gdb.TX, paperID int64) ([]b
 	for _, q := range qs {
 		out = append(out, bo.QuestionScoreMeta{
 			QuestionID:    q.Id,
+			SegmentCode:   segmentByBlock[q.BlockId],
 			IsExample:     q.IsExample,
 			IsSubjective:  q.IsSubjective,
 			Score:         q.Score,
 			CorrectOptIDs: correctByQ[q.Id],
 		})
+	}
+	return out, nil
+}
+
+func loadSegmentCodeByBlockTx(ctx context.Context, tx gdb.TX, blockIDs []interface{}) (map[int64]string, error) {
+	out := make(map[int64]string)
+	if len(blockIDs) == 0 {
+		return out, nil
+	}
+	var blocks []struct {
+		Id        int64 `orm:"id"`
+		SectionId int64 `orm:"section_id"`
+	}
+	if err := tx.Model(dao.ExamQuestionBlock.Table()).Ctx(ctx).
+		Fields("id", "section_id").
+		WhereIn("id", blockIDs).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&blocks); err != nil {
+		return nil, err
+	}
+	if len(blocks) == 0 {
+		return out, nil
+	}
+	sectionIDs := make([]interface{}, 0, len(blocks))
+	seenSection := make(map[int64]struct{}, len(blocks))
+	for _, b := range blocks {
+		if _, ok := seenSection[b.SectionId]; ok {
+			continue
+		}
+		seenSection[b.SectionId] = struct{}{}
+		sectionIDs = append(sectionIDs, b.SectionId)
+	}
+	segmentBySection := make(map[int64]string, len(sectionIDs))
+	var sections []struct {
+		Id          int64  `orm:"id"`
+		SegmentCode string `orm:"segment_code"`
+	}
+	if err := tx.Model(dao.ExamSection.Table()).Ctx(ctx).
+		Fields("id", "segment_code").
+		WhereIn("id", sectionIDs).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&sections); err != nil {
+		return nil, err
+	}
+	for _, sec := range sections {
+		segmentBySection[sec.Id] = sec.SegmentCode
+	}
+	for _, b := range blocks {
+		out[b.Id] = segmentBySection[b.SectionId]
 	}
 	return out, nil
 }
@@ -542,4 +614,37 @@ func loadAnswersMapTx(ctx context.Context, tx gdb.TX, attemptID int64) (map[int6
 		m[r.ExamQuestionId] = examutil.ParseAnswerPayload(r.AnswerJson)
 	}
 	return m, nil
+}
+
+func loadAwardedScoresMapTx(ctx context.Context, tx gdb.TX, attemptID int64) (map[int64]float64, error) {
+	out := make(map[int64]float64)
+	var rows []struct {
+		ExamQuestionId int64    `orm:"exam_question_id"`
+		AwardedScore   *float64 `orm:"awarded_score"`
+	}
+	if err := tx.Model(dao.ExamAttemptAnswer.Table()).Ctx(ctx).
+		Fields("exam_question_id", "awarded_score").
+		Where("attempt_id", attemptID).
+		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		Scan(&rows); err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		if r.AwardedScore == nil {
+			continue
+		}
+		out[r.ExamQuestionId] = *r.AwardedScore
+	}
+	return out, nil
+}
+
+func marshalSegmentScores(segmentScores map[string]int) string {
+	if len(segmentScores) == 0 {
+		return "{}"
+	}
+	b, err := json.Marshal(segmentScores)
+	if err != nil {
+		return "{}"
+	}
+	return string(b)
 }

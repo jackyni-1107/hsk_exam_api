@@ -26,6 +26,7 @@ type ExamAttempt struct {
 	ObjectiveScore         float64     `json:"objective_score"           orm:"objective_score"           description:"客观题得分"`                                           // 客观题得分
 	SubjectiveScore        float64     `json:"subjective_score"          orm:"subjective_score"          description:"主观题得分（未批阅时为空）"`                                   // 主观题得分（未批阅时为空）
 	TotalScore             float64     `json:"total_score"               orm:"total_score"               description:"总分（无主观或主观未批时可能为客观分）"`                             // 总分（无主观或主观未批时可能为客观分）
+	SegmentScoreJson       string      `json:"segment_score_json"        orm:"segment_score_json"        description:"按 segment_code 的整数分数字典 JSON"`                     // 按 segment_code 的整数分数字典 JSON
 	HasSubjective          int         `json:"has_subjective"            orm:"has_subjective"            description:"本卷是否含主观题（交卷快照）"`                                  // 本卷是否含主观题（交卷快照）
 	Creator                string      `json:"creator"                   orm:"creator"                   description:"创建者"`                                             // 创建者
 	CreateTime             *gtime.Time `json:"create_time"               orm:"create_time"               description:"创建时间"`                                            // 创建时间

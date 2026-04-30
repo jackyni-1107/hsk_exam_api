@@ -20,6 +20,7 @@ type ExamResult struct {
 	ObjectiveScore         float64     `json:"objective_score"           orm:"objective_score"           description:""`                                 //
 	SubjectiveScore        float64     `json:"subjective_score"          orm:"subjective_score"          description:""`                                 //
 	TotalScore             float64     `json:"total_score"               orm:"total_score"               description:""`                                 //
+	SegmentScoreJson       string      `json:"segment_score_json"        orm:"segment_score_json"        description:"按 segment_code 的整数分数字典 JSON"`      // 按 segment_code 的整数分数字典 JSON
 	HasSubjective          int         `json:"has_subjective"            orm:"has_subjective"            description:""`                                 //
 	StartedAt              *gtime.Time `json:"started_at"                orm:"started_at"                description:""`                                 //
 	SubmittedAt            *gtime.Time `json:"submitted_at"              orm:"submitted_at"              description:""`                                 //

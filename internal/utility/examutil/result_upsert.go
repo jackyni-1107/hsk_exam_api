@@ -68,6 +68,7 @@ func UpsertFromAttemptTx(ctx context.Context, tx gdb.TX, attemptID int64) error 
 		ObjectiveScore:         att.ObjectiveScore,
 		SubjectiveScore:        att.SubjectiveScore,
 		TotalScore:             att.TotalScore,
+		SegmentScoreJson:       att.SegmentScoreJson,
 		HasSubjective:          att.HasSubjective,
 		StartedAt:              att.StartedAt,
 		SubmittedAt:            att.SubmittedAt,

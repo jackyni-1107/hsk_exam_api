@@ -28,6 +28,7 @@ type ExamAttempt struct {
 	ObjectiveScore         any         // 客观题得分
 	SubjectiveScore        any         // 主观题得分（未批阅时为空）
 	TotalScore             any         // 总分（无主观或主观未批时可能为客观分）
+	SegmentScoreJson       any         // 按 segment_code 的整数分数字典 JSON
 	HasSubjective          any         // 本卷是否含主观题（交卷快照）
 	Creator                any         // 创建者
 	CreateTime             *gtime.Time // 创建时间

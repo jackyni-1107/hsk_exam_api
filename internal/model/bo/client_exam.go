@@ -28,6 +28,7 @@ type AnswerPayload struct {
 // QuestionScoreMeta 阅卷用题目元数据。
 type QuestionScoreMeta struct {
 	QuestionID    int64
+	SegmentCode   string
 	IsExample     int
 	IsSubjective  int
 	Score         float64

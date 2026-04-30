@@ -31,6 +31,7 @@ type ExamResultColumns struct {
 	ObjectiveScore         string //
 	SubjectiveScore        string //
 	TotalScore             string //
+	SegmentScoreJson       string // 按 segment_code 的整数分数字典 JSON
 	HasSubjective          string //
 	StartedAt              string //
 	SubmittedAt            string //
@@ -52,6 +53,7 @@ var examResultColumns = ExamResultColumns{
 	ObjectiveScore:         "objective_score",
 	SubjectiveScore:        "subjective_score",
 	TotalScore:             "total_score",
+	SegmentScoreJson:       "segment_score_json",
 	HasSubjective:          "has_subjective",
 	StartedAt:              "started_at",
 	SubmittedAt:            "submitted_at",

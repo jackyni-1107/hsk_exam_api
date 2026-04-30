@@ -22,6 +22,7 @@ type ExamResult struct {
 	ObjectiveScore         any         //
 	SubjectiveScore        any         //
 	TotalScore             any         //
+	SegmentScoreJson       any         // 按 segment_code 的整数分数字典 JSON
 	HasSubjective          any         //
 	StartedAt              *gtime.Time //
 	SubmittedAt            *gtime.Time //

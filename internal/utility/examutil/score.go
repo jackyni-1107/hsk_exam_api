@@ -1,6 +1,7 @@
 package examutil
 
 import (
+	"math"
 	"sort"
 
 	"exam/internal/model/bo"
@@ -32,6 +33,38 @@ func ScoreObjective(questions []bo.QuestionScoreMeta, answers map[int64]bo.Answe
 		}
 	}
 	return objective, paperHasSubjective
+}
+
+// ScoreBySegment 按 segment_code 统计客观+主观分，分段分与总分均四舍五入为整数。
+func ScoreBySegment(questions []bo.QuestionScoreMeta, answers map[int64]bo.AnswerPayload, awardedByQuestion map[int64]float64) (segmentScores map[string]int, totalScore int, paperHasSubjective bool) {
+	paperHasSubjective = PaperHasSubjectiveNonExample(questions)
+	rawBySegment := make(map[string]float64)
+	for _, q := range questions {
+		if q.IsExample != 0 {
+			continue
+		}
+		seg := q.SegmentCode
+		if seg == "" {
+			seg = "unknown"
+		}
+		if q.IsSubjective != 0 {
+			if awarded, ok := awardedByQuestion[q.QuestionID]; ok {
+				rawBySegment[seg] += awarded
+			}
+			continue
+		}
+		ans := answers[q.QuestionID]
+		if ObjectiveAnswerCorrect(q.CorrectOptIDs, ans.OptionID) {
+			rawBySegment[seg] += q.Score
+		}
+	}
+	segmentScores = make(map[string]int, len(rawBySegment))
+	for seg, raw := range rawBySegment {
+		rounded := int(math.Round(raw))
+		segmentScores[seg] = rounded
+		totalScore += rounded
+	}
+	return segmentScores, totalScore, paperHasSubjective
 }
 
 // ObjectiveAnswerCorrect 单选客观题是否选对：正确选项集合唯一且与用户选项一致。
