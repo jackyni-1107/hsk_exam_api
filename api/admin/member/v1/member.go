@@ -62,11 +62,15 @@ type MemberDeleteReq struct {
 type MemberDeleteRes struct{}
 
 type MemberImportReq struct {
-	g.Meta    `path:"/member/import" method:"post" tags:"会员" summary:"批量导入客户(CSV)" permission:"member:import"`
-	Country   string            `json:"country" form:"country" dc:"自动生成用户名：国家标识，如 TH"`
-	Year      string            `json:"year" form:"year" dc:"自动生成用户名：年份，如 2026"`
-	SeqDigits int               `json:"seq_digits" form:"seq_digits" dc:"自动生成用户名：序号位数（≥1）"`
-	File      *ghttp.UploadFile `json:"file" type:"file" dc:"CSV 文件（表单字段名 file）"`
+	g.Meta              `path:"/member/import" method:"post" tags:"会员" summary:"批量导入客户(CSV)" permission:"member:import"`
+	Country             string            `json:"country" form:"country" dc:"自动生成用户名：国家标识，如 TH"`
+	Year                string            `json:"year" form:"year" dc:"自动生成用户名：年份，如 2026"`
+	SeqDigits           int               `json:"seq_digits" form:"seq_digits" dc:"自动生成用户名：序号位数（≥1）"`
+	UseRandomPassword   bool              `json:"use_random_password" form:"use_random_password" dc:"密码为空时是否使用随机密码（false=邮箱规则）"`
+	EmailPickPositions  string            `json:"email_pick_positions" form:"email_pick_positions" dc:"固定规则取邮箱位次（1-based），如 1,3,5"`
+	FixedPasswordSuffix string            `json:"fixed_password_suffix" form:"fixed_password_suffix" dc:"固定规则后缀，默认 hskmock"`
+	SendPasswordNotice  bool              `json:"send_password_notice" form:"send_password_notice" dc:"导入成功后是否发送账号密码通知邮件（模板 forget_password）"`
+	File                *ghttp.UploadFile `json:"file" type:"file" dc:"CSV 文件（表单字段名 file）"`
 }
 
 type MemberImportRes struct {

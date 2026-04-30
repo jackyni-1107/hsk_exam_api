@@ -131,9 +131,8 @@
       <el-alert type="info" :closable="false" show-icon class="import-alert">
         <template #title>说明</template>
         <div class="import-alert-body">
-          请先下载模板，按列填写 CSV（UTF-8）。<strong>昵称、邮箱</strong>为必填；<strong>密码</strong>可留空，留空时由系统按「邮箱第
-          1、3、5 位 + @hskmock」生成（须满足系统口令策略，否则请在本行填写密码）；单次最多 2000
-          条有效行。下方为<strong>自动生成用户名</strong>规则，与 CSV 列无关；同一规则下多次导入会从已有最大序号后继续编号。
+          请先下载模板，按列填写 CSV（UTF-8）。<strong>昵称、邮箱</strong>为必填；<strong>密码</strong>可留空，留空时按下方“密码策略”生成。
+          单次最多 2000 条有效行。下方“用户名生成规则”与 CSV 列无关；同一规则下多次导入会从已有最大序号后继续编号。
         </div>
       </el-alert>
 
@@ -174,6 +173,38 @@
           <code class="import-preview-code">{{ importUsernamePreview }}</code>
           <span class="import-preview-hint">（格式：国家 + 年份 + 「-」+ 固定位序号）</span>
         </div>
+      </el-form>
+
+      <div class="import-section-title">密码策略与通知</div>
+      <el-form label-width="128px" class="import-password-form" @submit.prevent>
+        <el-form-item label="随机密码">
+          <el-switch v-model="importRule.use_random_password" />
+          <span class="import-option-hint">开启后，密码为空行将按系统口令策略随机生成</span>
+        </el-form-item>
+        <el-form-item label="固定后缀">
+          <el-input
+            v-model="importRule.fixed_password_suffix"
+            :disabled="importRule.use_random_password"
+            placeholder="默认 hskmock"
+            maxlength="64"
+            clearable
+          />
+          <span class="import-option-hint">固定规则：邮箱第 1/3/5 位 + @ + 固定后缀</span>
+        </el-form-item>
+        <el-form-item label="邮箱取位规则">
+          <el-input
+            v-model="importRule.email_pick_positions"
+            :disabled="importRule.use_random_password"
+            placeholder="默认 1,3,5"
+            maxlength="64"
+            clearable
+          />
+          <span class="import-option-hint">可配置提取位次（1-based），示例：1,3,5 或 1,2,4,6</span>
+        </el-form-item>
+        <el-form-item label="发送账号邮件">
+          <el-switch v-model="importRule.send_password_notice" />
+          <span class="import-option-hint">导入成功后使用模板 forget_password 发送用户名与密码</span>
+        </el-form-item>
       </el-form>
 
       <div class="import-section-title">上传 CSV</div>
@@ -241,6 +272,10 @@ const importRule = reactive({
   country: "TH",
   year: String(new Date().getFullYear()),
   seq_digits: 5,
+  use_random_password: false,
+  email_pick_positions: "1,3,5",
+  fixed_password_suffix: "hskmock",
+  send_password_notice: false,
 });
 
 const importUsernamePreview = computed(() => {
@@ -404,6 +439,10 @@ function loadImportRuleFromStorage() {
       country?: string;
       year?: string;
       seq_digits?: number;
+      use_random_password?: boolean;
+      email_pick_positions?: string;
+      fixed_password_suffix?: string;
+      send_password_notice?: boolean;
     };
     if (j.country != null && String(j.country).trim() !== "") {
       importRule.country = String(j.country).trim();
@@ -413,6 +452,18 @@ function loadImportRuleFromStorage() {
     }
     if (typeof j.seq_digits === "number" && Number.isFinite(j.seq_digits) && j.seq_digits >= 1) {
       importRule.seq_digits = j.seq_digits;
+    }
+    if (typeof j.use_random_password === "boolean") {
+      importRule.use_random_password = j.use_random_password;
+    }
+    if (j.email_pick_positions != null && String(j.email_pick_positions).trim() !== "") {
+      importRule.email_pick_positions = String(j.email_pick_positions).trim();
+    }
+    if (j.fixed_password_suffix != null && String(j.fixed_password_suffix).trim() !== "") {
+      importRule.fixed_password_suffix = String(j.fixed_password_suffix).trim();
+    }
+    if (typeof j.send_password_notice === "boolean") {
+      importRule.send_password_notice = j.send_password_notice;
     }
   } catch {
     /* ignore */
@@ -427,6 +478,10 @@ function saveImportRuleToStorage() {
         country: importRule.country.trim(),
         year: importRule.year.trim(),
         seq_digits: importRule.seq_digits,
+        use_random_password: importRule.use_random_password,
+        email_pick_positions: importRule.email_pick_positions.trim(),
+        fixed_password_suffix: importRule.fixed_password_suffix.trim(),
+        send_password_notice: importRule.send_password_notice,
       })
     );
   } catch {
@@ -465,6 +520,10 @@ async function submitImport() {
       country: c.toUpperCase(),
       year: y,
       seq_digits: importRule.seq_digits,
+      use_random_password: importRule.use_random_password,
+      email_pick_positions: importRule.email_pick_positions.trim(),
+      fixed_password_suffix: importRule.fixed_password_suffix.trim(),
+      send_password_notice: importRule.send_password_notice,
     })) as {
       data?: { total: number; success: number; failed: number; errors?: string[] };
     };
@@ -531,8 +590,16 @@ onMounted(loadList);
 .import-rule-form {
   margin-bottom: 8px;
 }
+.import-password-form {
+  margin-bottom: 8px;
+}
 .import-seq-digits {
   width: 100%;
+}
+.import-option-hint {
+  margin-left: 10px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
 }
 .import-preview {
   display: flex;

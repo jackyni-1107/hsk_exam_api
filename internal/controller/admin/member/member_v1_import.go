@@ -6,6 +6,7 @@ import (
 	v1 "exam/api/admin/member/v1"
 	"exam/internal/consts"
 	"exam/internal/middleware"
+	"exam/internal/model/bo"
 	membersvc "exam/internal/service/member"
 
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -30,7 +31,12 @@ func (c *ControllerV1) MemberImport(ctx context.Context, req *v1.MemberImportReq
 	if d := middleware.GetCtxData(ctx); d != nil {
 		creator = d.Username
 	}
-	out, err := membersvc.Member().MemberImport(ctx, rf, creator, req.Country, req.Year, req.SeqDigits)
+	out, err := membersvc.Member().MemberImport(ctx, rf, creator, req.Country, req.Year, req.SeqDigits, bo.MemberImportOptions{
+		UseRandomPassword:          req.UseRandomPassword,
+		EmailPasswordPickPositions: req.EmailPickPositions,
+		FixedPasswordSuffix:        req.FixedPasswordSuffix,
+		SendPasswordNotice:         req.SendPasswordNotice,
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -29,15 +29,35 @@ func TestNormalizeMemberStatus(t *testing.T) {
 }
 
 func TestMemberImportPasswordFromEmail(t *testing.T) {
-	pwd, err := memberImportPasswordFromEmail("demo@example.com")
+	pwd, err := memberImportPasswordFromEmail("demo@example.com", "hskmock", []int{1, 3, 5})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if want := "dm@@hskmock"; pwd != want {
 		t.Fatalf("got %q want %q", pwd, want)
 	}
-	if _, err := memberImportPasswordFromEmail("a@b"); err == nil {
+	if _, err := memberImportPasswordFromEmail("a@b", "hskmock", []int{1, 3, 5}); err == nil {
 		t.Fatal("expected error for short email")
+	}
+}
+
+func TestMemberImportParsePickPositions(t *testing.T) {
+	got, err := memberImportParsePickPositions("1, 3,5")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 3 || got[0] != 1 || got[1] != 3 || got[2] != 5 {
+		t.Fatalf("unexpected parsed positions: %#v", got)
+	}
+	got, err = memberImportParsePickPositions("1，2；4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 3 || got[0] != 1 || got[1] != 2 || got[2] != 4 {
+		t.Fatalf("unexpected parsed positions with cn punctuation: %#v", got)
+	}
+	if _, err := memberImportParsePickPositions("0,2"); err == nil {
+		t.Fatal("expected invalid error for zero index")
 	}
 }
 

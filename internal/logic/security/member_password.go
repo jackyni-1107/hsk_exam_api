@@ -25,6 +25,30 @@ func (s *sSecurity) EncryptMemberPassword(ctx context.Context, plain string) (st
 	return hex.EncodeToString(cipher), nil
 }
 
+func (s *sSecurity) DecryptMemberPassword(ctx context.Context, encrypted string) (string, error) {
+	_ = ctx
+	encrypted = strings.TrimSpace(encrypted)
+	if encrypted == "" {
+		return "", errors.New("empty member password cipher")
+	}
+	if strings.HasPrefix(encrypted, "$2a$") || strings.HasPrefix(encrypted, "$2b$") || strings.HasPrefix(encrypted, "$2y$") {
+		return "", errors.New("member password is bcrypt and cannot be reversed")
+	}
+	raw, err := decodeSM2Cipher(encrypted)
+	if err != nil {
+		return "", err
+	}
+	key, err := s.mustLoadSM2PrivateKey()
+	if err != nil {
+		return "", err
+	}
+	dec, ok := tryDecryptSM2Compat(key, raw)
+	if !ok {
+		return "", errors.New("member password decrypt failed")
+	}
+	return string(dec), nil
+}
+
 func (s *sSecurity) VerifyMemberPassword(ctx context.Context, encrypted string, plain string) (bool, error) {
 	_ = ctx
 	encrypted = strings.TrimSpace(encrypted)

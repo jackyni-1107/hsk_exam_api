@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 	"regexp"
@@ -14,8 +15,12 @@ import (
 	"exam/internal/dao"
 	"exam/internal/model/bo"
 	sysentity "exam/internal/model/entity/sys"
+	secsvc "exam/internal/service/security"
+	notisvc "exam/internal/service/sysnotification"
+	"exam/internal/utility"
 
 	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/frame/g"
 )
 
 const memberImportMaxRows = 2000
@@ -36,7 +41,7 @@ var memberImportHeaderKeys = map[string]string{
 	"状态":       "status",
 }
 
-func (s *sMember) MemberImport(ctx context.Context, r io.Reader, creator string, country, year string, seqDigits int) (*bo.MemberImportResult, error) {
+func (s *sMember) MemberImport(ctx context.Context, r io.Reader, creator string, country, year string, seqDigits int, opts bo.MemberImportOptions) (*bo.MemberImportResult, error) {
 	raw, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -73,6 +78,7 @@ func (s *sMember) MemberImport(ctx context.Context, r io.Reader, creator string,
 	mobileCol := memberImportCol(colIdx, "mobile")
 
 	out := &bo.MemberImportResult{Errors: make([]string, 0, 8)}
+	opts = memberImportNormalizeOptions(opts)
 	usernameRule, err := memberImportValidateUsernameParams(country, year, seqDigits)
 	if err != nil {
 		return nil, err
@@ -100,10 +106,10 @@ func (s *sMember) MemberImport(ctx context.Context, r io.Reader, creator string,
 			continue
 		}
 		if password == "" {
-			pwd, genErr := memberImportPasswordFromEmail(email)
+			pwd, genErr := memberImportBuildDefaultPassword(ctx, email, opts)
 			if genErr != nil {
 				out.Failed++
-				memberImportAppendErr(out, lineNo, "邮箱不足 5 个字符，无法按规则生成默认密码，请填写密码列")
+				memberImportAppendErr(out, lineNo, genErr.Error())
 				continue
 			}
 			password = pwd
@@ -135,8 +141,47 @@ func (s *sMember) MemberImport(ctx context.Context, r io.Reader, creator string,
 		seenEmails[emailKey] = lineNo
 		nextSeq++
 		out.Success++
+
+		if opts.SendPasswordNotice {
+			memberImportNotifyPassword(ctx, username, email, password)
+		}
 	}
 	return out, nil
+}
+
+func memberImportNormalizeOptions(opts bo.MemberImportOptions) bo.MemberImportOptions {
+	opts.EmailPasswordPickPositions = strings.TrimSpace(opts.EmailPasswordPickPositions)
+	if opts.EmailPasswordPickPositions == "" {
+		opts.EmailPasswordPickPositions = "1,3,5"
+	}
+	opts.FixedPasswordSuffix = strings.TrimSpace(opts.FixedPasswordSuffix)
+	if opts.FixedPasswordSuffix == "" {
+		opts.FixedPasswordSuffix = "hskmock"
+	}
+	return opts
+}
+
+func memberImportBuildDefaultPassword(ctx context.Context, email string, opts bo.MemberImportOptions) (string, error) {
+	if opts.UseRandomPassword {
+		cfg := secsvc.Security().LoadPasswordCfg(ctx)
+		password, err := utility.GeneratePasswordByPolicy(cfg)
+		if err != nil {
+			return "", err
+		}
+		if err = secsvc.Security().ValidatePasswordPolicy(ctx, password); err != nil {
+			return "", gerror.NewCode(consts.CodePasswordWeak)
+		}
+		return password, nil
+	}
+	picks, err := memberImportParsePickPositions(opts.EmailPasswordPickPositions)
+	if err != nil {
+		return "", err
+	}
+	pwd, err := memberImportPasswordFromEmail(email, opts.FixedPasswordSuffix, picks)
+	if err != nil {
+		return "", gerror.NewCodef(consts.CodeInvalidParams, "邮箱长度不足，无法按固定规则位次生成默认密码，请填写密码列")
+	}
+	return pwd, nil
 }
 
 func memberImportParseHeader(header []string) (map[string]int, error) {
@@ -171,18 +216,75 @@ func memberImportCol(idx map[string]int, key string) int {
 	return -1
 }
 
-// memberImportPasswordFromEmail 邮箱第 1、3、5 个字符（按 Unicode 计）与固定后缀组成默认密码。
-func memberImportPasswordFromEmail(email string) (string, error) {
+// memberImportPasswordFromEmail 按配置位次从邮箱提取字符（1-based）并与固定后缀组成默认密码。
+func memberImportPasswordFromEmail(email, fixedSuffix string, picks []int) (string, error) {
 	runes := []rune(strings.TrimSpace(email))
-	if len(runes) < 5 {
+	if len(runes) == 0 {
 		return "", gerror.NewCode(consts.CodeInvalidParams)
 	}
+	if len(picks) == 0 {
+		return "", gerror.NewCode(consts.CodeInvalidParams)
+	}
+	fixedSuffix = strings.TrimSpace(fixedSuffix)
+	if fixedSuffix == "" {
+		fixedSuffix = "hskmock"
+	}
 	var b strings.Builder
-	b.WriteRune(runes[0])
-	b.WriteRune(runes[2])
-	b.WriteRune(runes[4])
-	b.WriteString("@hskmock")
+	for _, p := range picks {
+		i := p - 1
+		if i < 0 || i >= len(runes) {
+			return "", gerror.NewCode(consts.CodeInvalidParams)
+		}
+		b.WriteRune(runes[i])
+	}
+	b.WriteString("@")
+	b.WriteString(fixedSuffix)
 	return b.String(), nil
+}
+
+func memberImportParsePickPositions(raw string) ([]int, error) {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return []int{1, 3, 5}, nil
+	}
+	replacer := strings.NewReplacer("，", ",", "；", ",", ";", ",", " ", ",")
+	s = replacer.Replace(s)
+	parts := strings.Split(s, ",")
+	out := make([]int, 0, len(parts))
+	seen := make(map[int]struct{}, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		n, err := strconv.Atoi(p)
+		if err != nil || n < 1 {
+			return nil, gerror.NewCodef(consts.CodeInvalidParams, "邮箱取位规则非法：%s", raw)
+		}
+		if _, ok := seen[n]; ok {
+			continue
+		}
+		seen[n] = struct{}{}
+		out = append(out, n)
+	}
+	if len(out) == 0 {
+		return nil, gerror.NewCodef(consts.CodeInvalidParams, "邮箱取位规则不能为空")
+	}
+	return out, nil
+}
+
+func memberImportNotifyPassword(ctx context.Context, username, email, password string) {
+	recipient := strings.TrimSpace(email)
+	if recipient == "" {
+		return
+	}
+	vars, _ := json.Marshal(map[string]string{
+		"username": username,
+		"password": password,
+	})
+	if _, err := notisvc.SysNotification().Send(ctx, "forget_password", "email", recipient, string(vars)); err != nil {
+		g.Log().Warningf(ctx, "member import notify failed username=%s email=%s: %v", username, recipient, err)
+	}
 }
 
 func memberImportRowEmpty(row []string) bool {

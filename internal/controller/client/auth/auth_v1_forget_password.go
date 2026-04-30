@@ -15,7 +15,6 @@ import (
 	membersvc "exam/internal/service/member"
 	secsvc "exam/internal/service/security"
 	notisvc "exam/internal/service/sysnotification"
-	"exam/internal/utility"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
@@ -57,14 +56,13 @@ func (c *ControllerV1) ForgetPassword(ctx context.Context, req *v1.ForgetPasswor
 		return &v1.ForgetPasswordRes{}, nil
 	}
 
-	password, err := generateResetPassword(ctx)
+	password, err := secsvc.Security().DecryptMemberPassword(ctx, member.Password)
 	if err != nil {
-		return nil, err
+		g.Log().Errorf(ctx, "[forget_password] decrypt member password failed member_id=%d email=%s err=%v", member.Id, email, err)
+		auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_password_decrypt_failed", member.Id, ip, userAgent, fmt.Sprintf("email=%s", email), traceId)
+		return &v1.ForgetPasswordRes{}, nil
 	}
-	if err = membersvc.Member().MemberUpdatePwd(ctx, member.Id, password); err != nil {
-		return nil, err
-	}
-	auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_password_reset", member.Id, ip, userAgent, fmt.Sprintf("trigger=forget_password email=%s", email), traceId)
+	auditsvc.Audit().RecordSecurityEvent(ctx, "forget_password_password_sent", member.Id, ip, userAgent, fmt.Sprintf("trigger=forget_password email=%s", email), traceId)
 
 	template, err := loadActiveTemplateByCode(ctx, "forget_password")
 	if err != nil {
@@ -110,16 +108,4 @@ func recipientByChannel(member *sysentity.SysMember, channel string) string {
 	default:
 		return ""
 	}
-}
-
-func generateResetPassword(ctx context.Context) (string, error) {
-	cfg := secsvc.Security().LoadPasswordCfg(ctx)
-	password, err := utility.GeneratePasswordByPolicy(cfg)
-	if err != nil {
-		return "", err
-	}
-	if err = secsvc.Security().ValidatePasswordPolicy(ctx, password); err != nil {
-		return "", gerror.NewCode(consts.CodePasswordWeak)
-	}
-	return password, nil
 }

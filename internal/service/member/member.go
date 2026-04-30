@@ -22,7 +22,7 @@ type (
 		MemberProfile(ctx context.Context, memberId int64) (*sysentity.SysMember, error)
 		FindByUsername(ctx context.Context, username string) (*sysentity.SysMember, error)
 		FindByEmail(ctx context.Context, email string) (*sysentity.SysMember, error)
-		MemberImport(ctx context.Context, r io.Reader, creator string, country string, year string, seqDigits int) (*bo.MemberImportResult, error)
+		MemberImport(ctx context.Context, r io.Reader, creator string, country string, year string, seqDigits int, opts bo.MemberImportOptions) (*bo.MemberImportResult, error)
 	}
 )
 

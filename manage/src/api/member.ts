@@ -57,12 +57,32 @@ export interface MemberImportResult {
 /** multipart 导入客户（表单字段名 file，CSV UTF-8；用户名规则由表单参数传入） */
 export function importMembersCsv(
   file: File,
-  params: { country: string; year: string; seq_digits: number }
+  params: {
+    country: string
+    year: string
+    seq_digits: number
+    use_random_password?: boolean
+    email_pick_positions?: string
+    fixed_password_suffix?: string
+    send_password_notice?: boolean
+  }
 ) {
   const fd = new FormData()
   fd.append('country', params.country)
   fd.append('year', params.year)
   fd.append('seq_digits', String(params.seq_digits))
+  if (params.use_random_password !== undefined) {
+    fd.append('use_random_password', String(params.use_random_password))
+  }
+  if (params.email_pick_positions) {
+    fd.append('email_pick_positions', params.email_pick_positions)
+  }
+  if (params.fixed_password_suffix) {
+    fd.append('fixed_password_suffix', params.fixed_password_suffix)
+  }
+  if (params.send_password_notice !== undefined) {
+    fd.append('send_password_notice', String(params.send_password_notice))
+  }
   fd.append('file', file)
   return request.post<unknown, { data?: MemberImportResult }>('/admin/member/import', fd)
 }
