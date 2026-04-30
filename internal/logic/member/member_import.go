@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"exam/internal/consts"
 	"exam/internal/dao"
@@ -143,7 +144,7 @@ func (s *sMember) MemberImport(ctx context.Context, r io.Reader, creator string,
 		out.Success++
 
 		if opts.SendPasswordNotice {
-			memberImportNotifyPassword(ctx, username, email, password)
+			memberImportNotifyPasswordAsync(ctx, username, email, password)
 		}
 	}
 	return out, nil
@@ -273,18 +274,22 @@ func memberImportParsePickPositions(raw string) ([]int, error) {
 	return out, nil
 }
 
-func memberImportNotifyPassword(ctx context.Context, username, email, password string) {
+func memberImportNotifyPasswordAsync(ctx context.Context, username, email, password string) {
 	recipient := strings.TrimSpace(email)
 	if recipient == "" {
 		return
 	}
-	vars, _ := json.Marshal(map[string]string{
-		"username": username,
-		"password": password,
-	})
-	if _, err := notisvc.SysNotification().Send(ctx, "forget_password", "email", recipient, string(vars)); err != nil {
-		g.Log().Warningf(ctx, "member import notify failed username=%s email=%s: %v", username, recipient, err)
-	}
+	go func(user, rcpt, pwd string) {
+		notifyCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		vars, _ := json.Marshal(map[string]string{
+			"username": user,
+			"password": pwd,
+		})
+		if _, err := notisvc.SysNotification().Send(notifyCtx, "forget_password", "email", rcpt, string(vars)); err != nil {
+			g.Log().Warningf(notifyCtx, "member import async notify failed username=%s email=%s: %v", user, rcpt, err)
+		}
+	}(username, recipient, password)
 }
 
 func memberImportRowEmpty(row []string) bool {
