@@ -8,7 +8,7 @@ type ApiEnvelope<T = unknown> = {
 }
 
 const request: AxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: (import.meta.env.VITE_API_BASE_URL || '/api') as string,
   timeout: 60000,
 })
 
