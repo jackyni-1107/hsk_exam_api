@@ -28,6 +28,16 @@ func (s *sSecurity) ValidatePasswordNotInHistory(ctx context.Context, userType i
 	}
 	for _, row := range rows {
 		h := row["password_hash"].String()
+		if userType == consts.UserTypeClient {
+			matched, verifyErr := s.VerifyMemberPassword(ctx, h, plainPassword)
+			if verifyErr != nil {
+				return verifyErr
+			}
+			if matched {
+				return gerror.NewCode(consts.CodePasswordReuse)
+			}
+			continue
+		}
 		if utility.CheckPassword(h, plainPassword) {
 			return gerror.NewCode(consts.CodePasswordReuse)
 		}

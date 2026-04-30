@@ -59,6 +59,8 @@ type (
 		RevokeAllUserSessions(ctx context.Context, userType int, userId int64) error
 		DecryptLoginPassword(ctx context.Context, encrypted string) (string, error)
 		LoginEncryptPublicKeyHex(ctx context.Context) (string, error)
+		EncryptMemberPassword(ctx context.Context, plain string) (string, error)
+		VerifyMemberPassword(ctx context.Context, encrypted string, plain string) (bool, error)
 		IssueToken(ctx context.Context, userType int, userId int64, username string) (string, error)
 		LoadTokenPayload(ctx context.Context, userType int, token string) (*bo.TokenPayload, error)
 		RevokeToken(ctx context.Context, userType int, userId int64, token string) error

@@ -7,3 +7,4 @@
 7) 删除废弃表：执行 migrations/010_drop_exam_attempt_question_audio.sql（DROP exam_attempt_question_audio）。
 8) 会话作弊事件记录：执行 migrations/017_exam_attempt_cheat_event.sql（新增 exam_attempt_cheat_event 表，用于记录切屏/录屏等行为）。
 9) 通知模板兼容第三方：执行 migrations/019_notification_template_third_party.sql（新增模板类型/第三方模板字段/渠道配置绑定字段，并按渠道配置回填历史模板绑定关系）。
+10) 会员密码改 SM2 扩容：执行 migrations/020_sys_member_password_sm2_expand.sql（扩容 sys_member.password 与 sys_password_history.password_hash，避免密文截断）。

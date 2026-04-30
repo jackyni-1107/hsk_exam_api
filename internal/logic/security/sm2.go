@@ -31,23 +31,45 @@ func (s *sSecurity) DecryptLoginPassword(ctx context.Context, encrypted string) 
 	if err != nil {
 		return "", err
 	}
-	plain, err := sm2.Decrypt(key, raw, sm2.C1C3C2)
-	if err == nil {
+	if plain, ok := tryDecryptSM2Compat(key, raw); ok {
 		return string(plain), nil
 	}
+	return "", errors.New("sm2 decrypt failed for all supported modes")
+}
+
+func tryDecryptSM2Compat(key *sm2.PrivateKey, raw []byte) ([]byte, bool) {
+	candidates := make([][]byte, 0, 3)
+	candidates = append(candidates, raw)
 	// 兼容部分前端库返回不带 0x04 前缀的 C1（x||y），这里补前缀重试。
-	plainWithPrefix, errWithPrefix := sm2.Decrypt(key, append([]byte{0x04}, raw...), sm2.C1C3C2)
-	if errWithPrefix == nil {
-		return string(plainWithPrefix), nil
-	}
+	candidates = append(candidates, append([]byte{0x04}, raw...))
 	// 兼容部分前端库附带 0x04 前缀但服务端按无前缀解析失败的情况。
 	if len(raw) > 1 && raw[0] == 0x04 {
-		plain2, err2 := sm2.Decrypt(key, raw[1:], sm2.C1C3C2)
-		if err2 == nil {
-			return string(plain2), nil
+		candidates = append(candidates, raw[1:])
+	}
+
+	modeList := []int{sm2.C1C3C2, sm2.C1C2C3}
+	for _, m := range modeList {
+		for _, c := range candidates {
+			if p, ok := safeDecryptByMode(key, c, m); ok {
+				return p, true
+			}
 		}
 	}
-	return "", err
+	return nil, false
+}
+
+func safeDecryptByMode(key *sm2.PrivateKey, raw []byte, mode int) (plain []byte, ok bool) {
+	defer func() {
+		if recover() != nil {
+			plain = nil
+			ok = false
+		}
+	}()
+	p, err := sm2.Decrypt(key, raw, mode)
+	if err != nil {
+		return nil, false
+	}
+	return p, true
 }
 
 func (s *sSecurity) LoginEncryptPublicKeyHex(ctx context.Context) (string, error) {

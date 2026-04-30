@@ -72,7 +72,18 @@ func (s *sSecurity) Login(ctx context.Context, input bo.LoginInput) (*bo.LoginRe
 		s.recordLoginFailure(ctx, input, account.Id, "invalid encrypted password", true)
 		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
 	}
-	if !utility.CheckPassword(account.PasswordHash, plainPassword) {
+	passwordMatched := false
+	if input.UserType == consts.UserTypeClient {
+		passwordMatched, err = s.VerifyMemberPassword(ctx, account.PasswordHash, plainPassword)
+		if err != nil {
+			g.Log().Errorf(ctx, "verify member password failed: userId=%d, err=%v", account.Id, err)
+			s.recordLoginFailure(ctx, input, account.Id, "invalid password", true)
+			return nil, gerror.NewCode(consts.CodeInvalidCredentials)
+		}
+	} else {
+		passwordMatched = utility.CheckPassword(account.PasswordHash, plainPassword)
+	}
+	if !passwordMatched {
 		s.recordLoginFailure(ctx, input, account.Id, "invalid password", true)
 		return nil, gerror.NewCode(consts.CodeInvalidCredentials)
 	}

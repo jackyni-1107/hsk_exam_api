@@ -11,13 +11,11 @@ import (
 	sysdo "exam/internal/model/do/sys"
 	sysentity "exam/internal/model/entity/sys"
 	secsvc "exam/internal/service/security"
-	"exam/internal/utility"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func (s *sMember) MemberList(ctx context.Context, page, size int, username string, status int) ([]sysentity.SysMember, int, error) {
@@ -54,7 +52,7 @@ func (s *sMember) MemberCreate(ctx context.Context, username, password, nickname
 	//if err := secsvc.Security().ValidatePasswordPolicy(ctx, password); err != nil {
 	//	return 0, err
 	//}
-	passwordHash, err := hashMemberPassword(password)
+	passwordHash, err := encryptMemberPassword(ctx, password)
 	if err != nil {
 		return 0, err
 	}
@@ -118,7 +116,7 @@ func (s *sMember) MemberUpdate(ctx context.Context, id int64, password, nickname
 
 	passwordChanged := false
 	if password != "" {
-		passwordHash, err := prepareMemberPasswordChange(ctx, before.Id, before.Password, password)
+		passwordHash, err := encryptMemberPassword(ctx, password)
 		if err != nil {
 			return err
 		}
@@ -163,7 +161,7 @@ func (s *sMember) MemberUpdatePwd(ctx context.Context, id int64, password string
 	shouldRevokeSessions := false
 	passwordChanged := false
 	if password != "" {
-		passwordHash, err := prepareMemberPasswordChange(ctx, before.Id, before.Password, password)
+		passwordHash, err := encryptMemberPassword(ctx, password)
 		if err != nil {
 			return err
 		}
@@ -284,21 +282,8 @@ func loadMemberByID(ctx context.Context, memberID int64) (*sysentity.SysMember, 
 	return &member, nil
 }
 
-func prepareMemberPasswordChange(ctx context.Context, memberID int64, currentHash, newPassword string) (string, error) {
-	if err := secsvc.Security().ValidatePasswordPolicy(ctx, newPassword); err != nil {
-		return "", err
-	}
-	if utility.CheckPassword(currentHash, newPassword) {
-		return "", gerror.NewCode(consts.CodePasswordReuse)
-	}
-	if err := secsvc.Security().ValidatePasswordNotInHistory(ctx, consts.UserTypeClient, memberID, newPassword); err != nil {
-		return "", err
-	}
-	return hashMemberPassword(newPassword)
-}
-
-func hashMemberPassword(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+func encryptMemberPassword(ctx context.Context, password string) (string, error) {
+	hash, err := secsvc.Security().EncryptMemberPassword(ctx, password)
 	if err != nil {
 		return "", err
 	}
