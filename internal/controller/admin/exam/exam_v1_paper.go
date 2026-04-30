@@ -77,6 +77,7 @@ func (c *ControllerV1) PaperImport(ctx context.Context, req *v1.PaperImportReq) 
 		Title:                  req.Title,
 		AudioHlsPrefix:         req.AudioHlsPrefix,
 		ConflictMode:           req.ConflictMode,
+		OverwriteExamPaperId:   req.OverwriteExamPaperId,
 		Creator:                creator,
 	})
 	if err != nil {

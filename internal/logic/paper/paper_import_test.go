@@ -141,7 +141,9 @@ func TestResolveImportAudioHlsPrefix(t *testing.T) {
 			requestPrefix: "",
 			plan: importConflictPlan{
 				overwritePaperID: 1,
-				existing:         examentity.ExamPaper{AudioHlsPrefix: "/hls/existing/"},
+				existing: []examentity.ExamPaper{
+					{Id: 1, AudioHlsPrefix: "/hls/existing/"},
+				},
 			},
 			want: "hls/existing",
 		},
@@ -150,7 +152,9 @@ func TestResolveImportAudioHlsPrefix(t *testing.T) {
 			requestPrefix: "hls/override",
 			plan: importConflictPlan{
 				overwritePaperID: 1,
-				existing:         examentity.ExamPaper{AudioHlsPrefix: "/hls/existing/"},
+				existing: []examentity.ExamPaper{
+					{Id: 1, AudioHlsPrefix: "/hls/existing/"},
+				},
 			},
 			want: "hls/override",
 		},

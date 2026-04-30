@@ -8,3 +8,4 @@
 8) 会话作弊事件记录：执行 migrations/017_exam_attempt_cheat_event.sql（新增 exam_attempt_cheat_event 表，用于记录切屏/录屏等行为）。
 9) 通知模板兼容第三方：执行 migrations/019_notification_template_third_party.sql（新增模板类型/第三方模板字段/渠道配置绑定字段，并按渠道配置回填历史模板绑定关系）。
 10) 会员密码改 SM2 扩容：执行 migrations/020_sys_member_password_sm2_expand.sql（扩容 sys_member.password 与 sys_password_history.password_hash，避免密文截断）。
+11) 允许同一 Mock 卷多版本试卷：执行 migrations/022_exam_paper_multi_version_by_mock.sql（将 exam_paper.mock_examination_paper_id 唯一索引改为普通索引，支持导入“新试卷”）。

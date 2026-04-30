@@ -5,6 +5,7 @@ type ImportParams struct {
 	Title                  string
 	AudioHlsPrefix         string
 	ConflictMode           string
+	OverwriteExamPaperId   int64
 	Creator                string
 }
 

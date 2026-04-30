@@ -38,8 +38,12 @@ type PaperImportReq struct {
 	MockExaminationPaperId int64  `json:"mock_examination_paper_id" v:"required|min:1#err.invalid_params" dc:"mock 卷 id，业务主键"`
 	Title                  string `json:"title" dc:"可选，试卷名称；填写则写入 exam_paper.title，否则用 mock 卷 name"`
 	AudioHlsPrefix         string `json:"audio_hls_prefix" dc:"听力 HLS 目录前缀（无首尾/），动态 m3u8 拼接时使用"`
-	// fail：已存在则返回 conflict；overwrite / new：伪删旧题目树后在原 exam_paper 上全量更新（二者实现一致，见 docs）
+	// fail：只要该 mock 下已存在任一未删除 exam_paper 即返回 conflict
+	// overwrite：仅覆盖 overwrite_exam_paper_id 指定的试卷（要求该试卷属于当前 mock）
+	// new：无论是否已存在，始终新建一份 exam_paper
 	ConflictMode string `json:"conflict_mode" dc:"fail|overwrite|new，默认 fail；兼容 new_copy 等同于 new"`
+	// conflict_mode=overwrite 时必填，表示要覆盖的 exam_paper.id
+	OverwriteExamPaperId int64 `json:"overwrite_exam_paper_id" dc:"覆盖目标 exam_paper.id（仅 overwrite 模式使用）"`
 }
 
 type PaperImportRes struct {

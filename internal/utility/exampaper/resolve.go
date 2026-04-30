@@ -24,10 +24,10 @@ type byMockIDEntry struct {
 }
 
 var (
-	byMockIDCache       sync.Map
-	byMockIDSF          singleflight.Group
-	byExamPaperIDCache  sync.Map
-	byExamPaperIDSF     singleflight.Group
+	byMockIDCache      sync.Map
+	byMockIDSF         singleflight.Group
+	byExamPaperIDCache sync.Map
+	byExamPaperIDSF    singleflight.Group
 )
 
 type byExamPaperIDEntry struct {
@@ -75,6 +75,8 @@ func byMockIDFromDB(ctx context.Context, mockExaminationPaperID int64) (examenti
 	err := dao.ExamPaper.Ctx(ctx).
 		Where(dao.ExamPaper.Columns().MockExaminationPaperId, mockExaminationPaperID).
 		Where(dao.ExamPaper.Columns().DeleteFlag, consts.DeleteFlagNotDeleted).
+		OrderDesc(dao.ExamPaper.Columns().Id).
+		Limit(1).
 		Scan(&p)
 	if err != nil {
 		return p, err

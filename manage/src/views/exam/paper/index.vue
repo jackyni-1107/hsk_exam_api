@@ -178,6 +178,36 @@
             <el-radio label="new">新试卷</el-radio>
           </el-radio-group>
         </el-form-item>
+        <el-form-item
+          v-if="importForm.conflict_mode === 'overwrite'"
+          label="覆盖目标"
+          required
+        >
+          <el-select
+            v-model="importForm.overwrite_exam_paper_id"
+            placeholder="请选择要覆盖的试卷"
+            clearable
+            filterable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="p in overwriteCandidates"
+              :key="p.id"
+              :label="`${p.id} · ${p.title || '（无标题）'} · ${p.level}`"
+              :value="p.id"
+            />
+          </el-select>
+          <div class="hint">
+            仅会覆盖你选择的这一份 exam_paper；未选中则不会执行覆盖。
+          </div>
+          <div
+            v-if="!overwriteCandidates.length"
+            class="hint"
+            style="margin-top: 6px"
+          >
+            当前列表中未找到该 Mock 卷可覆盖的试卷，请先查询到目标试卷后再覆盖。
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="importDlg = false">取消</el-button>
@@ -489,7 +519,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted, computed } from "vue";
+import { reactive, ref, onMounted, computed, watch } from "vue";
 import { ElMessage } from "element-plus";
 import {
   getExamPaperList,
@@ -550,7 +580,30 @@ const importForm = reactive({
   title: "",
   audio_hls_prefix: "",
   conflict_mode: "fail" as "fail" | "overwrite" | "new",
+  overwrite_exam_paper_id: undefined as number | undefined,
 });
+
+const overwriteCandidates = computed(() => {
+  const mid = importForm.mock_examination_paper_id;
+  if (!mid) return [] as ExamPaperItem[];
+  return rows.value.filter((r) => r.mock_examination_paper_id === mid);
+});
+
+watch(
+  () => importForm.mock_examination_paper_id,
+  () => {
+    importForm.overwrite_exam_paper_id = undefined;
+  },
+);
+
+watch(
+  () => importForm.conflict_mode,
+  (mode) => {
+    if (mode !== "overwrite") {
+      importForm.overwrite_exam_paper_id = undefined;
+    }
+  },
+);
 
 function derivedIndexUrlFromResource(resource: string): string {
   const s = (resource || "").trim();
@@ -737,6 +790,7 @@ async function onImportOpen() {
   importForm.title = "";
   importForm.audio_hls_prefix = "";
   importForm.conflict_mode = "fail";
+  importForm.overwrite_exam_paper_id = undefined;
   try {
     const res = (await getMockLevelsList()) as {
       data?: { list?: MockLevelItem[] };
@@ -755,6 +809,7 @@ async function onImportOpen() {
 
 async function onImportLevelChange() {
   importForm.mock_examination_paper_id = undefined;
+  importForm.overwrite_exam_paper_id = undefined;
   if (!importForm.levelFilter) {
     mockPapers.value = [];
     return;
@@ -844,11 +899,21 @@ async function submitImport() {
     ElMessage.warning("请选择或填写 Mock 卷 ID");
     return;
   }
+  if (importForm.conflict_mode === "overwrite") {
+    if (!importForm.overwrite_exam_paper_id) {
+      ElMessage.warning("请选择要覆盖的试卷");
+      return;
+    }
+  }
   importing.value = true;
   try {
     const payload: Parameters<typeof importExamPaper>[0] = {
       mock_examination_paper_id: mid,
       conflict_mode: importForm.conflict_mode,
+      overwrite_exam_paper_id:
+        importForm.conflict_mode === "overwrite"
+          ? importForm.overwrite_exam_paper_id
+          : undefined,
       audio_hls_prefix: importForm.audio_hls_prefix || undefined,
       title: importForm.title.trim() || undefined,
     };

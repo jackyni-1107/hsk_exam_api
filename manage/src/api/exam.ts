@@ -114,6 +114,8 @@ export function importExamPaper(data: {
   title?: string;
   audio_hls_prefix?: string;
   conflict_mode?: string;
+  /** conflict_mode=overwrite 时，指定要覆盖的 exam_paper.id */
+  overwrite_exam_paper_id?: number;
 }) {
   return request.post<
     any,

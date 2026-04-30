@@ -18,15 +18,15 @@
 | 值 | 行为 |
 |----|------|
 | `fail` | 已存在则**不写入**，接口返回 `conflict=true`（与历史行为一致）。 |
-| `overwrite` | 对已存在的 `exam_paper`：**不物理删除**该行、**不改变** `exam_paper.id`；对下属大题 / 题块 / 试题 / 选项中未删除的数据做**逻辑删除**，再在同一 `exam_paper.id` 上 `UPDATE` 卷头字段并插入**新**的题目树。 |
-| `new` | 与 `overwrite` **服务端实现相同**（同上）。保留该枚举值便于产品与运营在文案或流程上区分「覆盖」与「新试卷」，而不引入删主表、改会话主键等破坏性操作。 |
-| `new_copy`（兼容） | 视为 `new`，即与 `overwrite` 相同实现。 |
+| `overwrite` | 对已存在的 `exam_paper`：**仅覆盖指定的 `overwrite_exam_paper_id`**（且该卷必须属于当前 Mock）；不改 `exam_paper.id`，先逻辑删除该卷下题目树，再在同一主键上重建。 |
+| `new` | 无论该 Mock 是否已存在导入记录，均**新建一条** `exam_paper`（新 `exam_paper.id`）并导入题目树。 |
+| `new_copy`（兼容） | 视为 `new`。 |
 
-## 为何不物理删除 `exam_paper`、不新建主键
+## 关于主键与多版本
 
-- 表 `exam_paper` 对 `mock_examination_paper_id` 存在唯一约束；若保留旧行再插入新行会与约束冲突，除非改表结构（如按删除标记做部分唯一索引），当前未采用。
+- 迁移 `022_exam_paper_multi_version_by_mock.sql` 已将 `mock_examination_paper_id` 从唯一约束调整为普通索引，允许同一 Mock 卷下存在多份 `exam_paper`。
 - `exam_attempt`、`exam_result` 等表冗余 `exam_paper_id`；物理删卷或改主键需批量迁移关联行，且与「保留历史答题与旧题快照」的目标不一致。
-- **「不删除原有数据」**在此指：旧版题目树与选项仍以逻辑删除形式留在库中，便于审计与追溯；当前有效卷始终对应**同一条** `exam_paper` 记录（同一主键）。
+- **「不删除原有数据」**在此指：旧版题目树与选项仍以逻辑删除形式留在库中，便于审计与追溯；`overwrite` 维持同一主键，`new` 会新增主键。
 
 ## 缓存
 

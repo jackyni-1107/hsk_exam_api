@@ -38,8 +38,9 @@ type importIndexSource struct {
 }
 
 type importConflictPlan struct {
-	existing         examentity.ExamPaper
+	existing         []examentity.ExamPaper
 	overwritePaperID int64
+	conflict         bool
 }
 
 // ImportFromIndex 根据 mock_examination_paper.resource_url 推导 index.json 并导入 exam_* 表。
@@ -51,11 +52,11 @@ func (s *sPaper) ImportFromIndex(ctx context.Context, p exambo.ImportParams) (*e
 		return nil, err
 	}
 
-	plan, err := buildImportConflictPlan(ctx, p.ConflictMode, source.mockID)
+	plan, err := buildImportConflictPlan(ctx, p.ConflictMode, source.mockID, p.OverwriteExamPaperId)
 	if err != nil {
 		return nil, err
 	}
-	if plan.existing.Id > 0 && plan.overwritePaperID == 0 {
+	if plan.conflict {
 		res.Conflict = true
 		res.ExistingMockExaminationPaperID = source.mockID
 		return res, nil
@@ -134,7 +135,7 @@ func loadImportIndexSource(ctx context.Context, p exambo.ImportParams) (importIn
 	return source, nil
 }
 
-func buildImportConflictPlan(ctx context.Context, conflictMode string, mockID int64) (importConflictPlan, error) {
+func buildImportConflictPlan(ctx context.Context, conflictMode string, mockID, overwriteExamPaperID int64) (importConflictPlan, error) {
 	var plan importConflictPlan
 	mode, err := normalizeExamImportConflictMode(conflictMode)
 	if err != nil {
@@ -144,24 +145,49 @@ func buildImportConflictPlan(ctx context.Context, conflictMode string, mockID in
 	if err := dao.ExamPaper.Ctx(ctx).
 		Where("mock_examination_paper_id", mockID).
 		Where("delete_flag", consts.DeleteFlagNotDeleted).
+		OrderAsc("id").
 		Scan(&plan.existing); err != nil {
 		return plan, err
 	}
-	if plan.existing.Id == 0 {
+	if len(plan.existing) == 0 {
 		return plan, nil
 	}
 	if mode == consts.ExamImportConflictFail {
+		plan.conflict = true
 		return plan, nil
 	}
+	if mode == consts.ExamImportConflictNew {
+		return plan, nil
+	}
+	if overwriteExamPaperID <= 0 {
+		return plan, gerror.NewCode(consts.CodeInvalidParams)
+	}
+	for _, paper := range plan.existing {
+		if paper.Id == overwriteExamPaperID {
+			plan.overwritePaperID = overwriteExamPaperID
+			return plan, nil
+		}
+	}
+	return plan, gerror.NewCode(consts.CodeExamPaperNotFound)
+}
 
-	plan.overwritePaperID = plan.existing.Id
-	return plan, nil
+func getOverwriteExisting(plan importConflictPlan) examentity.ExamPaper {
+	for _, paper := range plan.existing {
+		if paper.Id == plan.overwritePaperID {
+			return paper
+		}
+	}
+	return examentity.ExamPaper{}
 }
 
 func upsertImportedPaper(ctx context.Context, tx gdb.TX, creator string, source importIndexSource, plan importConflictPlan) (int64, error) {
 	audioHlsPrefix := resolveImportAudioHlsPrefix(source.audioHlsPrefix, plan)
 
 	if plan.overwritePaperID > 0 {
+		existing := getOverwriteExisting(plan)
+		if existing.Id == 0 {
+			return 0, gerror.NewCode(consts.CodeExamPaperNotFound)
+		}
 		if err := softDeletePaperTreeTx(ctx, tx, plan.overwritePaperID, creator); err != nil {
 			return 0, err
 		}
@@ -175,13 +201,13 @@ func upsertImportedPaper(ctx context.Context, tx gdb.TX, creator string, source 
 			PrepareAudioFile:        source.prepareAudio,
 			SourceBaseUrl:           source.baseURL,
 			AudioHlsPrefix:          audioHlsPrefix,
-			AudioHlsSegmentCount:    plan.existing.AudioHlsSegmentCount,
-			AudioHlsSegmentPattern:  plan.existing.AudioHlsSegmentPattern,
-			AudioHlsKeyObject:       plan.existing.AudioHlsKeyObject,
-			AudioHlsIvHex:           plan.existing.AudioHlsIvHex,
-			AudioHlsSegmentDuration: plan.existing.AudioHlsSegmentDuration,
+			AudioHlsSegmentCount:    existing.AudioHlsSegmentCount,
+			AudioHlsSegmentPattern:  existing.AudioHlsSegmentPattern,
+			AudioHlsKeyObject:       existing.AudioHlsKeyObject,
+			AudioHlsIvHex:           existing.AudioHlsIvHex,
+			AudioHlsSegmentDuration: existing.AudioHlsSegmentDuration,
 			IndexJson:               source.indexSnapshot,
-			DurationSeconds:         plan.existing.DurationSeconds,
+			DurationSeconds:         existing.DurationSeconds,
 			Updater:                 creator,
 			UpdateTime:              gtime.Now(),
 			DeleteFlag:              consts.DeleteFlagNotDeleted,
@@ -272,7 +298,8 @@ func firstNonEmpty(values ...string) string {
 func resolveImportAudioHlsPrefix(requestPrefix string, plan importConflictPlan) string {
 	prefix := strings.Trim(requestPrefix, "/")
 	if plan.overwritePaperID > 0 && prefix == "" {
-		return strings.Trim(plan.existing.AudioHlsPrefix, "/")
+		existing := getOverwriteExisting(plan)
+		return strings.Trim(existing.AudioHlsPrefix, "/")
 	}
 	return prefix
 }
