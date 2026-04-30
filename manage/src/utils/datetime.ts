@@ -89,6 +89,49 @@ export function wallClockStringToRFC3339UTC(
   );
 }
 
+/**
+ * 将本地墙钟时间（YYYY-MM-DD HH:mm:ss）转换为 RFC3339（带本地时区偏移）。
+ * 例如：2026-04-30 14:00:00 -> 2026-04-30T14:00:00+08:00
+ */
+export function wallClockStringToRFC3339Local(wall: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/.exec(
+    wall.trim(),
+  );
+  if (!m) {
+    throw new Error(`无效时间格式：${wall}`);
+  }
+  const y = +m[1];
+  const mo = +m[2];
+  const d = +m[3];
+  const h = +m[4];
+  const mi = +m[5];
+  const s = m[6] != null ? +m[6] : 0;
+
+  const localDate = new Date(y, mo - 1, d, h, mi, s);
+  if (
+    localDate.getFullYear() !== y ||
+    localDate.getMonth() + 1 !== mo ||
+    localDate.getDate() !== d ||
+    localDate.getHours() !== h ||
+    localDate.getMinutes() !== mi ||
+    localDate.getSeconds() !== s
+  ) {
+    throw new Error(`无效本地时间：${wall}`);
+  }
+
+  const offsetMinutes = -localDate.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const absMinutes = Math.abs(offsetMinutes);
+  const offH = String(Math.floor(absMinutes / 60)).padStart(2, "0");
+  const offM = String(absMinutes % 60).padStart(2, "0");
+  const mm = String(mo).padStart(2, "0");
+  const dd = String(d).padStart(2, "0");
+  const hh = String(h).padStart(2, "0");
+  const min = String(mi).padStart(2, "0");
+  const ss = String(s).padStart(2, "0");
+  return `${y}-${mm}-${dd}T${hh}:${min}:${ss}${sign}${offH}:${offM}`;
+}
+
 /** 将接口返回的 ISO/RFC3339 转为与日期选择器一致的墙钟串（展示时区） */
 export function isoOrRfcToWallClockForPicker(
   iso?: string | null,
