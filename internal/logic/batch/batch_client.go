@@ -33,7 +33,6 @@ func (s *sBatch) MyExamBatches(ctx context.Context, memberID int64) (list []bo.M
 		InnerJoin("exam_paper ep", "ep.id = ebp.exam_paper_id").
 		Fields("eb.id AS batch_id, eb.title, ebp.exam_paper_id, ep.mock_examination_paper_id AS mock_src_id, ep.title AS paper_title, eb.exam_start_at, eb.exam_end_at, eb.batch_kind, eb.allow_multiple_attempts").
 		Where("eb.batch_kind", consts.ExamBatchKindPractice).
-		Where("eb.exam_start_at <= ?", gtime.Now()).
 		Where("eb.exam_end_at >= ?", gtime.Now()).
 		Where(g.Map{
 			"eb.delete_flag": consts.DeleteFlagNotDeleted,
@@ -51,7 +50,6 @@ func (s *sBatch) MyExamBatches(ctx context.Context, memberID int64) (list []bo.M
 		Fields("eb.id AS batch_id, eb.title, ebm.exam_paper_id, ep.mock_examination_paper_id AS mock_src_id, ep.title AS paper_title, eb.exam_start_at, eb.exam_end_at, eb.batch_kind, eb.allow_multiple_attempts").
 		Where("ebm.member_id = ?", memberID).
 		Where("eb.batch_kind", consts.ExamBatchKindFormal).
-		Where("eb.exam_start_at <= ?", gtime.Now()).
 		Where("eb.exam_end_at >= ?", gtime.Now()).
 		Where(g.Map{
 			"eb.delete_flag": consts.DeleteFlagNotDeleted,
@@ -141,10 +139,9 @@ func (s *sBatch) MyExamBatches(ctx context.Context, memberID int64) (list []bo.M
 		arr := attemptsByKey[key]
 		allowMulti := r.AllowMultipleAttempts != 0
 
-		if !allowMulti {
-			if len(arr) > 0 && allSubmittedOrEnded(arr) {
-				continue
-			}
+		// 正常考试：已有作答记录且全部提交/结束，则不再展示该档次考试。
+		if r.BatchKind == consts.ExamBatchKindFormal && len(arr) > 0 && allSubmittedOrEnded(arr) {
+			continue
 		}
 
 		attID, hasAttempt := pickAttemptID(key, allowMulti)
